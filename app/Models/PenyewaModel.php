@@ -12,7 +12,7 @@ class PenyewaModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = [
+    protected $allowedFields = [
         'user_id',
         'kamar_id',
         'tanggal_masuk',
@@ -22,8 +22,10 @@ class PenyewaModel extends Model
         'status_pekerjaan',
         'status_pernikahan',
         'nomor_darurat',
+        'created_at',
+        'updated_at'
     ];
-
+    
     protected bool $allowEmptyInserts = false;
     protected bool $updateOnlyChanged = false;
 

@@ -77,8 +77,8 @@ class PenyewaController extends BaseController
             'tanggal_masuk'     => $this->request->getPost('tanggal_masuk'),
             'alamat'            => $this->request->getPost('alamat'),
             'asal_kota'         => $this->request->getPost('asal_kota'),
-            'status_pekerjaan'  => $this->request->getPost('status_pekerjaan'),
-            'status_pernikahan' => $this->request->getPost('status_pernikahan'),
+            'status_pekerjaan'   => $this->request->getPost('status_pekerjaan') ?: null,
+            'status_pernikahan'  => $this->request->getPost('status_pernikahan') ?: null,
             'nomor_darurat'     => $this->request->getPost('nomor_darurat'),
         ]);
 
@@ -152,8 +152,8 @@ class PenyewaController extends BaseController
             'tanggal_masuk'     => $this->request->getPost('tanggal_masuk'),
             'alamat'            => $this->request->getPost('alamat'),
             'asal_kota'         => $this->request->getPost('asal_kota'),
-            'status_pekerjaan'  => $this->request->getPost('status_pekerjaan'),
-            'status_pernikahan' => $this->request->getPost('status_pernikahan'),
+            'status_pekerjaan'   => $this->request->getPost('status_pekerjaan') ?: null,
+            'status_pernikahan'  => $this->request->getPost('status_pernikahan') ?: null,
             'nomor_darurat'     => $this->request->getPost('nomor_darurat'),
 
         ]);

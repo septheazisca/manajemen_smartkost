@@ -224,8 +224,10 @@
                             <label>Status Pernikahan</label>
 
                             <select name="status_pernikahan" class="form-select">
-                                <option value="Belum Menikah">Belum Menikah</option>
-                                <option value="Menikah">Menikah</option>
+                                <option value="" selected>-- Pilih Status Pernikahan --</option>
+                                <option value="belum menikah">Belum Menikah</option>
+                                <option value="menikah">Menikah</option>
+                                <option value="lainnya">Lainnya</option>
                             </select>
                         </div>
 
@@ -349,17 +351,27 @@
                                 <label>Status Pernikahan</label>
                                 <select name="status_pernikahan" class="form-select">
 
-                                    <option value="Belum Menikah"
-                                        <?= $p['status_pernikahan'] == 'Belum Menikah' ? 'selected' : '' ?>>
+                                    <option value=""
+                                        <?= empty($p['status_pernikahan']) ? 'selected' : '' ?>>
+                                        -- Pilih Status Pernikahan --
+                                    </option>
+
+                                    <option value="belum menikah"
+                                        <?= $p['status_pernikahan'] == 'belum menikah' ? 'selected' : '' ?>>
                                         Belum Menikah
                                     </option>
 
-                                    <option value="Menikah"
-                                        <?= $p['status_pernikahan'] == 'Menikah' ? 'selected' : '' ?>>
+                                    <option value="menikah"
+                                        <?= $p['status_pernikahan'] == 'menikah' ? 'selected' : '' ?>>
                                         Menikah
                                     </option>
 
-                                </select>
+                                    <option value="lainnya"
+                                        <?= $p['status_pernikahan'] == 'lainnya' ? 'selected' : '' ?>>
+                                        Lainnya
+                                    </option>
+
+                                    </select>
                             </div>
 
                             <div class="col-md-6 mb-3">
