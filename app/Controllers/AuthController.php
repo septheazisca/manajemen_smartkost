@@ -10,58 +10,91 @@ class AuthController extends BaseController
 {
     public function login()
     {
+        // kalau sudah login, langsung redirect
+        if (session()->get('logged_in')) {
+            return $this->redirectByRole(session()->get('role'));
+        }
+
         return view('auth/login');
     }
 
     public function attemptLogin()
     {
-        $model = new UserModel();
+        // 1. validasi input dulu
+        $rules = [
+            'email'    => 'required|valid_email',
+            'password' => 'required|min_length[6]',
+        ];
 
-        $email = $this->request->getPost('email');
+        if (!$this->validate($rules)) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Email dan password wajib diisi dengan benar.');
+        }
+
+        $model    = new UserModel();
+        $email    = $this->request->getPost('email');
         $password = $this->request->getPost('password');
 
         $user = $model->where('email', $email)->first();
 
-        // 1. cek user
+        // 2. cek user ada atau tidak
         if (!$user) {
-            return redirect()->back()->with('error', 'User tidak ditemukan');
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Email atau password salah.');
         }
 
-        // 2. cek password
+        // 3. cek password
         if (!password_verify($password, $user['password'])) {
-            return redirect()->back()->with('error', 'Password salah');
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Email atau password salah.');
         }
 
-        // 3. cek aktif
+        // 4. cek akun aktif
         if ($user['is_active'] != 1) {
-            return redirect()->back()->with('error', 'Akun nonaktif');
+            return redirect()->back()
+                ->with('error', 'Akun kamu dinonaktifkan. Hubungi admin.');
         }
 
-        // 4. set session
+        // 5. set session
         session()->set([
-            'user_id' => $user['id'],
-            'name' => $user['name'],
-            'role' => $user['role'],
-            'logged_in' => true
+            'user_id'  => $user['id'],
+            'name'     => $user['name'],
+            'role'     => $user['role'],
+            'logged_in' => true,
         ]);
 
-        // 5. redirect berdasarkan role
-        return match ($user['role']) {
-            'admin' => redirect()->to('/admin/dashboard'),
-            'pj' => redirect()->to('/pj/dashboard'),
-            'penyewa' => redirect()->to('/tenant/dashboard'),
-            default => redirect()->to('/login')
-        };
+        // 6. cek must_change_password
+        if ($user['must_change_password'] == 1) {
+            return redirect()->to('/change-password')
+                ->with('info', 'Kamu harus mengganti password sebelum melanjutkan.');
+        }
+
+        // 7. redirect sesuai role
+        return $this->redirectByRole($user['role']);
     }
 
     public function logout()
     {
         session()->destroy();
-        return redirect()->to('/login');
+        return redirect()->to('/login')->with('success', 'Berhasil logout.');
     }
 
     public function unauthorized()
     {
         return view('errors/unauthorized');
+    }
+
+    // helper redirect by role
+    private function redirectByRole(string $role)
+    {
+        return match ($role) {
+            'admin'   => redirect()->to('/admin/dashboard'),
+            'pj'      => redirect()->to('/pj/dashboard'),
+            'penyewa' => redirect()->to('/tenant/dashboard'),
+            default   => redirect()->to('/login'),
+        };
     }
 }

@@ -4,7 +4,7 @@ namespace App\Database\Migrations;
 
 use CodeIgniter\Database\Migration;
 
-class CreateKamarTable extends Migration
+class CreateNotifikasiLogTable extends Migration
 {
     public function up()
     {
@@ -14,47 +14,48 @@ class CreateKamarTable extends Migration
                 'constraint'     => 11,
                 'auto_increment' => true,
             ],
-            'nomor_kamar' => [
-                'type'       => 'VARCHAR',
-                'constraint' => 10,
-            ],
-            'lantai' => [
-                'type'    => 'INT',
-                'null'    => true,
-            ],
-            'luas' => [
-                'type'       => 'VARCHAR',
-                'constraint' => 20,
+            'user_id' => [
+                'type'       => 'INT',
+                'constraint' => 11,
                 'null'       => true,
             ],
-            'harga' => [
-                'type' => 'INT',
+            'no_hp' => [
+                'type'       => 'VARCHAR',
+                'constraint' => 20,
             ],
-            'status' => [
-                'type'       => 'ENUM',
-                'constraint' => ['kosong', 'terisi', 'nonaktif'],
-                'default'    => 'kosong',
-            ],
-            'deskripsi' => [
+            'pesan' => [
                 'type' => 'TEXT',
+            ],
+            'jenis' => [
+                'type'       => 'ENUM',
+                'constraint' => ['tagihan', 'tunggakan', 'info', 'custom'],
+                'default'    => 'custom',
+            ],
+            'status_kirim' => [
+                'type'       => 'ENUM',
+                'constraint' => ['terkirim', 'gagal'],
+                'default'    => 'terkirim',
+            ],
+            'response_fonnte' => [
+                'type' => 'TEXT',
+                'null' => true,
+            ],
+            'sent_at' => [
+                'type' => 'DATETIME',
                 'null' => true,
             ],
             'created_at' => [
                 'type' => 'DATETIME',
                 'null' => true,
             ],
-            'updated_at' => [
-                'type' => 'DATETIME',
-                'null' => true,
-            ],
         ]);
 
         $this->forge->addKey('id', true);
-        $this->forge->createTable('kamar');
+        $this->forge->createTable('notifikasi_log');
     }
 
     public function down()
     {
-        $this->forge->dropTable('kamar');
+        $this->forge->dropTable('notifikasi_log');
     }
 }

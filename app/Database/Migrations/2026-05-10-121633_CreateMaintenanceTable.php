@@ -10,37 +10,66 @@ class CreateMaintenanceTable extends Migration
     {
         $this->forge->addField([
             'id' => [
-                'type' => 'INT',
+                'type'           => 'INT',
+                'constraint'     => 11,
                 'auto_increment' => true,
             ],
             'penyewa_id' => [
-                'type' => 'INT',
-                'null' => true,
+                'type'       => 'INT',
+                'constraint' => 11,
+                'null'       => true,
+            ],
+            'kamar_id' => [
+                'type'       => 'INT',
+                'constraint' => 11,
+                'null'       => true,
+            ],
+            'pj_id' => [
+                'type'       => 'INT',
+                'constraint' => 11,
+                'null'       => true,
             ],
             'deskripsi' => [
                 'type' => 'TEXT',
             ],
             'foto' => [
-                'type' => 'VARCHAR',
+                'type'       => 'VARCHAR',
                 'constraint' => 255,
-                'null' => true,
+                'null'       => true,
             ],
             'biaya' => [
-                'type' => 'INT',
+                'type'    => 'INT',
+                'null'    => true,
+            ],
+            'catatan_pj' => [
+                'type' => 'TEXT',
                 'null' => true,
             ],
             'status' => [
-                'type' => 'ENUM',
+                'type'       => 'ENUM',
                 'constraint' => ['menunggu', 'proses', 'selesai'],
-                'default' => 'menunggu',
+                'default'    => 'menunggu',
+            ],
+            'assigned_at' => [
+                'type' => 'DATETIME',
+                'null' => true,
+            ],
+            'selesai_at' => [
+                'type' => 'DATETIME',
+                'null' => true,
             ],
             'created_at' => [
+                'type' => 'DATETIME',
+                'null' => true,
+            ],
+            'updated_at' => [
                 'type' => 'DATETIME',
                 'null' => true,
             ],
         ]);
 
         $this->forge->addKey('id', true);
+        $this->forge->addForeignKey('kamar_id', 'kamar', 'id', 'SET NULL', 'SET NULL');
         $this->forge->createTable('maintenance');
     }
 

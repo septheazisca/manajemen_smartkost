@@ -10,32 +10,52 @@ class CreatePembayaranTable extends Migration
     {
         $this->forge->addField([
             'id' => [
-                'type' => 'INT',
+                'type'           => 'INT',
+                'constraint'     => 11,
                 'auto_increment' => true,
             ],
             'tagihan_id' => [
-                'type' => 'INT',
+                'type'       => 'INT',
+                'constraint' => 11,
             ],
             'jumlah_bayar' => [
                 'type' => 'INT',
             ],
             'bukti_transfer' => [
-                'type' => 'VARCHAR',
+                'type'       => 'VARCHAR',
                 'constraint' => 255,
-                'null' => true,
+                'null'       => true,
             ],
             'status' => [
-                'type' => 'ENUM',
+                'type'       => 'ENUM',
                 'constraint' => ['pending', 'approved', 'ditolak'],
-                'default' => 'pending',
+                'default'    => 'pending',
+            ],
+            'catatan_admin' => [
+                'type' => 'TEXT',
+                'null' => true,
+            ],
+            'approved_at' => [
+                'type' => 'DATETIME',
+                'null' => true,
+            ],
+            'approved_by' => [
+                'type'       => 'INT',
+                'constraint' => 11,
+                'null'       => true,
             ],
             'created_at' => [
+                'type' => 'DATETIME',
+                'null' => true,
+            ],
+            'updated_at' => [
                 'type' => 'DATETIME',
                 'null' => true,
             ],
         ]);
 
         $this->forge->addKey('id', true);
+        $this->forge->addForeignKey('tagihan_id', 'tagihan', 'id', 'CASCADE', 'CASCADE');
         $this->forge->createTable('pembayaran');
     }
 

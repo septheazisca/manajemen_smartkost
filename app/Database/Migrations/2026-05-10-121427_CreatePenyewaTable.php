@@ -10,46 +10,63 @@ class CreatePenyewaTable extends Migration
     {
         $this->forge->addField([
             'id' => [
-                'type' => 'INT',
+                'type'           => 'INT',
+                'constraint'     => 11,
                 'auto_increment' => true,
             ],
             'user_id' => [
-                'type' => 'INT',
+                'type'       => 'INT',
+                'constraint' => 11,
             ],
             'kamar_id' => [
-                'type' => 'INT',
+                'type'       => 'INT',
+                'constraint' => 11,
+            ],
+            'tanggal_masuk' => [
+                'type' => 'DATE',
+                'null' => true,
+            ],
+            'tanggal_keluar' => [
+                'type' => 'DATE',
+                'null' => true,
             ],
             'alamat' => [
                 'type' => 'TEXT',
                 'null' => true,
             ],
             'asal_kota' => [
-                'type' => 'VARCHAR',
+                'type'       => 'VARCHAR',
                 'constraint' => 100,
-                'null' => true,
+                'null'       => true,
             ],
             'status_pekerjaan' => [
-                'type' => 'VARCHAR',
-                'constraint' => 100,
-                'null' => true,
+                'type'       => 'ENUM',
+                'constraint' => ['bekerja', 'pelajar/mahasiswa', 'lainnya'],
+                'null'       => true,
             ],
             'status_pernikahan' => [
-                'type' => 'VARCHAR',
-                'constraint' => 50,
-                'null' => true,
+                'type'       => 'ENUM',
+                'constraint' => ['belum menikah', 'menikah', 'lainnya'],
+                'null'       => true,
             ],
             'nomor_darurat' => [
-                'type' => 'VARCHAR',
+                'type'       => 'VARCHAR',
                 'constraint' => 20,
-                'null' => true,
+                'null'       => true,
             ],
             'created_at' => [
+                'type' => 'DATETIME',
+                'null' => true,
+            ],
+            'updated_at' => [
                 'type' => 'DATETIME',
                 'null' => true,
             ],
         ]);
 
         $this->forge->addKey('id', true);
+        $this->forge->addForeignKey('user_id', 'users', 'id', 'CASCADE', 'CASCADE');
+        $this->forge->addForeignKey('kamar_id', 'kamar', 'id', 'CASCADE', 'CASCADE');
         $this->forge->createTable('penyewa');
     }
 

@@ -10,12 +10,21 @@ class CreateFasilitasTable extends Migration
     {
         $this->forge->addField([
             'id' => [
-                'type' => 'INT',
+                'type'           => 'INT',
+                'constraint'     => 11,
                 'auto_increment' => true,
             ],
             'nama_fasilitas' => [
-                'type' => 'VARCHAR',
+                'type'       => 'VARCHAR',
                 'constraint' => 100,
+            ],
+            'created_at' => [
+                'type' => 'DATETIME',
+                'null' => true,
+            ],
+            'updated_at' => [
+                'type' => 'DATETIME',
+                'null' => true,
             ],
         ]);
 

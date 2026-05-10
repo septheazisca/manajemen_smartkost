@@ -10,17 +10,46 @@ class CreatePengeluaranTable extends Migration
     {
         $this->forge->addField([
             'id' => [
-                'type' => 'INT',
+                'type'           => 'INT',
+                'constraint'     => 11,
                 'auto_increment' => true,
             ],
             'keterangan' => [
-                'type' => 'VARCHAR',
+                'type'       => 'VARCHAR',
                 'constraint' => 255,
+            ],
+            'kategori' => [
+                'type'       => 'ENUM',
+                'constraint' => ['maintenance', 'gaji', 'lainnya'],
+                'default'    => 'lainnya',
             ],
             'jumlah' => [
                 'type' => 'INT',
             ],
+            'bulan' => [
+                'type'       => 'VARCHAR',
+                'constraint' => 20,
+                'null'       => true,
+            ],
+            'tahun' => [
+                'type' => 'YEAR',
+                'null' => true,
+            ],
+            'pj_id' => [
+                'type'       => 'INT',
+                'constraint' => 11,
+                'null'       => true,
+            ],
+            'maintenance_id' => [
+                'type'       => 'INT',
+                'constraint' => 11,
+                'null'       => true,
+            ],
             'created_at' => [
+                'type' => 'DATETIME',
+                'null' => true,
+            ],
+            'updated_at' => [
                 'type' => 'DATETIME',
                 'null' => true,
             ],
