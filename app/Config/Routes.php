@@ -14,7 +14,7 @@ $routes->get('/unauthorized', 'AuthController::unauthorized');
 
 $routes->group('admin', ['filter' => 'role:admin'], function ($routes) {
     $routes->get('dashboard', 'DashboardController::index');
-    
+
     // Fasilitas
     $routes->get('fasilitas', 'FasilitasController::index');
     $routes->post('fasilitas/store', 'FasilitasController::store');
@@ -36,6 +36,12 @@ $routes->group('admin', ['filter' => 'role:admin'], function ($routes) {
     $routes->get('penyewa/reset-password/(:num)', 'PenyewaController::resetPassword/$1');
     $routes->get('penyewa/checkout/(:num)', 'PenyewaController::checkout/$1');
 
+    // Tagihan
+    $routes->get('tagihan', 'TagihanController::index');
+    $routes->post('tagihan/generate', 'TagihanController::generate');
+    $routes->post('tagihan/tandai-menunggak/(:num)', 'TagihanController::tandaiMenunggak/$1');
+    $routes->get('tagihan/(:num)', 'TagihanController::show/$1');
+    
     // nanti extend fitur
     $routes->get('rooms', 'Room::index');
     $routes->get('tenants', 'Tenant::index');

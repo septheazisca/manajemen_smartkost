@@ -69,11 +69,11 @@ class TagihanModel extends Model
     public function getTagihanLengkap($bulan = null, $tahun = null)
     {
         $builder = $this->select('
-                tagihan.*,
-                users.name,
-                users.phone,
-                kamar.nomor_kamar
-            ')
+            tagihan.*,
+            users.name AS nama,
+            users.phone,
+            kamar.nomor_kamar AS nama_kamar
+        ')
             ->join('penyewa', 'penyewa.id = tagihan.penyewa_id')
             ->join('users', 'users.id = penyewa.user_id')
             ->join('kamar', 'kamar.id = penyewa.kamar_id');
