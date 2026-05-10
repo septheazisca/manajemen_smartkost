@@ -50,4 +50,44 @@ class KamarModel extends Model
     protected $afterFind      = [];
     protected $beforeDelete   = [];
     protected $afterDelete    = [];
+
+    public function getKamarKosong()
+    {
+        return $this->where('status', 'kosong')->findAll();
+    }
+
+    public function getKamarWithFasilitas($id)
+    {
+        $kamar = $this->find($id);
+        if (!$kamar) return null;
+
+        $fasilitasModel      = new FasilitasModel();
+        $kamarFasilitasModel = new KamarFasilitasModel();
+
+        $pivotRows  = $kamarFasilitasModel->where('kamar_id', $id)->findAll();
+        $fasilitasIds = array_column($pivotRows, 'fasilitas_id');
+
+        $kamar['fasilitas'] = !empty($fasilitasIds)
+            ? $fasilitasModel->whereIn('id', $fasilitasIds)->findAll()
+            : [];
+
+        return $kamar;
+    }
+
+    public function getAllWithFasilitas()
+    {
+        $kamarList           = $this->findAll();
+        $kamarFasilitasModel = new KamarFasilitasModel();
+        $fasilitasModel      = new FasilitasModel();
+
+        foreach ($kamarList as &$kamar) {
+            $pivotRows       = $kamarFasilitasModel->where('kamar_id', $kamar['id'])->findAll();
+            $fasilitasIds    = array_column($pivotRows, 'fasilitas_id');
+            $kamar['fasilitas'] = !empty($fasilitasIds)
+                ? $fasilitasModel->whereIn('id', $fasilitasIds)->findAll()
+                : [];
+        }
+
+        return $kamarList;
+    }
 }

@@ -1,0 +1,120 @@
+<?php
+
+namespace App\Models;
+
+use CodeIgniter\Model;
+
+class TagihanModel extends Model
+{
+    protected $table            = 'tagihan';
+    protected $primaryKey       = 'id';
+    protected $useAutoIncrement = true;
+    protected $returnType       = 'array';
+    protected $useSoftDeletes   = false;
+    protected $protectFields    = true;
+    protected $allowedFields    = [
+        'penyewa_id',
+        'bulan',
+        'tahun',
+        'jumlah',
+        'nominal_unik',
+        'status',
+        'jatuh_tempo',
+    ];
+
+    protected bool $allowEmptyInserts = false;
+    protected bool $updateOnlyChanged = true;
+
+    protected array $casts = [];
+    protected array $castHandlers = [];
+
+    // Dates
+    protected $useTimestamps = false;
+    protected $dateFormat    = 'datetime';
+    protected $createdField  = 'created_at';
+    protected $updatedField  = 'updated_at';
+    protected $deletedField  = 'deleted_at';
+
+    // Validation
+    protected $validationRules      = [];
+    protected $validationMessages   = [];
+    protected $skipValidation       = false;
+    protected $cleanValidationRules = true;
+
+    // Callbacks
+    protected $allowCallbacks = true;
+    protected $beforeInsert   = [];
+    protected $afterInsert    = [];
+    protected $beforeUpdate   = [];
+    protected $afterUpdate    = [];
+    protected $beforeFind     = [];
+    protected $afterFind      = [];
+    protected $beforeDelete   = [];
+    protected $afterDelete    = [];
+
+    // generate nominal unik 3 digit (001-999)
+    public function generateNominalUnik()
+    {
+        $last = $this->select('nominal_unik')
+            ->orderBy('id', 'DESC')
+            ->first();
+
+        $lastNominal = $last ? $last['nominal_unik'] : 0;
+        $next        = ($lastNominal % 999) + 1;
+
+        return $next;
+    }
+
+    // ambil tagihan lengkap dengan info penyewa
+    public function getTagihanLengkap($bulan = null, $tahun = null)
+    {
+        $builder = $this->select('
+                tagihan.*,
+                users.name,
+                users.phone,
+                kamar.nomor_kamar
+            ')
+            ->join('penyewa', 'penyewa.id = tagihan.penyewa_id')
+            ->join('users', 'users.id = penyewa.user_id')
+            ->join('kamar', 'kamar.id = penyewa.kamar_id');
+
+        if ($bulan) $builder->where('tagihan.bulan', $bulan);
+        if ($tahun) $builder->where('tagihan.tahun', $tahun);
+
+        return $builder->orderBy('tagihan.created_at', 'DESC')->findAll();
+    }
+
+    // ambil tagihan by penyewa_id (untuk dashboard penyewa)
+    public function getTagihanByPenyewa($penyewaId)
+    {
+        return $this->where('penyewa_id', $penyewaId)
+            ->orderBy('tahun', 'DESC')
+            ->orderBy('bulan', 'DESC')
+            ->findAll();
+    }
+
+    // cek tagihan bulan ini sudah ada atau belum
+    public function isTagihanExist($penyewaId, $bulan, $tahun)
+    {
+        return $this->where('penyewa_id', $penyewaId)
+            ->where('bulan', $bulan)
+            ->where('tahun', $tahun)
+            ->first();
+    }
+
+    // ambil yang menunggak
+    public function getMenunggak()
+    {
+        return $this->select('
+                tagihan.*,
+                users.name,
+                users.phone,
+                kamar.nomor_kamar
+            ')
+            ->join('penyewa', 'penyewa.id = tagihan.penyewa_id')
+            ->join('users', 'users.id = penyewa.user_id')
+            ->join('kamar', 'kamar.id = penyewa.kamar_id')
+            ->where('tagihan.status', 'menunggak')
+            ->findAll();
+    }
+}
