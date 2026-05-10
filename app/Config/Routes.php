@@ -21,6 +21,12 @@ $routes->group('admin', ['filter' => 'role:admin'], function ($routes) {
     $routes->post('fasilitas/update/(:num)', 'FasilitasController::update/$1');
     $routes->get('fasilitas/delete/(:num)', 'FasilitasController::delete/$1');
 
+    // Kamar
+    $routes->get('kamar', 'KamarController::index');
+    $routes->post('kamar/store', 'KamarController::store');
+    $routes->post('kamar/update/(:num)', 'KamarController::update/$1');
+    $routes->get('kamar/delete/(:num)', 'KamarController::delete/$1');
+
     // nanti extend fitur
     $routes->get('rooms', 'Room::index');
     $routes->get('tenants', 'Tenant::index');
