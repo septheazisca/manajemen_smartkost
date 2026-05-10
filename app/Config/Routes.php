@@ -27,6 +27,15 @@ $routes->group('admin', ['filter' => 'role:admin'], function ($routes) {
     $routes->post('kamar/update/(:num)', 'KamarController::update/$1');
     $routes->get('kamar/delete/(:num)', 'KamarController::delete/$1');
 
+    // Penyewa
+    $routes->get('penyewa', 'PenyewaController::index');
+    $routes->post('penyewa/store', 'PenyewaController::store');
+    $routes->post('penyewa/update/(:num)', 'PenyewaController::update/$1');
+    $routes->get('penyewa/delete/(:num)', 'PenyewaController::delete/$1');
+    $routes->get('penyewa/toggle-status/(:num)', 'PenyewaController::toggleStatus/$1');
+    $routes->get('penyewa/reset-password/(:num)', 'PenyewaController::resetPassword/$1');
+    $routes->get('penyewa/checkout/(:num)', 'PenyewaController::checkout/$1');
+
     // nanti extend fitur
     $routes->get('rooms', 'Room::index');
     $routes->get('tenants', 'Tenant::index');

@@ -25,7 +25,7 @@ class UserModel extends Model
     ];
 
     protected bool $allowEmptyInserts = false;
-    protected bool $updateOnlyChanged = true;
+    protected bool $updateOnlyChanged = false;
 
     protected array $casts = [];
     protected array $castHandlers = [];
@@ -38,12 +38,7 @@ class UserModel extends Model
     protected $deletedField  = 'deleted_at';
 
     // Validation
-    protected $validationRules      = [
-        'name'     => 'required|min_length[3]',
-        'email'    => 'required|valid_email|is_unique[users.email]',
-        'password' => 'required|min_length[6]',
-        'role'     => 'required|in_list[admin,penyewa,pj]',
-    ];
+    protected $validationRules      = [];
     protected $validationMessages   = [
         'name' => [
             'required'   => 'Nama wajib diisi.',
@@ -59,7 +54,7 @@ class UserModel extends Model
             'min_length' => 'Password minimal 6 karakter.',
         ],
     ];
-    protected $skipValidation       = false;
+    protected $skipValidation       = true;
     protected $cleanValidationRules = true;
 
     // Callbacks
@@ -76,7 +71,16 @@ class UserModel extends Model
     // jangan pernah return field password di select biasa
     public function findAllSafe()
     {
-        return $this->select('id, name, email, role, phone, is_active, must_change_password, created_at')
+        return $this->select('
+                id,
+                name,
+                email,
+                role,
+                phone,
+                is_active,
+                must_change_password,
+                created_at
+            ')
             ->findAll();
     }
 }

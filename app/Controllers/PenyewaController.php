@@ -4,9 +4,9 @@ namespace App\Controllers;
 
 use App\Controllers\BaseController;
 use App\Models\KamarModel;
-use App\Models\PenyewaModel;
 use App\Models\UserModel;
 use CodeIgniter\HTTP\ResponseInterface;
+use App\Models\PenyewaModel;
 
 class PenyewaController extends BaseController
 {
@@ -30,7 +30,7 @@ class PenyewaController extends BaseController
         $data['penyewa']      = $this->penyewaModel->getPenyewaLengkap();
         $data['kamar_kosong'] = $this->kamarModel->getKamarKosong();
 
-        return view('admin/penyewa/index', $data);
+        return view('admin/penyewa', $data);
     }
 
     // =====================
@@ -107,7 +107,8 @@ class PenyewaController extends BaseController
         $penyewa = $this->penyewaModel->find($id);
 
         if (!$penyewa) {
-            return redirect()->back()->with('error', 'Data penyewa tidak ditemukan.');
+            return redirect()->back()
+                ->with('error', 'Data penyewa tidak ditemukan.');
         }
 
         $user = $this->userModel->find($penyewa['user_id']);
@@ -115,42 +116,58 @@ class PenyewaController extends BaseController
         $rules = [
             'name'  => 'required|min_length[3]',
             'phone' => 'required',
-            'email' => $this->request->getPost('email') !== $user['email']
+            'email' => ($this->request->getPost('email') != $user['email'])
                 ? 'required|valid_email|is_unique[users.email]'
                 : 'required|valid_email',
         ];
 
         if (!$this->validate($rules)) {
+
             return redirect()->back()
                 ->withInput()
-                ->with('errors', $this->validator->getErrors());
+                ->with('error', implode('<br>', $this->validator->getErrors()));
         }
 
         $db = \Config\Database::connect();
-        $db->transStart();
 
-        $this->userModel->update($penyewa['user_id'], [
+        $db->transBegin();
+
+        $updateUser = $this->userModel->update($penyewa['user_id'], [
             'name'  => $this->request->getPost('name'),
             'email' => $this->request->getPost('email'),
             'phone' => $this->request->getPost('phone'),
         ]);
 
-        $this->penyewaModel->update($id, [
+        if (!$updateUser) {
+
+            $db->transRollback();
+
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Gagal update user');
+        }
+
+        $updatePenyewa = $this->penyewaModel->update($id, [
+
+            'tanggal_masuk'     => $this->request->getPost('tanggal_masuk'),
             'alamat'            => $this->request->getPost('alamat'),
             'asal_kota'         => $this->request->getPost('asal_kota'),
             'status_pekerjaan'  => $this->request->getPost('status_pekerjaan'),
             'status_pernikahan' => $this->request->getPost('status_pernikahan'),
             'nomor_darurat'     => $this->request->getPost('nomor_darurat'),
-            'tanggal_masuk'     => $this->request->getPost('tanggal_masuk'),
+
         ]);
 
-        $db->transComplete();
+        if (!$updatePenyewa) {
 
-        if ($db->transStatus() === false) {
+            $db->transRollback();
+
             return redirect()->back()
                 ->withInput()
-                ->with('error', 'Gagal mengupdate data penyewa.');
+                ->with('error', 'Gagal update data penyewa');
         }
+
+        $db->transCommit();
 
         return redirect()->to('/admin/penyewa')
             ->with('success', 'Data penyewa berhasil diupdate.');
