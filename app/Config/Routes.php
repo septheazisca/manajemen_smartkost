@@ -14,6 +14,13 @@ $routes->get('/unauthorized', 'AuthController::unauthorized');
 
 $routes->group('admin', ['filter' => 'role:admin'], function ($routes) {
     $routes->get('dashboard', 'DashboardController::index');
+    
+    // Fasilitas
+    $routes->get('fasilitas', 'FasilitasController::index');
+    $routes->post('fasilitas/store', 'FasilitasController::store');
+    $routes->post('fasilitas/update/(:num)', 'FasilitasController::update/$1');
+    $routes->get('fasilitas/delete/(:num)', 'FasilitasController::delete/$1');
+
     // nanti extend fitur
     $routes->get('rooms', 'Room::index');
     $routes->get('tenants', 'Tenant::index');

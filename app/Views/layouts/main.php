@@ -26,9 +26,22 @@
         </main>
     </div>
 
-    <script src="script.js"></script>
-    <link rel="stylesheet" href="<?= base_url('assets/css/style.css') ?>">
+    <!-- <script src="script.js"></script> -->
     <script src="<?= base_url('assets/js/script.js') ?>"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
 </body>
+
+<script>
+    function toggleSidebar() {
+        document.getElementById('sidebar').classList.toggle('open');
+        document.getElementById('sidebarOverlay').classList.toggle('show');
+    }
+
+    function closeSidebar() {
+        document.getElementById('sidebar').classList.remove('open');
+        document.getElementById('sidebarOverlay').classList.remove('show');
+    }
+</script>
 
 </html>
