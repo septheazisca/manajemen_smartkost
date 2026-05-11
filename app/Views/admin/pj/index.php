@@ -24,8 +24,15 @@
     </div>
 
     <!-- Flash Messages -->
-    <?php if (session()->getFlashdata('success')): ?>
-        <div class="alert alert-success mx-4 mt-3"><?= session()->getFlashdata('success') ?></div>
+    <?php if (session()->getFlashdata('error')): ?>
+        <div class="alert alert-danger mx-4 mt-3"><?= session()->getFlashdata('error') ?></div>
+    <?php endif; ?>
+    <?php if (session()->getFlashdata('errors')): ?>
+        <div class="alert alert-danger mx-4 mt-3">
+            <?php foreach (session()->getFlashdata('errors') as $e): ?>
+                <div><?= esc($e) ?></div>
+            <?php endforeach; ?>
+        </div>
     <?php endif; ?>
 
     <!-- TABLE -->
