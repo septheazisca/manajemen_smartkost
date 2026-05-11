@@ -25,17 +25,27 @@ class RoleFilter implements FilterInterface
      */
     public function before(RequestInterface $request, $arguments = null)
     {
+        // 1. cek sudah login atau belum
         if (!session()->get('logged_in')) {
-            return redirect()->to('/login');
+            return redirect()->to('/login')->with('error', 'Silakan login terlebih dahulu.');
         }
 
+        // 2. cek must_change_password
+        // kalau harus ganti password, paksa redirect ke halaman ganti password
+        // kecuali kalau memang sedang di halaman change-password itu sendiri
+        $currentUrl = current_url();
+        $isChangePw = str_contains($currentUrl, 'change-password');
+
+        if (session()->get('must_change_password') == 1 && !$isChangePw) {
+            return redirect()->to('/change-password')
+                ->with('info', 'Kamu harus mengganti password sebelum melanjutkan.');
+        }
+
+        // 3. cek role
         $userRole = session()->get('role');
 
-        // arguments = role yang diizinkan
-        if ($arguments) {
-            if (!in_array($userRole, $arguments)) {
-                return redirect()->to('/unauthorized');
-            }
+        if ($arguments && !in_array($userRole, $arguments)) {
+            return redirect()->to('/unauthorized');
         }
     }
 

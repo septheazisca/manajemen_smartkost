@@ -52,15 +52,17 @@ class PenanggungJawabModel extends Model
     protected $afterDelete    = [];
 
     // ambil semua PJ lengkap dengan data user
-    public function getPjLengkap()
+    public function getPjLengkap($id = null) 
     {
-        return $this->select('
+        $this->select('
                 penanggung_jawab.*,
                 users.email,
                 users.is_active as user_active
             ')
-            ->join('users', 'users.id = penanggung_jawab.user_id')
-            ->findAll();
+            ->join('users', 'users.id = penanggung_jawab.user_id');
+
+        // Jika ada ID dikirim, gunakan first(). Jika tidak, gunakan findAll()
+        return ($id) ? $this->where('penanggung_jawab.id', $id)->first() : $this->findAll();
     }
 
     // ambil PJ by user_id
