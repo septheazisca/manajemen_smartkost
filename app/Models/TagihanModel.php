@@ -52,17 +52,10 @@ class TagihanModel extends Model
     protected $beforeDelete   = [];
     protected $afterDelete    = [];
 
-    // generate nominal unik 3 digit (001-999)
-    public function generateNominalUnik()
+    public function generateNominalUnik($penyewaId)
     {
-        $last = $this->select('nominal_unik')
-            ->orderBy('id', 'DESC')
-            ->first();
-
-        $lastNominal = $last ? $last['nominal_unik'] : 0;
-        $next        = ($lastNominal % 999) + 1;
-
-        return $next;
+        // nominal unik berdasarkan penyewa_id, range 1-999
+        return ($penyewaId % 999) + 1;
     }
 
     // ambil tagihan lengkap dengan info penyewa

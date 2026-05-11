@@ -77,8 +77,8 @@ class TagihanController extends BaseController
                 continue;
             }
 
-            // generate nominal unik
-            $nominalUnik = $this->tagihanModel->generateNominalUnik();
+            // generate nominal unik per penyewa
+            $nominalUnik = $this->tagihanModel->generateNominalUnik($penyewa['id']);
 
             // jatuh tempo tanggal 10 bulan tersebut
             $jatuhTempo = $tahun . '-' . str_pad($bulan, 2, '0', STR_PAD_LEFT) . '-10';
