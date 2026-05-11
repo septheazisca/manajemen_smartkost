@@ -53,7 +53,7 @@
                             </div>
                             <div class="col-12">
                                 <label class="form-label small fw-bold">Isi Pesan WhatsApp</label>
-                                <textarea name="pesan" class="form-control border-0 bg-light" rows="4" required placeholder="Tulis pesan Anda di sini..."><?= old('pesan') ?></textarea>
+                                <textarea name="pesan" class="form-control border-0 bg-light" rows="5" required placeholder="Tulis pesan Anda di sini..."><?= old('pesan') ?></textarea>
                             </div>
                             <div class="col-12">
                                 <button type="submit" class="btn-primary-custom w-100 py-2">
@@ -61,29 +61,6 @@
                                 </button>
                             </div>
                         </div>
-                    </form>
-                </div>
-            </div>
-
-            <!-- Kirim Info Umum -->
-            <div class="table-card mb-4">
-                <div class="table-card-header bg-white border-bottom p-3">
-                    <div class="fw-bold"><i class="bi bi-megaphone-fill text-info me-2"></i>Broadcast Pengumuman</div>
-                </div>
-                <div class="p-4">
-                    <form action="/admin/notifikasi/kirim-info" method="post">
-                        <?= csrf_field() ?>
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold">Judul Pengumuman</label>
-                            <input type="text" name="judul" class="form-control border-0 bg-light" value="<?= old('judul') ?>" required placeholder="Misal: Info Perbaikan Listrik">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold">Detail Informasi</label>
-                            <textarea name="pesan" class="form-control border-0 bg-light" rows="3" required placeholder="Jelaskan detail pengumuman..."><?= old('pesan') ?></textarea>
-                        </div>
-                        <button type="submit" class="btn btn-info w-100 text-white py-2 shadow-sm">
-                            <i class="bi bi-broadcast me-1"></i> Sebar ke Semua Penyewa
-                        </button>
                     </form>
                 </div>
             </div>
@@ -146,36 +123,6 @@
                             Tagih Sekarang
                         </button>
                     </form>
-                </div>
-            </div>
-
-            <!-- Log Terbaru Mini -->
-            <div class="table-card">
-                <div class="table-card-header bg-white border-bottom p-3 d-flex justify-content-between align-items-center">
-                    <span class="fw-bold small">Status Pengiriman Terakhir</span>
-                    <a href="/admin/notifikasi/log" class="small text-decoration-none text-primary">Lihat Semua</a>
-                </div>
-                <div class="p-0">
-                    <div class="list-group list-group-flush">
-                        <?php if (empty($log)): ?>
-                            <div class="p-3 text-center small text-muted">Belum ada aktivitas.</div>
-                        <?php else: ?>
-                            <?php foreach (array_slice($log, 0, 3) as $l): ?>
-                                <div class="list-group-item bg-transparent py-3">
-                                    <div class="d-flex justify-content-between mb-1">
-                                        <span class="small fw-bold"><?= esc($l['no_hp']) ?></span>
-                                        <span class="badge rounded-pill bg-<?= $l['status_kirim'] === 'terkirim' ? 'success' : 'danger' ?>" style="font-size: 0.6rem;">
-                                            <?= ucfirst($l['status_kirim']) ?>
-                                        </span>
-                                    </div>
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <small class="text-muted" style="font-size: 0.7rem;"><?= ucfirst($l['jenis']) ?></small>
-                                        <small class="text-muted" style="font-size: 0.7rem;"><?= date('H:i', strtotime($l['sent_at'])) ?> WIB</small>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
-                    </div>
                 </div>
             </div>
         </div>
