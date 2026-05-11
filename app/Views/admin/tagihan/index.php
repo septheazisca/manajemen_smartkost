@@ -17,93 +17,137 @@
     <div class="table-card-header">
         <div>
             <div class="table-card-title">Manajemen Tagihan</div>
-            <div class="table-card-sub">Total <?= count($tagihan) ?> tagihan</div>
+            <div class="table-card-sub text-muted">Periode: <?= $list_bulan[$bulan] ?> <?= $tahun ?> — Total <?= count($tagihan) ?> data</div>
         </div>
         <div class="toolbar">
             <button class="btn-add" data-bs-toggle="modal" data-bs-target="#generateModal">
-                <i class="bi bi-plus-lg"></i> Generate Tagihan
+                <i class="bi bi-lightning-charge"></i> Generate Tagihan
             </button>
         </div>
     </div>
 
-    <!-- FILTER -->
-    <div class="px-3 py-2 d-flex gap-2 align-items-center flex-wrap">
-        <form method="get" action="/admin/tagihan" class="d-flex gap-2 align-items-center flex-wrap">
-            <select name="bulan" class="form-select form-select-sm" style="width: auto;">
-                <?php foreach ($list_bulan as $k => $v) : ?>
-                    <option value="<?= $k ?>" <?= $bulan == $k ? 'selected' : '' ?>>
-                        <?= $v ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
-            <select name="tahun" class="form-select form-select-sm" style="width: auto;">
-                <?php for ($y = date('Y'); $y >= date('Y') - 3; $y--) : ?>
-                    <option value="<?= $y ?>" <?= $tahun == $y ? 'selected' : '' ?>>
-                        <?= $y ?>
-                    </option>
-                <?php endfor; ?>
-            </select>
-            <button type="submit" class="btn btn-sm btn-primary">
-                <i class="bi bi-filter"></i> Filter
-            </button>
-        </form>
+    <!-- FILTER & STATS -->
+    <!-- FILTER & STATS -->
+    <div class="px-3 py-4 border-bottom bg-light-subtle">
+        <div class="row g-3 align-items-center">
+
+            <!-- Filter Form (Kiri) -->
+            <div class="col-12 col-xl-4">
+                <form method="get" action="/admin/tagihan" class="d-flex gap-2">
+                    <div class="input-group input-group-sm shadow-sm">
+                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-calendar3"></i></span>
+                        <select name="bulan" class="form-select border-start-0" style="min-width: 110px;">
+                            <?php foreach ($list_bulan as $k => $v) : ?>
+                                <option value="<?= $k ?>" <?= $bulan == $k ? 'selected' : '' ?>>
+                                    <?= $v ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <select name="tahun" class="form-select border-start-0">
+                            <?php for ($y = date('Y'); $y >= date('Y') - 3; $y--) : ?>
+                                <option value="<?= $y ?>" <?= $tahun == $y ? 'selected' : '' ?>>
+                                    <?= $y ?>
+                                </option>
+                            <?php endfor; ?>
+                        </select>
+                        <button type="submit" class="btn btn-primary px-3">
+                            <i class="bi bi-funnel"></i>
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Stat Cards (Kanan) -->
+            <div class="col-12 col-xl-8">
+                <div class="row g-2 justify-content-xl-end">
+
+                    <!-- Lunas -->
+                    <div class="col-6 col-md-3 col-xl-2">
+                        <div class="p-2 border rounded bg-white shadow-sm d-flex align-items-center gap-2">
+                            <div class="rounded-circle bg-success-subtle text-success d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                                <i class="bi bi-check2-all"></i>
+                            </div>
+                            <div>
+                                <div class="text-muted" style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Lunas</div>
+                                <div class="fw-bold lh-1"><?= count(array_filter($tagihan, fn($t) => $t['status'] === 'lunas')) ?></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pending -->
+                    <div class="col-6 col-md-3 col-xl-2">
+                        <div class="p-2 border rounded bg-white shadow-sm d-flex align-items-center gap-2">
+                            <div class="rounded-circle bg-warning-subtle text-warning d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                                <i class="bi bi-clock-history"></i>
+                            </div>
+                            <div>
+                                <div class="text-muted" style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Pending</div>
+                                <div class="fw-bold lh-1"><?= count(array_filter($tagihan, fn($t) => $t['status'] === 'pending')) ?></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Konfirmasi -->
+                    <div class="col-6 col-md-3 col-xl-2">
+                        <div class="p-2 border rounded bg-white shadow-sm d-flex align-items-center gap-2">
+                            <div class="rounded-circle bg-info-subtle text-info d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                                <i class="bi bi-shield-check"></i>
+                            </div>
+                            <div>
+                                <div class="text-muted" style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Konf.</div>
+                                <div class="fw-bold lh-1"><?= count(array_filter($tagihan, fn($t) => $t['status'] === 'menunggu_konfirmasi')) ?></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Menunggak -->
+                    <div class="col-6 col-md-3 col-xl-2">
+                        <div class="p-2 border rounded bg-white shadow-sm d-flex align-items-center gap-2">
+                            <div class="rounded-circle bg-danger-subtle text-danger d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                                <i class="bi bi-exclamation-circle"></i>
+                            </div>
+                            <div>
+                                <div class="text-muted" style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px;">Tunggakan</div>
+                                <div class="fw-bold lh-1"><?= count(array_filter($tagihan, fn($t) => $t['status'] === 'menunggak')) ?></div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
     </div>
 
     <!-- ALERT -->
-    <?php if (session()->getFlashdata('success')) : ?>
-        <div class="alert alert-success mx-3">
-            <?= session()->getFlashdata('success') ?>
+    <?php if (session()->getFlashdata('success') || session()->getFlashdata('error')) : ?>
+        <div class="p-3">
+            <?php if (session()->getFlashdata('success')) : ?>
+                <div class="alert alert-success border-0 mb-0">
+                    <i class="bi bi-check-circle me-2"></i><?= session()->getFlashdata('success') ?>
+                </div>
+            <?php endif; ?>
+            <?php if (session()->getFlashdata('error')) : ?>
+                <div class="alert alert-danger border-0 mb-0">
+                    <i class="bi bi-exclamation-octagon me-2"></i><?= session()->getFlashdata('error') ?>
+                </div>
+            <?php endif; ?>
         </div>
     <?php endif; ?>
-    <?php if (session()->getFlashdata('error')) : ?>
-        <div class="alert alert-danger mx-3">
-            <?= session()->getFlashdata('error') ?>
-        </div>
-    <?php endif; ?>
-
-    <!-- STAT MINI -->
-    <div class="d-flex gap-3 px-3 py-2 flex-wrap">
-        <div class="stat-mini">
-            <span class="stat-mini-label">Lunas</span>
-            <span class="stat-mini-value text-success">
-                <?= count(array_filter($tagihan, fn($t) => $t['status'] === 'lunas')) ?>
-            </span>
-        </div>
-        <div class="stat-mini">
-            <span class="stat-mini-label">Pending</span>
-            <span class="stat-mini-value text-warning">
-                <?= count(array_filter($tagihan, fn($t) => $t['status'] === 'pending')) ?>
-            </span>
-        </div>
-        <div class="stat-mini">
-            <span class="stat-mini-label">Menunggu Konfirmasi</span>
-            <span class="stat-mini-value text-info">
-                <?= count(array_filter($tagihan, fn($t) => $t['status'] === 'menunggu_konfirmasi')) ?>
-            </span>
-        </div>
-        <div class="stat-mini">
-            <span class="stat-mini-label">Menunggak</span>
-            <span class="stat-mini-value text-danger">
-                <?= count(array_filter($tagihan, fn($t) => $t['status'] === 'menunggak')) ?>
-            </span>
-        </div>
-    </div>
 
     <!-- TABLE -->
     <div class="tbl-wrap">
         <table class="data-table">
             <thead>
                 <tr>
-                    <th>No</th>
-                    <th>Penyewa</th>
-                    <th>Kamar</th>
+                    <th width="50">No</th>
+                    <th>Penyewa & Kamar</th>
                     <th>Periode</th>
-                    <th>Jumlah</th>
-                    <th>Kode Unik</th>
+                    <th>Detail Biaya</th>
                     <th>Total Bayar</th>
                     <th>Jatuh Tempo</th>
-                    <th>Status</th>
-                    <th>Aksi</th>
+                    <th class="text-center">Status</th>
+                    <th class="text-center" width="150">Aksi</th>
                 </tr>
             </thead>
             <tbody>
@@ -111,77 +155,72 @@
                     <?php $no = 1; ?>
                     <?php foreach ($tagihan as $t) : ?>
                         <tr>
-                            <td><?= $no++ ?></td>
-                            <td><?= esc($t['nama']) ?></td>
-                            <td>Kamar <?= esc($t['nama_kamar']) ?></td>
-                            <td><?= $list_bulan[$t['bulan']] ?? $t['bulan'] ?> <?= $t['tahun'] ?></td>
-                            <td>Rp <?= number_format($t['jumlah'], 0, ',', '.') ?></td>
+                            <td class="text-muted small"><?= $no++ ?></td>
                             <td>
-                                <span class="badge bg-secondary">
-                                    +<?= str_pad($t['nominal_unik'], 3, '0', STR_PAD_LEFT) ?>
-                                </span>
+                                <div class="fw-bold"><?= esc($t['nama']) ?></div>
+                                <div class="text-muted small">Kamar <?= esc($t['nama_kamar']) ?></div>
                             </td>
                             <td>
-                                <strong>
+                                <span class="badge bg-secondary-subtle text-dark fw-normal">
+                                    <?= $list_bulan[$t['bulan']] ?? $t['bulan'] ?> <?= $t['tahun'] ?>
+                                </span>
+                            </td>
+                            <td class="small">
+                                Rp <?= number_format($t['jumlah'], 0, ',', '.') ?> <br>
+                                <span class="text-muted">Unik: +<?= str_pad($t['nominal_unik'], 3, '0', STR_PAD_LEFT) ?></span>
+                            </td>
+                            <td>
+                                <strong class="text-primary">
                                     Rp <?= number_format($t['jumlah'] + $t['nominal_unik'], 0, ',', '.') ?>
                                 </strong>
                             </td>
                             <td>
-                                <?= date('d M Y', strtotime($t['jatuh_tempo'])) ?>
+                                <div class="<?= (strtotime($t['jatuh_tempo']) < time() && $t['status'] !== 'lunas') ? 'text-danger fw-bold' : '' ?>">
+                                    <?= date('d M Y', strtotime($t['jatuh_tempo'])) ?>
+                                </div>
                             </td>
-                            <td>
+                            <td class="text-center">
                                 <?php
                                 $statusConfig = [
                                     'pending'              => ['class' => 'bg-warning text-dark', 'label' => 'Pending'],
-                                    'menunggu_konfirmasi'  => ['class' => 'bg-info text-dark',    'label' => 'Menunggu Konfirmasi'],
-                                    'lunas'                => ['class' => 'bg-success',            'label' => 'Lunas'],
-                                    'menunggak'            => ['class' => 'bg-danger',             'label' => 'Menunggak'],
+                                    'menunggu_konfirmasi'  => ['class' => 'bg-info text-dark',    'label' => 'Konfirmasi'],
+                                    'lunas'                => ['class' => 'bg-success',           'label' => 'Lunas'],
+                                    'menunggak'            => ['class' => 'bg-danger',            'label' => 'Menunggak'],
                                 ];
                                 $cfg = $statusConfig[$t['status']] ?? ['class' => 'bg-secondary', 'label' => $t['status']];
                                 ?>
-                                <span class="badge <?= $cfg['class'] ?>">
+                                <span class="badge <?= $cfg['class'] ?> shadow-sm">
                                     <?= $cfg['label'] ?>
                                 </span>
                             </td>
                             <td>
-                                <!-- DETAIL -->
-                                <a href="/admin/tagihan/<?= $t['id'] ?>"
-                                    class="action-btn edit"
-                                    title="Detail">
-                                    <i class="bi bi-eye"></i>
-                                </a>
+                                <div class="d-flex gap-1 justify-content-center">
+                                    <a href="/admin/tagihan/<?= $t['id'] ?>" class="action-btn edit" title="Detail">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
 
-                                <!-- APPROVE (kalau menunggu konfirmasi) -->
-                                <?php if ($t['status'] === 'menunggu_konfirmasi') : ?>
-                                    <button class="action-btn edit"
-                                        title="Approve"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#approveModal<?= $t['id'] ?>">
-                                        <i class="bi bi-check-lg"></i>
-                                    </button>
-                                    <button class="action-btn del"
-                                        title="Tolak"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#tolakModal<?= $t['id'] ?>">
-                                        <i class="bi bi-x-lg"></i>
-                                    </button>
-                                <?php endif; ?>
+                                    <?php if ($t['status'] === 'menunggu_konfirmasi') : ?>
+                                        <button class="action-btn edit bg-success text-white border-0" title="Approve" data-bs-toggle="modal" data-bs-target="#approveModal<?= $t['id'] ?>">
+                                            <i class="bi bi-check-lg"></i>
+                                        </button>
+                                        <button class="action-btn del" title="Tolak" data-bs-toggle="modal" data-bs-target="#tolakModal<?= $t['id'] ?>">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    <?php endif; ?>
 
-                                <!-- TANDAI MENUNGGAK (kalau masih pending) -->
-                                <?php if ($t['status'] === 'pending') : ?>
-                                    <button class="action-btn del"
-                                        title="Tandai Menunggak"
-                                        data-bs-toggle="modal"
-                                        data-bs-target="#menunggakModal<?= $t['id'] ?>">
-                                        <i class="bi bi-exclamation-triangle"></i>
-                                    </button>
-                                <?php endif; ?>
+                                    <?php if ($t['status'] === 'pending') : ?>
+                                        <button class="action-btn edit bg-warning text-dark border-0" title="Tandai Menunggak" data-bs-toggle="modal" data-bs-target="#menunggakModal<?= $t['id'] ?>">
+                                            <i class="bi bi-exclamation-circle"></i>
+                                        </button>
+                                    <?php endif; ?>
+                                </div>
                             </td>
                         </tr>
                     <?php endforeach; ?>
                 <?php else : ?>
                     <tr>
-                        <td colspan="10" class="text-center">
+                        <td colspan="8" class="text-center py-5 text-muted">
+                            <i class="bi bi-inbox d-block fs-2 mb-2"></i>
                             Belum ada tagihan untuk periode ini
                         </td>
                     </tr>
@@ -190,7 +229,6 @@
         </table>
     </div>
 </div>
-
 <!-- ========================= -->
 <!-- GENERATE MODAL -->
 <!-- ========================= -->

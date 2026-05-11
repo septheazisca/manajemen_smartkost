@@ -1,4 +1,3 @@
-<!-- SIDEBAR -->
 <aside class="sidebar" id="sidebar">
     <div class="sidebar-brand">
         <div class="brand-icon"><i class="bi bi-house-heart-fill"></i></div>
@@ -9,38 +8,104 @@
     </div>
 
     <nav class="sidebar-nav">
-        <div class="nav-section-label">Menu Utama</div>
-        <a href="dashboard.html" class="nav-link-custom active"><i class="bi bi-grid-1x2"></i> Dashboard</a>
-        <a href="tabel.html" class="nav-link-custom"><i class="bi bi-router"></i></i> Fasilitas</a>
-        <a href="tabel.html" class="nav-link-custom"><i class="bi bi-door-open"></i> Kamar</a>
-        <a href="tabel.html" class="nav-link-custom"><i class="bi bi-people"></i> Penyewa <span class="nav-badge">3</span></a>
-        <a href="tabel.html" class="nav-link-custom"><i class="bi bi-receipt"></i> Tagihan</a>
-        <a href="tabel.html" class="nav-link-custom"><i class="bi bi-credit-card"></i> Pembayaran</a>
+        <?php $role = session()->get('role'); ?>
 
-        <div class="nav-section-label">Operasional</div>
-        <a href="tabel.html" class="nav-link-custom"><i class="bi bi-wrench-adjustable"></i> Maintenance <span class="nav-badge">2</span></a>
-        <a href="tabel.html" class="nav-link-custom"><i class="bi bi-stars"></i> Fasilitas</a>
-        <a href="tabel.html" class="nav-link-custom"><i class="bi bi-arrow-up-circle"></i> Pemasukan</a>
-        <a href="tabel.html" class="nav-link-custom"><i class="bi bi-arrow-down-circle"></i> Pengeluaran</a>
+        <?php if ($role === 'admin'): ?>
 
-        <div class="nav-section-label">Laporan</div>
-        <a href="#" class="nav-link-custom"><i class="bi bi-bar-chart-line"></i> Laporan Keuangan</a>
-        <a href="#" class="nav-link-custom"><i class="bi bi-file-earmark-pdf"></i> Export PDF/Excel</a>
+            <div class="nav-section-label">Menu Utama</div>
+            <a href="/admin/dashboard" class="nav-link-custom <?= uri_string() === 'admin/dashboard' ? 'active' : '' ?>">
+                <i class="bi bi-grid-1x2"></i> Dashboard
+            </a>
+            <a href="/admin/kamar" class="nav-link-custom <?= str_starts_with(uri_string(), 'admin/kamar') ? 'active' : '' ?>">
+                <i class="bi bi-door-open"></i> Kamar
+            </a>
+            <a href="/admin/penyewa" class="nav-link-custom <?= str_starts_with(uri_string(), 'admin/penyewa') ? 'active' : '' ?>">
+                <i class="bi bi-people"></i> Penyewa
+            </a>
 
-        <div class="nav-section-label">Sistem</div>
-        <a href="#" class="nav-link-custom"><i class="bi bi-gear"></i> Pengaturan</a>
+            <div class="nav-section-label">Keuangan</div>
+            <a href="/admin/tagihan" class="nav-link-custom <?= str_starts_with(uri_string(), 'admin/tagihan') ? 'active' : '' ?>">
+                <i class="bi bi-receipt"></i> Tagihan
+            </a>
+            <a href="/admin/pengeluaran" class="nav-link-custom <?= str_starts_with(uri_string(), 'admin/pengeluaran') ? 'active' : '' ?>">
+                <i class="bi bi-arrow-down-circle"></i> Pengeluaran
+            </a>
+
+            <div class="nav-section-label">Operasional</div>
+            <a href="/admin/fasilitas" class="nav-link-custom <?= str_starts_with(uri_string(), 'admin/fasilitas') ? 'active' : '' ?>">
+                <i class="bi bi-router"></i> Fasilitas
+            </a>
+            <a href="/admin/maintenance" class="nav-link-custom <?= str_starts_with(uri_string(), 'admin/maintenance') ? 'active' : '' ?>">
+                <i class="bi bi-wrench-adjustable"></i> Maintenance
+            </a>
+            <a href="/admin/pj" class="nav-link-custom <?= str_starts_with(uri_string(), 'admin/pj') ? 'active' : '' ?>">
+                <i class="bi bi-person-gear"></i> Penanggung Jawab
+            </a>
+
+            <div class="nav-section-label">Laporan</div>
+            <a href="/admin/laporan" class="nav-link-custom <?= str_starts_with(uri_string(), 'admin/laporan') ? 'active' : '' ?>">
+                <i class="bi bi-bar-chart-line"></i> Laporan Keuangan
+            </a>
+
+            <div class="nav-section-label">Sistem</div>
+            <a href="/admin/notifikasi" class="nav-link-custom <?= str_starts_with(uri_string(), 'admin/notifikasi') ? 'active' : '' ?>">
+                <i class="bi bi-whatsapp"></i> Notifikasi WA
+            </a>
+            <a href="/change-password" class="nav-link-custom <?= uri_string() === 'change-password' ? 'active' : '' ?>">
+                <i class="bi bi-key"></i> Ganti Password
+            </a>
+
+        <?php elseif ($role === 'pj'): ?>
+
+            <div class="nav-section-label">Menu Utama</div>
+            <a href="/pj/dashboard" class="nav-link-custom <?= uri_string() === 'pj/dashboard' ? 'active' : '' ?>">
+                <i class="bi bi-grid-1x2"></i> Dashboard
+            </a>
+            <a href="/pj/maintenance" class="nav-link-custom <?= str_starts_with(uri_string(), 'pj/maintenance') ? 'active' : '' ?>">
+                <i class="bi bi-wrench-adjustable"></i> Tugas Maintenance
+            </a>
+
+            <div class="nav-section-label">Akun</div>
+            <a href="/change-password" class="nav-link-custom <?= uri_string() === 'change-password' ? 'active' : '' ?>">
+                <i class="bi bi-key"></i> Ganti Password
+            </a>
+
+        <?php elseif ($role === 'penyewa'): ?>
+
+            <div class="nav-section-label">Menu Utama</div>
+            <a href="/tenant/dashboard" class="nav-link-custom <?= uri_string() === 'tenant/dashboard' ? 'active' : '' ?>">
+                <i class="bi bi-grid-1x2"></i> Dashboard
+            </a>
+            <a href="/tenant/tagihan" class="nav-link-custom <?= str_starts_with(uri_string(), 'tenant/tagihan') ? 'active' : '' ?>">
+                <i class="bi bi-receipt"></i> Tagihan Saya
+            </a>
+            <a href="/tenant/maintenance" class="nav-link-custom <?= str_starts_with(uri_string(), 'tenant/maintenance') ? 'active' : '' ?>">
+                <i class="bi bi-wrench-adjustable"></i> Lapor Kerusakan
+            </a>
+
+            <div class="nav-section-label">Akun</div>
+            <a href="/tenant/profile" class="nav-link-custom <?= uri_string() === 'tenant/profile' ? 'active' : '' ?>">
+                <i class="bi bi-person-circle"></i> Profil Saya
+            </a>
+            <a href="/change-password" class="nav-link-custom <?= uri_string() === 'change-password' ? 'active' : '' ?>">
+                <i class="bi bi-key"></i> Ganti Password
+            </a>
+
+        <?php endif; ?>
     </nav>
 
     <div class="sidebar-footer">
         <div class="user-card">
-            <div class="user-avatar">A</div>
-            <div class="user-info">
-                <strong>Admin Utama</strong>
-                <span>Pemilik Kost</span>
+            <div class="user-avatar">
+                <?= strtoupper(substr(session()->get('name') ?? 'U', 0, 1)) ?>
             </div>
-            <button class="btn-logout" title="Keluar" onclick="window.location='login.html'">
+            <div class="user-info">
+                <strong><?= esc(session()->get('name') ?? '-') ?></strong>
+                <span><?= ucfirst(session()->get('role') ?? '') ?></span>
+            </div>
+            <a href="/logout" class="btn-logout" title="Keluar">
                 <i class="bi bi-box-arrow-right"></i>
-            </button>
+            </a>
         </div>
     </div>
 </aside>
