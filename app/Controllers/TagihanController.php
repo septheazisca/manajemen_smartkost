@@ -279,7 +279,7 @@ class TagihanController extends BaseController
 
         // simpan file
         $newName = $file->getRandomName();
-        $file->move(WRITEPATH . 'uploads/bukti_transfer', $newName);
+        $file->move(FCPATH . 'uploads/bukti_transfer', $newName);
 
         $db = \Config\Database::connect();
         $db->transStart();

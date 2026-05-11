@@ -173,7 +173,7 @@ class MaintenanceController extends BaseController
             }
 
             $fotoName = $foto->getRandomName();
-            $foto->move(WRITEPATH . 'uploads/maintenance', $fotoName);
+            $foto->move(FCPATH . 'uploads/maintenance', $fotoName);
         }
 
         $this->maintenanceModel->save([
@@ -272,7 +272,7 @@ class MaintenanceController extends BaseController
 
         // hapus foto jika ada
         if ($maintenance['foto']) {
-            $fotoPath = WRITEPATH . 'uploads/maintenance/' . $maintenance['foto'];
+            $fotoPath = FCPATH . 'uploads/maintenance/' . $maintenance['foto'];
             if (file_exists($fotoPath)) {
                 unlink($fotoPath);
             }
