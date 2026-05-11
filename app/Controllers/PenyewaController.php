@@ -203,6 +203,7 @@ class PenyewaController extends BaseController
     public function checkout($id)
     {
         $penyewa = $this->penyewaModel->find($id);
+        $user = $this->userModel->find($penyewa['user_id']);
 
         if (!$penyewa) {
             return redirect()->back()->with('error', 'Data tidak ditemukan.');
@@ -213,6 +214,11 @@ class PenyewaController extends BaseController
 
         $this->penyewaModel->update($id, [
             'tanggal_keluar' => date('Y-m-d'),
+        ]);
+
+        $this->userModel->update($penyewa['user_id'], [
+            'is_active' => 0,
+            'email'     => $user['email'] . '_checkout_' . time(),
         ]);
 
         $this->userModel->update($penyewa['user_id'], [
