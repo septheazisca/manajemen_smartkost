@@ -100,6 +100,7 @@ foreach ($maintenance as $m) {
                     <th>Status</th>
                     <th>Catatan Petugas</th>
                     <th>Tanggal</th>
+                    <th>Aksi</th>
                 </tr>
             </thead>
             <tbody>
@@ -152,6 +153,17 @@ foreach ($maintenance as $m) {
                             <td>
                                 <small><?= date('d/m/Y', strtotime($m['created_at'])) ?></small><br>
                                 <small class="text-muted"><?= date('H:i', strtotime($m['created_at'])) ?> WIB</small>
+                            </td>
+                            <td>
+                                <?php if ($m['foto']): ?>
+                                    <a href="<?= base_url('uploads/maintenance/' . $m['foto']) ?>"
+                                        target="_blank" class="action-btn edit" title="Lihat Foto">
+                                        <i class="bi bi-image"></i>
+                                    </a>
+                                <?php endif; ?>
+                                <a href="/tenant/maintenance/<?= $m['id'] ?>" class="action-btn edit" title="Detail">
+                                    <i class="bi bi-eye"></i>
+                                </a>
                             </td>
                         </tr>
                     <?php endforeach; ?>

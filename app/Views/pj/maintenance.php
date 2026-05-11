@@ -125,9 +125,18 @@ foreach ($maintenance as $m) {
                                 <small class="text-muted"><?= date('H:i', strtotime($m['created_at'])) ?> WIB</small>
                             </td>
                             <td>
-                                <a href="/pj/maintenance/<?= $m['id'] ?>" class="action-btn edit" title="Detail">
-                                    <i class="bi bi-eye"></i>
-                                </a>
+                                <?php if ($m['pj_id'] === null): ?>
+                                    <a href="/pj/maintenance/ambil/<?= $m['id'] ?>"
+                                        class="action-btn edit btn-ambil"
+                                        data-url="/pj/maintenance/ambil/<?= $m['id'] ?>"
+                                        title="Ambil Tugas">
+                                        <i class="bi bi-hand-index"></i>
+                                    </a>
+                                <?php else: ?>
+                                    <a href="/pj/maintenance/<?= $m['id'] ?>" class="action-btn edit" title="Detail">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -137,4 +146,25 @@ foreach ($maintenance as $m) {
     </div>
 </div>
 
+<script>
+    document.querySelectorAll('.btn-ambil').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const url = this.dataset.url;
+            Swal.fire({
+                title: 'Ambil Tugas?',
+                text: 'Kamu akan bertanggung jawab mengerjakan laporan ini.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#175fd4',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Ya, Ambil!',
+                cancelButtonText: 'Batal',
+                reverseButtons: true
+            }).then(result => {
+                if (result.isConfirmed) window.location.href = url;
+            });
+        });
+    });
+</script>
 <?= $this->endSection() ?>

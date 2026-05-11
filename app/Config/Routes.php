@@ -104,6 +104,7 @@ $routes->group('pj', ['filter' => 'role:pj'], function ($routes) {
     // maintenance
     $routes->get('maintenance', 'MaintenanceController::indexPj');
     $routes->get('maintenance/(:num)', 'MaintenanceController::detail/$1');
+    $routes->get('maintenance/ambil/(:num)', 'MaintenanceController::ambil/$1'); // tambah ini
     $routes->post('maintenance/selesai/(:num)', 'MaintenanceController::selesai/$1');
 });
 
@@ -126,4 +127,5 @@ $routes->group('tenant', ['filter' => 'role:penyewa'], function ($routes) {
     // maintenance / komplain
     $routes->get('maintenance', 'MaintenanceController::laporanSaya');
     $routes->post('maintenance/lapor', 'MaintenanceController::lapor');
+    $routes->get('maintenance/(:num)', 'MaintenanceController::detailTenant/$1');
 });

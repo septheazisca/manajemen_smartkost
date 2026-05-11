@@ -76,15 +76,15 @@ class MaintenanceModel extends Model
     // ambil maintenance by pj_id (untuk dashboard PJ)
     public function getMaintenanceByPj($pjId)
     {
-        return $this->select('
-                maintenance.*,
-                users.name as nama_penyewa,
-                kamar.nomor_kamar
-            ')
+        return $this->select('maintenance.*, users.name as nama_penyewa, kamar.nomor_kamar')
             ->join('penyewa', 'penyewa.id = maintenance.penyewa_id', 'left')
             ->join('users', 'users.id = penyewa.user_id', 'left')
             ->join('kamar', 'kamar.id = maintenance.kamar_id', 'left')
-            ->where('maintenance.pj_id', $pjId)
+            ->groupStart()
+                ->where('maintenance.pj_id', $pjId)
+                ->orWhere('maintenance.pj_id', null)
+            ->groupEnd()
+            ->whereIn('maintenance.status', ['menunggu', 'proses'])
             ->orderBy('maintenance.created_at', 'DESC')
             ->findAll();
     }

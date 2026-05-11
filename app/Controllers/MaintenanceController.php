@@ -259,6 +259,31 @@ class MaintenanceController extends BaseController
         return view($view, ['maintenance' => $maintenance]);
     }
 
+    public function ambil($id)
+    {
+        $maintenance = $this->maintenanceModel->find($id);
+
+        if (!$maintenance) {
+            return redirect()->back()->with('error', 'Data tidak ditemukan.');
+        }
+
+        if ($maintenance['pj_id'] !== null) {
+            return redirect()->back()->with('error', 'Laporan ini sudah diambil oleh PJ lain.');
+        }
+
+        $userId = session()->get('user_id');
+        $pj     = $this->pjModel->getPjByUserId($userId);
+
+        $this->maintenanceModel->update($id, [
+            'pj_id'       => $pj['id'],
+            'status'      => 'proses',
+            'assigned_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        return redirect()->to('/pj/maintenance')
+            ->with('success', 'Laporan berhasil diambil, segera kerjakan.');
+    }
+
     // =====================
     // DELETE - Admin hapus laporan maintenance
     // =====================
@@ -282,5 +307,29 @@ class MaintenanceController extends BaseController
 
         return redirect()->to('/admin/maintenance')
             ->with('success', 'Laporan maintenance berhasil dihapus.');
+    }
+
+    public function detailTenant($id)
+    {
+        $userId  = session()->get('user_id');
+        $penyewa = $this->penyewaModel->getPenyewaByUserId($userId);
+
+        if (!$penyewa) {
+            return redirect()->to('/tenant/dashboard')->with('error', 'Data tidak ditemukan.');
+        }
+
+        $maintenance = $this->maintenanceModel
+            ->select('maintenance.*, kamar.nomor_kamar, penanggung_jawab.nama as nama_pj')
+            ->join('kamar', 'kamar.id = maintenance.kamar_id', 'left')
+            ->join('penanggung_jawab', 'penanggung_jawab.id = maintenance.pj_id', 'left')
+            ->where('maintenance.id', $id)
+            ->where('maintenance.penyewa_id', $penyewa['id'])
+            ->first();
+
+        if (!$maintenance) {
+            return redirect()->to('/tenant/maintenance')->with('error', 'Laporan tidak ditemukan.');
+        }
+
+        return view('tenant/maintenance_detail', ['maintenance' => $maintenance]);
     }
 }
