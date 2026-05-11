@@ -95,8 +95,21 @@ class AuthController extends BaseController
     public function updatePassword()
     {
         $rules = [
-            'password_baru'    => 'required|min_length[6]',
-            'konfirmasi_password' => 'required|matches[password_baru]',
+            'password_baru' => [
+                'rules'  => 'required|min_length[8]|regex_match[/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/]',
+                'errors' => [
+                    'required'    => 'Password baru wajib diisi.',
+                    'min_length'  => 'Password minimal 8 karakter.',
+                    'regex_match' => 'Password harus mengandung huruf besar, huruf kecil, dan angka.',
+                ],
+            ],
+            'konfirmasi_password' => [
+                'rules'  => 'required|matches[password_baru]',
+                'errors' => [
+                    'required' => 'Konfirmasi password wajib diisi.',
+                    'matches'  => 'Konfirmasi password tidak cocok.',
+                ],
+            ],
         ];
 
         if (!$this->validate($rules)) {

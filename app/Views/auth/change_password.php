@@ -52,36 +52,32 @@
 
                 <form action="/change-password" method="post" id="formPassword">
                     <?= csrf_field() ?>
-                    
+
                     <div class="mb-3">
                         <label class="form-label small fw-bold text-muted">Password Baru <span class="text-danger">*</span></label>
                         <div class="input-group">
                             <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-key"></i></span>
-                            <input type="password" name="password_baru" id="password_baru" 
-                                   class="form-control   border-start-0 ps-0" 
-                                   placeholder="Minimal 6 karakter"
-                                   required minlength="6">
+                            <input type="password" name="password_baru" class="form-control form-control border-start-0 ps-2" required minlength="8">
                             <button class="btn btn-outline-light border text-muted" type="button" onclick="togglePassword('password_baru')">
                                 <i class="bi bi-eye" id="icon-password_baru"></i>
                             </button>
                         </div>
                     </div>
 
-                    <div class="mb-4">
+                    <div class="mb-2">
                         <label class="form-label small fw-bold text-muted">Konfirmasi Password <span class="text-danger">*</span></label>
                         <div class="input-group">
                             <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-check2-circle"></i></span>
-                            <input type="password" name="konfirmasi_password" id="konfirmasi_password" 
-                                   class="form-control border-start-0 ps-0" 
-                                   placeholder="Ulangi password baru"
-                                   required shadow-none>
+                            <input type="password" name="konfirmasi_password" id="konfirmasi_password" class="form-control border-start-0 ps-2" placeholder="Ulangi password baru" required minlength="8" required shadow-none>
                             <button class="btn btn-outline-light border text-muted" type="button" onclick="togglePassword('konfirmasi_password')">
                                 <i class="bi bi-eye" id="icon-konfirmasi_password"></i>
                             </button>
                         </div>
                     </div>
 
-                    <div class="d-grid gap-2">
+                    <small class="text-muted"><i class="bi bi-info-circle me-1"></i>Minimal 8 karakter, mengandung huruf besar, huruf kecil, dan angka.</small>
+
+                    <div class="d-grid gap-2 mt-4">
                         <button type="submit" class="btn-primary-custom py-2 fw-bold">
                             <i class="bi bi-save me-2"></i> Simpan Perubahan
                         </button>
@@ -89,29 +85,21 @@
                 </form>
             </div>
         </div>
-        
-        <!-- Keamanan Note -->
-        <div class="text-center mt-4">
-            <p class="text-muted style" style="font-size: 12px;">
-                <i class="bi bi-info-circle me-1"></i> 
-                Saran: Gunakan kombinasi huruf besar, kecil, angka, dan simbol.
-            </p>
-        </div>
     </div>
 </div>
 
 <script>
-function togglePassword(id) {
-    const input = document.getElementById(id);
-    const icon = document.getElementById('icon-' + id);
-    if (input.type === "password") {
-        input.type = "text";
-        icon.classList.replace('bi-eye', 'bi-eye-slash');
-    } else {
-        input.type = "password";
-        icon.classList.replace('bi-eye-slash', 'bi-eye');
+    function togglePassword(id) {
+        const input = document.getElementById(id);
+        const icon = document.getElementById('icon-' + id);
+        if (input.type === "password") {
+            input.type = "text";
+            icon.classList.replace('bi-eye', 'bi-eye-slash');
+        } else {
+            input.type = "password";
+            icon.classList.replace('bi-eye-slash', 'bi-eye');
+        }
     }
-}
 </script>
 
 <?= $this->endSection() ?>
