@@ -87,6 +87,36 @@ class AuthController extends BaseController
         return view('errors/unauthorized');
     }
 
+    public function changePassword()
+    {
+        return view('auth/change_password');
+    }
+
+    public function updatePassword()
+    {
+        $rules = [
+            'password_baru'    => 'required|min_length[6]',
+            'konfirmasi_password' => 'required|matches[password_baru]',
+        ];
+
+        if (!$this->validate($rules)) {
+            return redirect()->back()
+                ->withInput()
+                ->with('errors', $this->validator->getErrors());
+        }
+
+        $model = new UserModel();
+        $userId = session()->get('user_id');
+
+        $model->update($userId, [
+            'password'             => password_hash($this->request->getPost('password_baru'), PASSWORD_DEFAULT),
+            'must_change_password' => 0,
+        ]);
+
+        return redirect()->to('/change-password')
+            ->with('success', 'Password berhasil diubah.');
+    }
+
     // helper redirect by role
     private function redirectByRole(string $role)
     {
