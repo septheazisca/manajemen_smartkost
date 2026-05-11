@@ -66,11 +66,62 @@ class DashboardController extends BaseController
 
     private function pjDashboard()
     {
-        return view('pj/dashboard');
+        $pjModel          = new \App\Models\PenanggungJawabModel();
+        $maintenanceModel = new \App\Models\MaintenanceModel();
+        $pengeluaranModel = new \App\Models\PengeluaranModel();
+
+        $userId = session()->get('user_id');
+        $pj     = $pjModel->getPjByUserId($userId);
+
+        if (!$pj) {
+            return redirect()->to('/login')->with('error', 'Data tidak ditemukan.');
+        }
+
+        $data['pj']            = $pj;
+        $data['total_tugas']   = $maintenanceModel->where('pj_id', $pj['id'])->countAllResults();
+        $data['tugas_proses']  = $maintenanceModel->where('pj_id', $pj['id'])->where('status', 'proses')->countAllResults();
+        $data['tugas_selesai'] = $maintenanceModel->where('pj_id', $pj['id'])->where('status', 'selesai')->countAllResults();
+        $data['riwayat_gaji']  = $pengeluaranModel
+            ->where('pj_id', $pj['id'])
+            ->where('kategori', 'gaji')
+            ->orderBy('tahun', 'DESC')
+            ->orderBy('bulan', 'DESC')
+            ->findAll();
+
+        return view('pj/dashboard', $data);
     }
 
     private function penyewaDashboard()
     {
-        return view('tenant/dashboard');
+        $penyewaModel    = new \App\Models\PenyewaModel();
+        $tagihanModel    = new \App\Models\TagihanModel();
+        $maintenanceModel = new \App\Models\MaintenanceModel();
+
+        $userId  = session()->get('user_id');
+        $penyewa = $penyewaModel->getPenyewaByUserId($userId);
+
+        if (!$penyewa) {
+            return redirect()->to('/login')->with('error', 'Data tidak ditemukan.');
+        }
+
+        $data['penyewa']         = $penyewa;
+        $data['tagihan_aktif']   = $tagihanModel
+            ->where('penyewa_id', $penyewa['id'])
+            ->whereIn('status', ['pending', 'menunggu_konfirmasi', 'menunggak'])
+            ->orderBy('created_at', 'DESC')
+            ->findAll();
+        $data['tagihan_lunas']   = $tagihanModel
+            ->where('penyewa_id', $penyewa['id'])
+            ->where('status', 'lunas')
+            ->countAllResults();
+        $data['total_maintenance'] = $maintenanceModel
+            ->where('penyewa_id', $penyewa['id'])
+            ->countAllResults();
+        $data['maintenance_proses'] = $maintenanceModel
+            ->where('penyewa_id', $penyewa['id'])
+            ->whereIn('status', ['menunggu', 'proses'])
+            ->countAllResults();
+
+        return view('tenant/dashboard', $data);
     }
 }
