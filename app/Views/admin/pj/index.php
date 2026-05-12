@@ -35,6 +35,13 @@
         </div>
     <?php endif; ?>
 
+    <!-- ALERT -->
+    <?php if (session()->getFlashdata('success')) : ?>
+        <div class="alert alert-success m-2">
+            <?= session()->getFlashdata('success') ?>
+        </div>
+    <?php endif; ?>
+    
     <!-- TABLE -->
     <div class="tbl-wrap">
         <table class="data-table">
@@ -94,6 +101,12 @@
                                         class="action-btn <?= $pj['is_active'] ? 'del' : 'edit' ?>"
                                         onclick="return confirm('Ubah status PJ ini?')">
                                         <i class="bi bi-power"></i>
+                                    </a>
+                                    <!-- RESET PASSWORD -->
+                                    <a href="/admin/pj/reset-password/<?= $pj['id'] ?>"
+                                        class="action-btn"
+                                        onclick="return confirm('Reset password PJ?')">
+                                        <i class="bi bi-key"></i>
                                     </a>
                                 </div>
                             </td>

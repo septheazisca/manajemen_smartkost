@@ -256,7 +256,11 @@ class MaintenanceController extends BaseController
         $role = session()->get('role');
         $view = $role === 'admin' ? 'admin/maintenance/detail' : 'pj/maintenance_detail';
 
-        return view($view, ['maintenance' => $maintenance]);
+        // return view($view, ['maintenance' => $maintenance]);
+        return view($view, [
+            'maintenance' => $maintenance,
+            'pj_list'     => $this->pjModel->where('is_active', 1)->findAll(), // tambah ini
+        ]);
     }
 
     public function ambil($id)

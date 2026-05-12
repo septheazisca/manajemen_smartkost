@@ -264,6 +264,11 @@ class NotifikasiController extends BaseController
         $error    = curl_error($curl);
         curl_close($curl);
 
+        // TAMBAH DI SINI
+        log_message('error', 'Fonnte raw response: ' . $response);
+        log_message('error', 'Fonnte curl error: ' . $error);
+        log_message('error', 'Fonnte token: ' . $this->fonnteToken);
+
         if ($error) {
             return ['success' => false, 'message' => $error];
         }

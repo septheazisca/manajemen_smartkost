@@ -37,7 +37,7 @@
                             <div class="col-12 mt-2">
                                 <div class="p-3 rounded-3 bg-light-subtle border d-flex align-items-center justify-content-between">
                                     <div class="small"><i class="bi bi-info-circle me-2 text-primary"></i>Status Masa Sewa Aktif</div>
-                                    <a href="/tenant/profil" class="btn btn-sm btn-white border shadow-sm px-3">Lihat Profil</a>
+                                    <a href="/tenant/profile" class="btn btn-sm btn-white border shadow-sm px-3">Lihat Profil</a>
                                 </div>
                             </div>
                         </div>
