@@ -23,6 +23,8 @@ class MaintenanceModel extends Model
         'status',
         'assigned_at',
         'selesai_at',
+        'created_at',
+        'updated_at'
     ];
 
     protected bool $allowEmptyInserts = false;
@@ -32,7 +34,7 @@ class MaintenanceModel extends Model
     protected array $castHandlers = [];
 
     // Dates
-    protected $useTimestamps = false;
+    protected $useTimestamps = true;
     protected $dateFormat    = 'datetime';
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';

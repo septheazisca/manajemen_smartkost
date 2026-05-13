@@ -20,6 +20,8 @@ class TagihanModel extends Model
         'nominal_unik',
         'status',
         'jatuh_tempo',
+        'created_at',
+        'updated_at'
     ];
 
     protected bool $allowEmptyInserts = false;
@@ -29,7 +31,7 @@ class TagihanModel extends Model
     protected array $castHandlers = [];
 
     // Dates
-    protected $useTimestamps = false;
+    protected $useTimestamps = true;
     protected $dateFormat    = 'datetime';
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
