@@ -130,7 +130,6 @@ class TagihanController extends BaseController
         }
 
         $data['tagihan'] = $tagihan;
-
         $data['pembayaran'] = $this->pembayaranModel
             ->where('tagihan_id', $id)
             ->findAll();
@@ -325,6 +324,59 @@ class TagihanController extends BaseController
         return view('tenant/tagihan', $data);
     }
 
+    // =====================
+    // TAGIHAN PENYEWA - Penyewa lihat detail tagihan milik sendiri
+    // =====================
+    public function detailTagihan($id)
+    {
+        $userId  = session()->get('user_id');
+        $penyewa = $this->penyewaModel->getPenyewaByUserId($userId);
+
+        if (!$penyewa) {
+            return redirect()->to('/tenant/tagihan')->with('error', 'Data penyewa tidak ditemukan.');
+        }
+
+        $semua   = $this->tagihanModel->getTagihanLengkap();
+        $tagihan = null;
+        foreach ($semua as $t) {
+            if ($t['id'] == $id) {
+                $tagihan = $t;
+                break;
+            }
+        }
+
+        // pastikan tagihan milik penyewa yang login
+        if (!$tagihan || $tagihan['penyewa_id'] !== $penyewa['id']) {
+            return redirect()->to('/tenant/tagihan')->with('error', 'Tagihan tidak ditemukan.');
+        }
+
+        // Ambil semua pembayaran milik penyewa ini (lintas tagihan)
+        $data['pembayaran'] = $this->pembayaranModel
+            ->select('
+                tagihan.id as tagihan_id,
+                tagihan.bulan,
+                tagihan.tahun,
+                tagihan.status as status_tagihan,
+                tagihan.jumlah,
+                tagihan.nominal_unik,
+                pembayaran.id as pembayaran_id,
+                pembayaran.jumlah_bayar,
+                pembayaran.bukti_transfer,
+                pembayaran.status as status_pembayaran,
+                pembayaran.catatan_admin,
+                pembayaran.created_at
+            ')
+            ->join('tagihan', 'tagihan.id = pembayaran.tagihan_id', 'right')
+            ->where('tagihan.penyewa_id', $penyewa['id'])
+            ->orderBy('tagihan.tahun', 'DESC')
+            ->orderBy('tagihan.bulan', 'DESC')
+            ->findAll();            
+        // $data['pembayaran'] = $this->pembayaranModel->where('tagihan_id', $id)->findAll();
+        $data['tagihan']    = $tagihan;
+        $data['penyewa']    = $penyewa;
+
+        return view('tenant/detail_tagihan', $data);
+    }
     // =====================
     // HELPER - List nama bulan
     // =====================
