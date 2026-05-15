@@ -285,6 +285,17 @@ class PenyewaController extends BaseController
             return redirect()->back()->with('error', 'Data tidak ditemukan.');
         }
 
+        // tambah validasi
+        $rules = [
+            'phone' => 'required|min_length[10]|numeric',
+        ];
+
+        if (!$this->validate($rules)) {
+            return redirect()->back()
+                ->withInput()
+                ->with('errors', $this->validator->getErrors());
+        }
+
         $db = \Config\Database::connect();
         $db->transStart();
 
@@ -295,8 +306,8 @@ class PenyewaController extends BaseController
         $this->penyewaModel->update($penyewa['id'], [
             'alamat'            => $this->request->getPost('alamat'),
             'asal_kota'         => $this->request->getPost('asal_kota'),
-            'status_pekerjaan'  => $this->request->getPost('status_pekerjaan'),
-            'status_pernikahan' => $this->request->getPost('status_pernikahan'),
+            'status_pekerjaan'  => $this->request->getPost('status_pekerjaan') ?: null,
+            'status_pernikahan' => $this->request->getPost('status_pernikahan') ?: null,
             'nomor_darurat'     => $this->request->getPost('nomor_darurat'),
         ]);
 

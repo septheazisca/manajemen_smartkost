@@ -83,14 +83,16 @@
                 <?= csrf_field() ?>
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label class="form-label">Nama Lengkap <span class="text-danger">*</span></label>
-                        <input type="text" name="nama" class="form-control"
-                            value="<?= old('nama', $penyewa['nama'] ?? $penyewa['name'] ?? '') ?>" required>
+                        <label class="form-label">Nama Lengkap</label>
+                        <input type="text" class="form-control"
+                            value="<?= esc($penyewa['name'] ?? '-') ?>" disabled>
+                        <small class="text-muted">Hubungi admin untuk mengubah nama.</small>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">Email <span class="text-danger">*</span></label>
-                        <input type="email" name="email" class="form-control"
-                            value="<?= old('email', $penyewa['email'] ?? '') ?>" required>
+                        <label class="form-label">Email</label>
+                        <input type="text" class="form-control"
+                            value="<?= esc($penyewa['email'] ?? '-') ?>" disabled>
+                        <small class="text-muted">Hubungi admin untuk mengubah email.</small>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label">No. HP <span class="text-danger">*</span></label>
@@ -98,15 +100,38 @@
                             value="<?= old('phone', $penyewa['phone'] ?? '') ?>" required>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label">No. KTP / Identitas</label>
-                        <input type="text" name="no_ktp" class="form-control"
-                            value="<?= old('no_ktp', $penyewa['no_ktp'] ?? '') ?>"
-                            placeholder="Opsional">
+                        <label class="form-label">Asal Kota</label>
+                        <input type="text" name="asal_kota" class="form-control"
+                            value="<?= old('asal_kota', $penyewa['asal_kota'] ?? '') ?>"
+                            placeholder="Contoh: Jakarta">
                     </div>
                     <div class="col-md-12">
-                        <label class="form-label">Kontak Darurat</label>
-                        <input type="text" name="kontak_darurat" class="form-control"
-                            value="<?= old('kontak_darurat', $penyewa['kontak_darurat'] ?? '') ?>"
+                        <label class="form-label">Alamat Lengkap</label>
+                        <textarea name="alamat" class="form-control" rows="2"
+                            placeholder="Alamat asal kamu"><?= old('alamat', $penyewa['alamat'] ?? '') ?></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Status Pekerjaan</label>
+                        <select name="status_pekerjaan" class="form-select">
+                            <option value="">-- Pilih --</option>
+                            <option value="bekerja" <?= ($penyewa['status_pekerjaan'] ?? '') == 'bekerja' ? 'selected' : '' ?>>Bekerja</option>
+                            <option value="pelajar/mahasiswa" <?= ($penyewa['status_pekerjaan'] ?? '') == 'pelajar/mahasiswa' ? 'selected' : '' ?>>Pelajar/Mahasiswa</option>
+                            <option value="lainnya" <?= ($penyewa['status_pekerjaan'] ?? '') == 'lainnya' ? 'selected' : '' ?>>Lainnya</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Status Pernikahan</label>
+                        <select name="status_pernikahan" class="form-select">
+                            <option value="">-- Pilih --</option>
+                            <option value="belum menikah" <?= ($penyewa['status_pernikahan'] ?? '') == 'belum menikah' ? 'selected' : '' ?>>Belum Menikah</option>
+                            <option value="menikah" <?= ($penyewa['status_pernikahan'] ?? '') == 'menikah' ? 'selected' : '' ?>>Menikah</option>
+                            <option value="lainnya" <?= ($penyewa['status_pernikahan'] ?? '') == 'lainnya' ? 'selected' : '' ?>>Lainnya</option>
+                        </select>
+                    </div>
+                    <div class="col-md-12">
+                        <label class="form-label">Nomor Darurat</label>
+                        <input type="text" name="nomor_darurat" class="form-control"
+                            value="<?= old('nomor_darurat', $penyewa['nomor_darurat'] ?? '') ?>"
                             placeholder="Nama dan nomor HP keluarga/kerabat">
                     </div>
                     <div class="col-md-12 mt-2">
