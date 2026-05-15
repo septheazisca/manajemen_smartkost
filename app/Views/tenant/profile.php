@@ -42,7 +42,12 @@
             <div class="text-center mb-4">
                 <div class="mx-auto d-flex align-items-center justify-content-center rounded-circle"
                     style="width: 80px; height: 80px; background: linear-gradient(135deg, #C484F5, #7c3aed); font-size: 2rem; color: #fff; font-weight: bold;">
-                    <?= strtoupper(substr($penyewa['nama'] ?? $penyewa['name'] ?? 'U', 0, 1)) ?>
+                    <?php
+                    $name = session()->get('name');
+                    // Bersihkan spasi dan cek apakah benar-benar ada isinya
+                    $initial = (!empty(trim($name))) ? strtoupper(substr(trim($name), 0, 1)) : 'U';
+                    echo $initial;
+                    ?>
                 </div>
                 <h6 class="fw-bold mt-3 mb-0"><?= esc($penyewa['nama'] ?? $penyewa['name'] ?? '-') ?></h6>
                 <small class="text-muted">Penyewa</small>
