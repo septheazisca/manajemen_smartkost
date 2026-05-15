@@ -265,7 +265,7 @@
 <div class="modal fade" id="modalBayar" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg">
-            <form action="/tenant/tagihan/bayar/<?= $tagihan['id'] ?>" method="post" enctype="multipart/form-data">
+            <form action="/tenant/tagihan/upload-bukti/<?= $tagihan['id'] ?>" method="post" enctype="multipart/form-data">
                 <?= csrf_field() ?>
                 <div class="modal-header bg-success text-white">
                     <h5 class="modal-title fs-6"><i class="bi bi-credit-card me-2"></i>Kirim Pembayaran</h5>

@@ -124,7 +124,6 @@ $routes->group('tenant', ['filter' => 'role:penyewa'], function ($routes) {
     $routes->get('tagihan', 'TagihanController::tagihanSaya');
     $routes->post('tagihan/upload-bukti/(:num)', 'TagihanController::uploadBukti/$1');
     $routes->get('detail_tagihan/(:num)', 'TagihanController::detailTagihan/$1');
-    $routes->post('tenant/tagihan/bayar/(:num)', 'TagihanController::uploadBukti/$1');
 
 
     // maintenance / komplain
