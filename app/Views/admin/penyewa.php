@@ -327,51 +327,21 @@
                             <div class="col-md-6 mb-3">
                                 <label>Status Pekerjaan</label>
                                 <select name="status_pekerjaan" class="form-select">
-                                    <option value=""
-                                        <?= empty($p['status_pekerjaan']) ? 'selected' : '' ?>>
-                                        -- Pilih Status Pekerjaan --
-                                    </option>
-                                    <option value="bekerja"
-                                        <?= $p['status_pekerjaan'] == 'bekerja' ? 'selected' : '' ?>>
-                                        Bekerja
-                                    </option>
-                                    <option value="pelajar/mahasiswa"
-                                        <?= $p['status_pekerjaan'] == 'pelajar/mahasiswa' ? 'selected' : '' ?>>
-                                        Pelajar / Mahasiswa
-                                    </option>
-                                    <option value="lainnya"
-                                        <?= $p['status_pekerjaan'] == 'lainnya' ? 'selected' : '' ?>>
-                                        Lainnya
-                                    </option>
-
+                                    <option value="">-- Pilih --</option>
+                                    <option value="bekerja" <?= ($p['status_pekerjaan'] ?? '') == 'bekerja' ? 'selected' : '' ?>>Bekerja</option>
+                                    <option value="pelajar/mahasiswa" <?= ($p['status_pekerjaan'] ?? '') == 'pelajar/mahasiswa' ? 'selected' : '' ?>>Pelajar/Mahasiswa</option>
+                                    <option value="lainnya" <?= ($p['status_pekerjaan'] ?? '') == 'lainnya' ? 'selected' : '' ?>>Lainnya</option>
                                 </select>
                             </div>
 
                             <div class="col-md-6 mb-3">
                                 <label>Status Pernikahan</label>
                                 <select name="status_pernikahan" class="form-select">
-
-                                    <option value=""
-                                        <?= empty($p['status_pernikahan']) ? 'selected' : '' ?>>
-                                        -- Pilih Status Pernikahan --
-                                    </option>
-
-                                    <option value="belum menikah"
-                                        <?= $p['status_pernikahan'] == 'belum menikah' ? 'selected' : '' ?>>
-                                        Belum Menikah
-                                    </option>
-
-                                    <option value="menikah"
-                                        <?= $p['status_pernikahan'] == 'menikah' ? 'selected' : '' ?>>
-                                        Menikah
-                                    </option>
-
-                                    <option value="lainnya"
-                                        <?= $p['status_pernikahan'] == 'lainnya' ? 'selected' : '' ?>>
-                                        Lainnya
-                                    </option>
-
-                                    </select>
+                                    <option value="">-- Pilih --</option>
+                                    <option value="belum menikah" <?= ($p['status_pernikahan'] ?? '') == 'belum menikah' ? 'selected' : '' ?>>Belum Menikah</option>
+                                    <option value="menikah" <?= ($p['status_pernikahan'] ?? '') == 'menikah' ? 'selected' : '' ?>>Menikah</option>
+                                    <option value="lainnya" <?= ($p['status_pernikahan'] ?? '') == 'lainnya' ? 'selected' : '' ?>>Lainnya</option>
+                                </select>
                             </div>
 
                             <div class="col-md-6 mb-3">
