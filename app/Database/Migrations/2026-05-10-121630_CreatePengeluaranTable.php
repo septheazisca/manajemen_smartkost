@@ -56,6 +56,8 @@ class CreatePengeluaranTable extends Migration
         ]);
 
         $this->forge->addKey('id', true);
+        $this->forge->addForeignKey('pj_id', 'penanggung_jawab', 'id', 'SET NULL', 'SET NULL');
+        $this->forge->addForeignKey('maintenance_id', 'maintenance', 'id', 'SET NULL', 'SET NULL');
         $this->forge->createTable('pengeluaran');
     }
 
