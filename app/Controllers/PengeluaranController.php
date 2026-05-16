@@ -9,6 +9,7 @@ use CodeIgniter\HTTP\ResponseInterface;
 
 class PengeluaranController extends BaseController
 {
+    // Semua model dideklarasikan sebagai property agar bisa dipakai di semua method
     protected $pengeluaranModel;
     protected $pjModel;
 
@@ -18,27 +19,25 @@ class PengeluaranController extends BaseController
         $this->pjModel          = new PenanggungJawabModel();
     }
 
-    // =====================
-    // INDEX - Admin lihat semua pengeluaran
-    // =====================
+    // Tampilkan semua pengeluaran berdasarkan filter bulan & tahun
+    // Default ke bulan & tahun sekarang kalau filter tidak dikirim
     public function index()
     {
         $bulan = $this->request->getGet('bulan') ?? date('m');
         $tahun = $this->request->getGet('tahun') ?? date('Y');
 
-        $data['pengeluaran']  = $this->pengeluaranModel->getPengeluaranLengkap($bulan, $tahun);
-        $data['total']        = $this->pengeluaranModel->getTotalPengeluaran($bulan, $tahun);
-        $data['bulan']        = $bulan;
-        $data['tahun']        = $tahun;
-        $data['pj_list']      = $this->pjModel->where('is_active', 1)->findAll();
-        $data['list_bulan']   = $this->getListBulan();
+        $data['pengeluaran'] = $this->pengeluaranModel->getPengeluaranLengkap($bulan, $tahun);
+        $data['total']       = $this->pengeluaranModel->getTotalPengeluaran($bulan, $tahun);
+        $data['bulan']       = $bulan;
+        $data['tahun']       = $tahun;
+        $data['pj_list']     = $this->pjModel->where('is_active', 1)->findAll();
+        $data['list_bulan']  = $this->getListBulan();
 
         return view('admin/pengeluaran/index', $data);
     }
 
-    // =====================
-    // STORE - Admin tambah pengeluaran manual
-    // =====================
+    // Tambah pengeluaran manual oleh admin
+    // maintenance_id diset null karena ini input manual, bukan dari proses maintenance
     public function store()
     {
         $rules = [
@@ -54,7 +53,6 @@ class PengeluaranController extends BaseController
                 ->withInput()
                 ->with('errors', $this->validator->getErrors());
         }
-    
 
         $this->pengeluaranModel->save([
             'keterangan'     => $this->request->getPost('keterangan'),
@@ -63,16 +61,16 @@ class PengeluaranController extends BaseController
             'bulan'          => $this->request->getPost('bulan'),
             'tahun'          => $this->request->getPost('tahun'),
             'pj_id'          => $this->request->getPost('pj_id') ?: null,
-            'maintenance_id' => null,
+            'maintenance_id' => null, // null = input manual, bukan dari maintenance
         ]);
 
         return redirect()->to('/admin/pengeluaran')
             ->with('success', 'Pengeluaran berhasil dicatat.');
     }
 
-    // =====================
-    // UPDATE - Admin edit pengeluaran manual
-    // =====================
+    // Edit pengeluaran manual
+    // Pengeluaran yang berasal dari maintenance atau kategori gaji tidak boleh diedit
+    // karena sudah terhubung ke proses lain yang tidak boleh diubah sembarangan
     public function update($id)
     {
         $pengeluaran = $this->pengeluaranModel->find($id);
@@ -81,10 +79,10 @@ class PengeluaranController extends BaseController
             return redirect()->back()->with('error', 'Data pengeluaran tidak ditemukan.');
         }
 
-        // pengeluaran yang otomatis dari maintenance/gaji tidak boleh diedit manual
-        if ($pengeluaran['maintenance_id'] !== null) {
+        // Blokir edit kalau pengeluaran ini otomatis dari maintenance atau kategori gaji
+        if ($pengeluaran['maintenance_id'] !== null || $pengeluaran['kategori'] === 'gaji') {
             return redirect()->back()
-                ->with('error', 'Pengeluaran dari maintenance tidak bisa diedit manual.');
+                ->with('error', 'Pengeluaran ini tidak bisa diedit.');
         }
 
         $rules = [
@@ -114,9 +112,9 @@ class PengeluaranController extends BaseController
             ->with('success', 'Pengeluaran berhasil diupdate.');
     }
 
-    // =====================
-    // DELETE - Admin hapus pengeluaran manual
-    // =====================
+    // Hapus pengeluaran manual
+    // Pengeluaran dari maintenance atau kategori gaji tidak boleh dihapus
+    // agar data keuangan tetap akurat dan tidak bisa dimanipulasi
     public function delete($id)
     {
         $pengeluaran = $this->pengeluaranModel->find($id);
@@ -125,10 +123,10 @@ class PengeluaranController extends BaseController
             return redirect()->back()->with('error', 'Data tidak ditemukan.');
         }
 
-        // pengeluaran otomatis dari maintenance tidak boleh dihapus manual
-        if ($pengeluaran['maintenance_id'] !== null) {
+        // Blokir hapus kalau pengeluaran ini otomatis dari maintenance atau kategori gaji
+        if ($pengeluaran['maintenance_id'] !== null || $pengeluaran['kategori'] === 'gaji') {
             return redirect()->back()
-                ->with('error', 'Pengeluaran dari maintenance tidak bisa dihapus manual.');
+                ->with('error', 'Pengeluaran ini tidak bisa dihapus.');
         }
 
         $this->pengeluaranModel->delete($id);
@@ -137,14 +135,14 @@ class PengeluaranController extends BaseController
             ->with('success', 'Pengeluaran berhasil dihapus.');
     }
 
-    // =====================
-    // REKAP - Rekap pengeluaran per kategori
-    // =====================
+    // Rekap pengeluaran per kategori untuk bulan & tahun tertentu
+    // Total per kategori dihitung terpisah lalu dijumlahkan untuk total keseluruhan
     public function rekap()
     {
         $bulan = $this->request->getGet('bulan') ?? date('m');
         $tahun = $this->request->getGet('tahun') ?? date('Y');
 
+        // Hitung total per kategori menggunakan selectSum
         $data['total_maintenance'] = $this->pengeluaranModel
             ->where('kategori', 'maintenance')
             ->where('bulan', $bulan)
@@ -166,18 +164,18 @@ class PengeluaranController extends BaseController
             ->selectSum('jumlah', 'total')
             ->first()['total'] ?? 0;
 
-        $data['total_semua']  = $data['total_maintenance'] + $data['total_gaji'] + $data['total_lainnya'];
-        $data['pengeluaran']  = $this->pengeluaranModel->getPengeluaranLengkap($bulan, $tahun);
-        $data['bulan']        = $bulan;
-        $data['tahun']        = $tahun;
-        $data['list_bulan']   = $this->getListBulan();
+        // Total semua kategori dijumlahkan di PHP, bukan di query
+        // agar masing-masing nilai per kategori tetap tersedia untuk ditampilkan terpisah
+        $data['total_semua'] = $data['total_maintenance'] + $data['total_gaji'] + $data['total_lainnya'];
+        $data['pengeluaran'] = $this->pengeluaranModel->getPengeluaranLengkap($bulan, $tahun);
+        $data['bulan']       = $bulan;
+        $data['tahun']       = $tahun;
+        $data['list_bulan']  = $this->getListBulan();
 
         return view('admin/pengeluaran/rekap', $data);
     }
 
-    // =====================
-    // HELPER - List nama bulan
-    // =====================
+    // Helper private: mapping nomor bulan ke nama bulan Bahasa Indonesia
     private function getListBulan()
     {
         return [
