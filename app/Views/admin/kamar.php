@@ -24,6 +24,34 @@
         </div>
     </div>
 
+    <?php if (session()->getFlashdata('errors')): ?>
+        <div class="alert alert-danger border-0 shadow-sm m-3" style="border-radius: 12px;">
+            <div class="d-flex align-items-start gap-2">
+                <i class="bi bi-exclamation-triangle-fill mt-1"></i>
+                <div>
+                    <strong>Gagal menyimpan data:</strong>
+                    <ul class="mb-0 mt-1">
+                        <?php foreach (session()->getFlashdata('errors') as $e): ?>
+                            <li><?= esc($e) ?></li>
+                        <?php endforeach; ?>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    <?php endif; ?>
+
+    <?php if (session()->getFlashdata('error')): ?>
+        <div class="alert alert-danger border-0 shadow-sm m-3" style="border-radius: 12px;">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i><?= session()->getFlashdata('error') ?>
+        </div>
+    <?php endif; ?>
+
+    <?php if (session()->getFlashdata('success')): ?>
+        <div class="alert alert-success border-0 shadow-sm m-3" style="border-radius: 12px;">
+            <i class="bi bi-check-circle-fill me-2"></i><?= session()->getFlashdata('success') ?>
+        </div>
+    <?php endif; ?>
+
     <!-- TABLE -->
     <div class="tbl-wrap">
         <table class="data-table">
@@ -57,7 +85,6 @@
                             <td><?= $r['luas'] ?></td>
                             <td>Rp <?= number_format($r['harga']) ?></td>
                             <td><?= $r['status'] ?></td>
-                            <!-- <td><?= $r['nama_penyewa'] ?? '-' ?></td> -->
                             <td>
                                 <div style="display:flex;gap:.35rem;">
                                     <button class="action-btn edit"
@@ -66,11 +93,23 @@
                                         <i class="bi bi-pencil"></i>
                                     </button>
 
-                                    <button class="action-btn del btn-delete"
+                                    <?php if ($r['status'] === 'kosong'): ?>
+                                        <button class="action-btn del btn-delete btn-delete-kamar"
+                                            data-url="/admin/kamar/delete/<?= $r['id'] ?>"
+                                            data-nama="Kamar <?= $r['nomor_kamar'] ?>">
+                                            <i class="bi bi-trash3"></i>
+                                        </button>
+                                    <?php else: ?>
+                                        <span class="action-btn del btn-delete btn-locked" title="Kamar masih terisi">
+                                            <i class="bi bi-lock"></i>
+                                        </span>
+                                    <?php endif; ?>
+
+                                    <!-- <button class="action-btn del btn-delete"
                                         data-url="/admin/kamar/delete/<?= $r['id'] ?>"
                                         data-nama="<?= $r['nomor_kamar'] ?>">
                                         <i class="bi bi-trash3"></i>
-                                    </button>
+                                    </button> -->
                                 </div>
                             </td>
                         </tr>
@@ -241,7 +280,7 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
 
-        const deleteButtons = document.querySelectorAll('.btn-delete');
+        const deleteButtons = document.querySelectorAll('.btn-delete-kamar');
 
         deleteButtons.forEach(button => {
             button.addEventListener('click', function(e) {
@@ -264,6 +303,29 @@
                         // Jika klik Ya, arahkan ke URL penghapusan
                         window.location.href = url;
                     }
+                });
+            });
+        });
+    });
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Cari semua tombol yang memiliki class btn-locked
+        const lockedButtons = document.querySelectorAll('.btn-locked');
+
+        lockedButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault(); // Mencegah aksi bawaan jika ada
+
+                // Tampilkan SweetAlert
+                Swal.fire({
+                    icon: 'info',
+                    iconColor: '#c06eff', // Mengubah warna ikon informasi menjadi ungu
+                    title: 'Informasi',
+                    text: 'Kamar tidak bisa dihapus karena status kamar masih terisi.',
+                    confirmButtonColor: '#c06eff', // Mengubah warna tombol menjadi ungu
+                    confirmButtonText: 'Batal'
                 });
             });
         });
