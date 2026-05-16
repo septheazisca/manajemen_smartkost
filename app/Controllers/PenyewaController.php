@@ -4,13 +4,13 @@ namespace App\Controllers;
 
 use App\Controllers\BaseController;
 use App\Models\KamarModel;
+use App\Models\PenyewaModel;
 use App\Models\UserModel;
 use CodeIgniter\HTTP\ResponseInterface;
-use App\Models\PenyewaModel;
 
 class PenyewaController extends BaseController
 {
-
+    // Semua model dideklarasikan sebagai property agar bisa dipakai di semua method
     protected $penyewaModel;
     protected $userModel;
     protected $kamarModel;
@@ -22,9 +22,7 @@ class PenyewaController extends BaseController
         $this->kamarModel   = new KamarModel();
     }
 
-    // =====================
-    // INDEX - Admin lihat semua penyewa
-    // =====================
+    // Tampilkan semua penyewa aktif beserta daftar kamar kosong untuk form tambah
     public function index()
     {
         $data['penyewa']      = $this->penyewaModel->getPenyewaLengkap();
@@ -33,9 +31,9 @@ class PenyewaController extends BaseController
         return view('admin/penyewa', $data);
     }
 
-    // =====================
-    // STORE - Admin tambah penyewa baru
-    // =====================
+    // Tambah penyewa baru beserta akun login-nya
+    // Data disimpan di 2 tabel: users (untuk login) dan penyewa (untuk data sewa)
+    // Status kamar otomatis berubah jadi 'terisi' setelah penyewa ditambahkan
     public function store()
     {
         $rules = [
@@ -57,12 +55,13 @@ class PenyewaController extends BaseController
 
         $phone = $this->request->getPost('phone');
 
-        // 1. buat akun user
+        // 1. Buat akun user untuk login, password default = nomor HP
+        // must_change_password = 1 agar penyewa wajib ganti password saat pertama login
         $this->userModel->save([
             'name'                 => $this->request->getPost('name'),
             'email'                => $this->request->getPost('email'),
             'phone'                => $phone,
-            'password'             => password_hash($phone, PASSWORD_DEFAULT),
+            'password'             => password_hash((string) $phone, PASSWORD_DEFAULT),
             'role'                 => 'penyewa',
             'is_active'            => 1,
             'must_change_password' => 1,
@@ -70,19 +69,19 @@ class PenyewaController extends BaseController
 
         $userId = $this->userModel->getInsertID();
 
-        // 2. simpan data penyewa
+        // 2. Simpan data sewa penyewa, dihubungkan ke akun user lewat user_id
         $this->penyewaModel->save([
-            'user_id'           => $userId,
-            'kamar_id'          => $this->request->getPost('kamar_id'),
-            'tanggal_masuk'     => $this->request->getPost('tanggal_masuk'),
-            'alamat'            => $this->request->getPost('alamat'),
-            'asal_kota'         => $this->request->getPost('asal_kota'),
-            'status_pekerjaan'   => $this->request->getPost('status_pekerjaan') ?: null,
-            'status_pernikahan'  => $this->request->getPost('status_pernikahan') ?: null,
-            'nomor_darurat'     => $this->request->getPost('nomor_darurat'),
+            'user_id'          => $userId,
+            'kamar_id'         => $this->request->getPost('kamar_id'),
+            'tanggal_masuk'    => $this->request->getPost('tanggal_masuk'),
+            'alamat'           => $this->request->getPost('alamat'),
+            'asal_kota'        => $this->request->getPost('asal_kota'),
+            'status_pekerjaan' => $this->request->getPost('status_pekerjaan') ?: null,
+            'status_pernikahan' => $this->request->getPost('status_pernikahan') ?: null,
+            'nomor_darurat'    => $this->request->getPost('nomor_darurat'),
         ]);
 
-        // 3. update status kamar jadi terisi
+        // 3. Update status kamar jadi terisi agar tidak bisa dipilih penyewa lain
         $this->kamarModel->update($this->request->getPost('kamar_id'), [
             'status' => 'terisi',
         ]);
@@ -99,16 +98,15 @@ class PenyewaController extends BaseController
             ->with('success', 'Penyewa berhasil ditambahkan. Password default: nomor HP penyewa.');
     }
 
-    // =====================
-    // UPDATE - Admin edit data penyewa
-    // =====================
+    // Update data penyewa di 2 tabel sekaligus menggunakan transaction manual
+    // Pakai transBegin/transCommit/transRollback agar bisa cek hasil tiap update secara terpisah
+    // Validasi email: skip is_unique kalau email tidak berubah agar tidak error
     public function update($id)
     {
         $penyewa = $this->penyewaModel->find($id);
 
         if (!$penyewa) {
-            return redirect()->back()
-                ->with('error', 'Data penyewa tidak ditemukan.');
+            return redirect()->back()->with('error', 'Data penyewa tidak ditemukan.');
         }
 
         $user = $this->userModel->find($penyewa['user_id']);
@@ -116,22 +114,22 @@ class PenyewaController extends BaseController
         $rules = [
             'name'  => 'required|min_length[3]',
             'phone' => 'required',
+            // Cek is_unique hanya kalau email memang berubah
             'email' => ($this->request->getPost('email') != $user['email'])
                 ? 'required|valid_email|is_unique[users.email]'
                 : 'required|valid_email',
         ];
 
         if (!$this->validate($rules)) {
-
             return redirect()->back()
                 ->withInput()
                 ->with('error', implode('<br>', $this->validator->getErrors()));
         }
 
         $db = \Config\Database::connect();
-
         $db->transBegin();
 
+        // Update data login di tabel users
         $updateUser = $this->userModel->update($penyewa['user_id'], [
             'name'  => $this->request->getPost('name'),
             'email' => $this->request->getPost('email'),
@@ -139,32 +137,23 @@ class PenyewaController extends BaseController
         ]);
 
         if (!$updateUser) {
-
             $db->transRollback();
-
-            return redirect()->back()
-                ->withInput()
-                ->with('error', 'Gagal update user');
+            return redirect()->back()->withInput()->with('error', 'Gagal update user.');
         }
 
+        // Update data sewa di tabel penyewa
         $updatePenyewa = $this->penyewaModel->update($id, [
-
-            'tanggal_masuk'     => $this->request->getPost('tanggal_masuk'),
-            'alamat'            => $this->request->getPost('alamat'),
-            'asal_kota'         => $this->request->getPost('asal_kota'),
-            'status_pekerjaan'   => $this->request->getPost('status_pekerjaan') ?: null,
-            'status_pernikahan'  => $this->request->getPost('status_pernikahan') ?: null,
-            'nomor_darurat'     => $this->request->getPost('nomor_darurat'),
-
+            'tanggal_masuk'    => $this->request->getPost('tanggal_masuk'),
+            'alamat'           => $this->request->getPost('alamat'),
+            'asal_kota'        => $this->request->getPost('asal_kota'),
+            'status_pekerjaan' => $this->request->getPost('status_pekerjaan') ?: null,
+            'status_pernikahan' => $this->request->getPost('status_pernikahan') ?: null,
+            'nomor_darurat'    => $this->request->getPost('nomor_darurat'),
         ]);
 
         if (!$updatePenyewa) {
-
             $db->transRollback();
-
-            return redirect()->back()
-                ->withInput()
-                ->with('error', 'Gagal update data penyewa');
+            return redirect()->back()->withInput()->with('error', 'Gagal update data penyewa.');
         }
 
         $db->transCommit();
@@ -173,9 +162,8 @@ class PenyewaController extends BaseController
             ->with('success', 'Data penyewa berhasil diupdate.');
     }
 
-    // =====================
-    // TOGGLE STATUS - Aktifkan / nonaktifkan akun penyewa
-    // =====================
+    // Aktifkan atau nonaktifkan akun penyewa
+    // Hanya update tabel users karena login dikontrol lewat is_active di sana
     public function toggleStatus($id)
     {
         $penyewa = $this->penyewaModel->find($id);
@@ -197,9 +185,9 @@ class PenyewaController extends BaseController
             ->with('success', "Akun penyewa berhasil {$status}.");
     }
 
-    // =====================
-    // CHECKOUT - Penyewa keluar
-    // =====================
+    // Proses checkout penyewa: tandai tanggal keluar, nonaktifkan akun, kosongkan kamar
+    // Email di-rename dengan suffix _checkout_timestamp agar email bisa dipakai lagi
+    // oleh penyewa baru tanpa bentrok dengan validasi is_unique
     public function checkout($id)
     {
         $penyewa = $this->penyewaModel->find($id);
@@ -213,15 +201,18 @@ class PenyewaController extends BaseController
         $db = \Config\Database::connect();
         $db->transStart();
 
+        // Catat tanggal keluar penyewa
         $this->penyewaModel->update($id, [
             'tanggal_keluar' => date('Y-m-d'),
         ]);
 
+        // Nonaktifkan akun dan rename email agar bisa dipakai lagi di pendaftaran baru
         $this->userModel->update($penyewa['user_id'], [
             'is_active' => 0,
             'email'     => $user['email'] . '_checkout_' . time(),
         ]);
 
+        // Kembalikan status kamar ke kosong agar bisa ditempati penyewa baru
         $this->kamarModel->update($penyewa['kamar_id'], [
             'status' => 'kosong',
         ]);
@@ -236,9 +227,8 @@ class PenyewaController extends BaseController
             ->with('success', 'Penyewa berhasil checkout. Kamar kembali tersedia.');
     }
 
-    // =====================
-    // RESET PASSWORD - Reset ke nomor HP
-    // =====================
+    // Reset password penyewa kembali ke nomor HP terbaru
+    // must_change_password = 1 agar penyewa wajib ganti password lagi saat login
     public function resetPassword($id)
     {
         $penyewa = $this->penyewaModel->find($id);
@@ -250,7 +240,7 @@ class PenyewaController extends BaseController
         $user = $this->userModel->find($penyewa['user_id']);
 
         $this->userModel->update($penyewa['user_id'], [
-            'password'             => password_hash($user['phone'], PASSWORD_DEFAULT),
+            'password'             => password_hash((string) $user['phone'], PASSWORD_DEFAULT),
             'must_change_password' => 1,
         ]);
 
@@ -258,9 +248,7 @@ class PenyewaController extends BaseController
             ->with('success', 'Password berhasil direset ke nomor HP penyewa.');
     }
 
-    // =====================
-    // PROFILE - Penyewa lihat & update data diri sendiri
-    // =====================
+    // Tampilkan halaman profil penyewa yang sedang login
     public function profile()
     {
         $userId  = session()->get('user_id');
@@ -273,9 +261,9 @@ class PenyewaController extends BaseController
         return view('tenant/profile', ['penyewa' => $penyewa]);
     }
 
-    // =====================
-    // UPDATE PROFILE - Penyewa update data diri sendiri
-    // =====================
+    // Penyewa update data diri sendiri
+    // Nama dan email tidak bisa diubah sendiri, harus minta admin
+    // Yang bisa diupdate: nomor HP, alamat, asal kota, status pekerjaan, status pernikahan, nomor darurat
     public function updateProfile()
     {
         $userId  = session()->get('user_id');
@@ -285,7 +273,6 @@ class PenyewaController extends BaseController
             return redirect()->back()->with('error', 'Data tidak ditemukan.');
         }
 
-        // tambah validasi
         $rules = [
             'phone' => 'required|min_length[10]|numeric',
         ];
@@ -299,10 +286,12 @@ class PenyewaController extends BaseController
         $db = \Config\Database::connect();
         $db->transStart();
 
+        // Update nomor HP di tabel users
         $this->userModel->update($userId, [
             'phone' => $this->request->getPost('phone'),
         ]);
 
+        // Update data tambahan di tabel penyewa
         $this->penyewaModel->update($penyewa['id'], [
             'alamat'            => $this->request->getPost('alamat'),
             'asal_kota'         => $this->request->getPost('asal_kota'),
