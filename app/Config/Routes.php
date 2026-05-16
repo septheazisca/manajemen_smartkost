@@ -2,9 +2,7 @@
 
 use CodeIgniter\Router\RouteCollection;
 
-/**
- * @var RouteCollection $routes
- */
+/** @var RouteCollection $routes */
 
 // =====================
 // AUTH
@@ -14,8 +12,6 @@ $routes->get('/login', 'AuthController::login');
 $routes->post('/login', 'AuthController::attemptLogin');
 $routes->get('/logout', 'AuthController::logout');
 $routes->get('/unauthorized', 'AuthController::unauthorized');
-
-// ganti password (semua role, asal sudah login)
 $routes->get('/change-password', 'AuthController::changePassword', ['filter' => 'role:admin,pj,penyewa']);
 $routes->post('/change-password', 'AuthController::updatePassword', ['filter' => 'role:admin,pj,penyewa']);
 
@@ -24,7 +20,6 @@ $routes->post('/change-password', 'AuthController::updatePassword', ['filter' =>
 // =====================
 $routes->group('admin', ['filter' => 'role:admin'], function ($routes) {
 
-    // dashboard
     $routes->get('dashboard', 'DashboardController::index');
 
     // fasilitas
@@ -47,19 +42,19 @@ $routes->group('admin', ['filter' => 'role:admin'], function ($routes) {
     $routes->get('penyewa/reset-password/(:num)', 'PenyewaController::resetPassword/$1');
     $routes->get('penyewa/checkout/(:num)', 'PenyewaController::checkout/$1');
 
-    // tagihan
+    // tagihan - spesifik dulu, dynamic di bawah
     $routes->get('tagihan', 'TagihanController::index');
     $routes->post('tagihan/generate', 'TagihanController::generate');
-    $routes->get('tagihan/(:num)', 'TagihanController::show/$1');
     $routes->post('tagihan/approve/(:num)', 'TagihanController::approve/$1');
     $routes->post('tagihan/tolak/(:num)', 'TagihanController::tolak/$1');
     $routes->post('tagihan/tandai-menunggak/(:num)', 'TagihanController::tandaiMenunggak/$1');
+    $routes->get('tagihan/(:num)', 'TagihanController::show/$1');
 
-    // maintenance
+    // maintenance - spesifik dulu, dynamic di bawah
     $routes->get('maintenance', 'MaintenanceController::index');
-    $routes->get('maintenance/(:num)', 'MaintenanceController::detail/$1');
     $routes->post('maintenance/assign/(:num)', 'MaintenanceController::assign/$1');
     $routes->get('maintenance/delete/(:num)', 'MaintenanceController::delete/$1');
+    $routes->get('maintenance/(:num)', 'MaintenanceController::detail/$1');
 
     // penanggung jawab
     $routes->get('pj', 'PenanggungJawabController::index');
@@ -98,14 +93,13 @@ $routes->group('admin', ['filter' => 'role:admin'], function ($routes) {
 // =====================
 $routes->group('pj', ['filter' => 'role:pj'], function ($routes) {
 
-    // dashboard
     $routes->get('dashboard', 'PenanggungJawabController::dashboardPj');
 
-    // maintenance
+    // maintenance - spesifik dulu, dynamic di bawah
     $routes->get('maintenance', 'MaintenanceController::indexPj');
-    $routes->get('maintenance/(:num)', 'MaintenanceController::detail/$1');
-    $routes->get('maintenance/ambil/(:num)', 'MaintenanceController::ambil/$1'); // tambah ini
+    $routes->get('maintenance/ambil/(:num)', 'MaintenanceController::ambil/$1');
     $routes->post('maintenance/selesai/(:num)', 'MaintenanceController::selesai/$1');
+    $routes->get('maintenance/(:num)', 'MaintenanceController::detail/$1');
 });
 
 // =====================
@@ -113,20 +107,19 @@ $routes->group('pj', ['filter' => 'role:pj'], function ($routes) {
 // =====================
 $routes->group('tenant', ['filter' => 'role:penyewa'], function ($routes) {
 
-    // dashboard
     $routes->get('dashboard', 'DashboardController::index');
 
     // profil
     $routes->get('profile', 'PenyewaController::profile');
     $routes->post('profile/update', 'PenyewaController::updateProfile');
 
-    // tagihan
+    // tagihan - spesifik dulu, dynamic di bawah
     $routes->get('tagihan', 'TagihanController::tagihanSaya');
-    $routes->post('tagihan/upload-bukti/(:num)', 'TagihanController::uploadBukti/$1');
     $routes->get('tagihan/detail/(:num)', 'TagihanController::detailTagihan/$1');
     $routes->post('tagihan/bayar/(:num)', 'TagihanController::uploadBukti/$1');
+    $routes->post('tagihan/upload-bukti/(:num)', 'TagihanController::uploadBukti/$1');
 
-    // maintenance / komplain
+    // maintenance - spesifik dulu, dynamic di bawah
     $routes->get('maintenance', 'MaintenanceController::laporanSaya');
     $routes->post('maintenance/lapor', 'MaintenanceController::lapor');
     $routes->get('maintenance/(:num)', 'MaintenanceController::detailTenant/$1');
