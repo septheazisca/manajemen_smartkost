@@ -10,38 +10,37 @@ use CodeIgniter\HTTP\ResponseInterface;
 
 class TagihanController extends BaseController
 {
-
+    // Semua model dideklarasikan sebagai property agar bisa dipakai di semua method
     protected $tagihanModel;
     protected $pembayaranModel;
     protected $penyewaModel;
 
     public function __construct()
     {
-        $this->tagihanModel   = new TagihanModel();
+        $this->tagihanModel    = new TagihanModel();
         $this->pembayaranModel = new PembayaranModel();
-        $this->penyewaModel   = new PenyewaModel();
+        $this->penyewaModel    = new PenyewaModel();
     }
 
-    // =====================
-    // INDEX - Admin lihat semua tagihan
-    // =====================
+    // Tampilkan semua tagihan berdasarkan filter bulan & tahun
+    // Juga tampilkan pembayaran yang menunggu konfirmasi admin
     public function index()
     {
         $bulan = $this->request->getGet('bulan') ?? date('m');
         $tahun = $this->request->getGet('tahun') ?? date('Y');
 
-        $data['tagihan']          = $this->tagihanModel->getTagihanLengkap($bulan, $tahun);
+        $data['tagihan']            = $this->tagihanModel->getTagihanLengkap($bulan, $tahun);
         $data['pembayaran_pending'] = $this->pembayaranModel->getPembayaranPending();
-        $data['bulan']            = $bulan;
-        $data['tahun']            = $tahun;
-        $data['list_bulan']       = $this->getListBulan();
+        $data['bulan']              = $bulan;
+        $data['tahun']              = $tahun;
+        $data['list_bulan']         = $this->getListBulan();
 
         return view('admin/tagihan/index', $data);
     }
 
-    // =====================
-    // GENERATE - Admin generate tagihan bulanan
-    // =====================
+    // Generate tagihan bulanan untuk semua penyewa aktif sekaligus
+    // Kalau tagihan bulan yang sama sudah ada, penyewa tersebut dilewati (skip)
+    // Nominal unik digenerate per penyewa agar transfer bisa diidentifikasi
     public function generate()
     {
         $bulan = $this->request->getPost('bulan');
@@ -51,7 +50,6 @@ class TagihanController extends BaseController
             return redirect()->back()->with('error', 'Bulan dan tahun wajib diisi.');
         }
 
-        // ambil semua penyewa aktif
         $semuaPenyewa = $this->penyewaModel->getPenyewaLengkap();
 
         if (empty($semuaPenyewa)) {
@@ -65,22 +63,19 @@ class TagihanController extends BaseController
         $skip     = 0;
 
         foreach ($semuaPenyewa as $penyewa) {
-            // cek tagihan bulan ini sudah ada atau belum
-            $sudahAda = $this->tagihanModel->isTagihanExist(
-                $penyewa['id'],
-                $bulan,
-                $tahun
-            );
+            // Skip penyewa yang sudah punya tagihan di bulan & tahun yang sama
+            $sudahAda = $this->tagihanModel->isTagihanExist($penyewa['id'], $bulan, $tahun);
 
             if ($sudahAda) {
                 $skip++;
                 continue;
             }
 
-            // generate nominal unik per penyewa
+            // Nominal unik berbeda tiap penyewa, dihitung dari penyewa_id
+            // Tujuannya agar admin bisa identifikasi siapa yang bayar dari nominal transfer
             $nominalUnik = $this->tagihanModel->generateNominalUnik($penyewa['id']);
 
-            // jatuh tempo tanggal 10 bulan tersebut
+            // Jatuh tempo selalu tanggal 10 bulan tersebut
             $jatuhTempo = $tahun . '-' . str_pad($bulan, 2, '0', STR_PAD_LEFT) . '-10';
 
             $this->tagihanModel->save([
@@ -110,14 +105,14 @@ class TagihanController extends BaseController
         return redirect()->to('/admin/tagihan')->with('success', $pesan);
     }
 
-    // =====================
-    // SHOW - Detail tagihan + riwayat pembayaran
-    // =====================
+    // Detail tagihan beserta riwayat pembayarannya
+    // Pencarian dilakukan manual di array karena getTagihanLengkap() sudah include join
+    // yang dibutuhkan untuk tampil di view (nama penyewa, nomor kamar, dll)
     public function show($id)
     {
         $tagihan = $this->tagihanModel->getTagihanLengkap();
 
-        // cari manual di array
+        // Filter array untuk cari tagihan dengan id yang sesuai
         $tagihan = array_filter($tagihan, function ($t) use ($id) {
             return $t['id'] == $id;
         });
@@ -125,21 +120,17 @@ class TagihanController extends BaseController
         $tagihan = reset($tagihan);
 
         if (!$tagihan) {
-            return redirect()->to('/tagihan')
-                ->with('error', 'Tagihan tidak ditemukan');
+            return redirect()->to('/tagihan')->with('error', 'Tagihan tidak ditemukan');
         }
 
-        $data['tagihan'] = $tagihan;
-        $data['pembayaran'] = $this->pembayaranModel
-            ->where('tagihan_id', $id)
-            ->findAll();
+        $data['tagihan']    = $tagihan;
+        $data['pembayaran'] = $this->pembayaranModel->where('tagihan_id', $id)->findAll();
 
         return view('admin/tagihan/detail', $data);
     }
 
-    // =====================
-    // APPROVE - Admin approve pembayaran
-    // =====================
+    // Admin approve pembayaran: status pembayaran jadi approved, tagihan jadi lunas
+    // Kedua update dilakukan dalam satu transaction agar tidak setengah-setengah
     public function approve($pembayaranId)
     {
         $pembayaran = $this->pembayaranModel->find($pembayaranId);
@@ -151,15 +142,15 @@ class TagihanController extends BaseController
         $db = \Config\Database::connect();
         $db->transStart();
 
-        // 1. update status pembayaran
+        // 1. Tandai pembayaran sebagai approved, catat siapa dan kapan yang approve
         $this->pembayaranModel->update($pembayaranId, [
-            'status'       => 'approved',
+            'status'        => 'approved',
             'catatan_admin' => $this->request->getPost('catatan_admin'),
-            'approved_at'  => date('Y-m-d H:i:s'),
-            'approved_by'  => session()->get('user_id'),
+            'approved_at'   => date('Y-m-d H:i:s'),
+            'approved_by'   => session()->get('user_id'),
         ]);
 
-        // 2. update status tagihan jadi lunas
+        // 2. Update status tagihan jadi lunas
         $this->tagihanModel->update($pembayaran['tagihan_id'], [
             'status' => 'lunas',
         ]);
@@ -174,9 +165,8 @@ class TagihanController extends BaseController
             ->with('success', 'Pembayaran berhasil dikonfirmasi. Tagihan lunas.');
     }
 
-    // =====================
-    // TOLAK - Admin tolak pembayaran
-    // =====================
+    // Admin tolak pembayaran: status pembayaran jadi ditolak, tagihan kembali ke pending
+    // Alasan penolakan wajib diisi agar penyewa tahu apa yang salah
     public function tolak($pembayaranId)
     {
         $pembayaran = $this->pembayaranModel->find($pembayaranId);
@@ -194,13 +184,13 @@ class TagihanController extends BaseController
         $db = \Config\Database::connect();
         $db->transStart();
 
-        // 1. update status pembayaran jadi ditolak
+        // 1. Tandai pembayaran sebagai ditolak beserta alasannya
         $this->pembayaranModel->update($pembayaranId, [
             'status'        => 'ditolak',
             'catatan_admin' => $catatanAdmin,
         ]);
 
-        // 2. kembalikan status tagihan ke pending
+        // 2. Kembalikan tagihan ke pending agar penyewa bisa upload ulang bukti
         $this->tagihanModel->update($pembayaran['tagihan_id'], [
             'status' => 'pending',
         ]);
@@ -215,9 +205,8 @@ class TagihanController extends BaseController
             ->with('success', 'Pembayaran ditolak. Penyewa perlu upload ulang bukti transfer.');
     }
 
-    // =====================
-    // TANDAI MENUNGGAK - Admin tandai tagihan sebagai menunggak
-    // =====================
+    // Admin tandai tagihan sebagai menunggak secara manual
+    // Tagihan yang sudah lunas tidak bisa ditandai menunggak
     public function tandaiMenunggak($tagihanId)
     {
         $tagihan = $this->tagihanModel->find($tagihanId);
@@ -230,17 +219,15 @@ class TagihanController extends BaseController
             return redirect()->back()->with('error', 'Tagihan sudah lunas, tidak bisa ditandai menunggak.');
         }
 
-        $this->tagihanModel->update($tagihanId, [
-            'status' => 'menunggak',
-        ]);
+        $this->tagihanModel->update($tagihanId, ['status' => 'menunggak']);
 
         return redirect()->to('/admin/tagihan')
             ->with('success', 'Tagihan berhasil ditandai sebagai menunggak.');
     }
 
-    // =====================
-    // UPLOAD BUKTI - Penyewa upload bukti transfer
-    // =====================
+    // Penyewa upload bukti transfer untuk satu tagihan
+    // Ada pengecekan ketat: tagihan harus milik penyewa yang login
+    // File disimpan di public/uploads/bukti_transfer agar bisa diakses browser
     public function uploadBukti($tagihanId)
     {
         $userId  = session()->get('user_id');
@@ -252,6 +239,7 @@ class TagihanController extends BaseController
 
         $tagihan = $this->tagihanModel->find($tagihanId);
 
+        // Pastikan tagihan ada dan memang milik penyewa yang sedang login
         if (!$tagihan || $tagihan['penyewa_id'] !== $penyewa['id']) {
             return redirect()->back()->with('error', 'Tagihan tidak ditemukan.');
         }
@@ -260,7 +248,7 @@ class TagihanController extends BaseController
             return redirect()->back()->with('error', 'Tagihan ini sudah lunas.');
         }
 
-        // validasi file
+        // Validasi file: wajib ada, tipe JPG/PNG, maksimal 2MB
         $file = $this->request->getFile('bukti_transfer');
 
         if (!$file || !$file->isValid()) {
@@ -276,14 +264,14 @@ class TagihanController extends BaseController
             return redirect()->back()->with('error', 'Ukuran file maksimal 2MB.');
         }
 
-        // simpan file
+        // Generate nama acak agar tidak bentrok dengan file lain
         $newName = $file->getRandomName();
         $file->move(FCPATH . 'uploads/bukti_transfer', $newName);
 
         $db = \Config\Database::connect();
         $db->transStart();
 
-        // simpan pembayaran
+        // Simpan record pembayaran dengan status pending, menunggu konfirmasi admin
         $this->pembayaranModel->save([
             'tagihan_id'     => $tagihanId,
             'jumlah_bayar'   => $tagihan['jumlah'] + $tagihan['nominal_unik'],
@@ -291,7 +279,7 @@ class TagihanController extends BaseController
             'status'         => 'pending',
         ]);
 
-        // update status tagihan jadi menunggu konfirmasi
+        // Update status tagihan agar admin tahu ada pembayaran yang perlu dikonfirmasi
         $this->tagihanModel->update($tagihanId, [
             'status' => 'menunggu_konfirmasi',
         ]);
@@ -306,9 +294,7 @@ class TagihanController extends BaseController
             ->with('success', 'Bukti transfer berhasil diupload. Menunggu konfirmasi admin.');
     }
 
-    // =====================
-    // TAGIHAN PENYEWA - Penyewa lihat tagihan milik sendiri
-    // =====================
+    // Tampilkan semua tagihan milik penyewa yang sedang login
     public function tagihanSaya()
     {
         $userId  = session()->get('user_id');
@@ -324,9 +310,8 @@ class TagihanController extends BaseController
         return view('tenant/tagihan', $data);
     }
 
-    // =====================
-    // TAGIHAN PENYEWA - Penyewa lihat detail tagihan milik sendiri
-    // =====================
+    // Detail satu tagihan beserta semua riwayat pembayaran penyewa tersebut
+    // Riwayat diambil lintas tagihan agar penyewa bisa lihat semua histori pembayaran
     public function detailTagihan($id)
     {
         $userId  = session()->get('user_id');
@@ -336,6 +321,7 @@ class TagihanController extends BaseController
             return redirect()->to('/tenant/tagihan')->with('error', 'Data penyewa tidak ditemukan.');
         }
 
+        // Cari tagihan di array hasil getTagihanLengkap agar dapat data join-nya
         $semua   = $this->tagihanModel->getTagihanLengkap();
         $tagihan = null;
         foreach ($semua as $t) {
@@ -345,12 +331,13 @@ class TagihanController extends BaseController
             }
         }
 
-        // pastikan tagihan milik penyewa yang login
+        // Keamanan: pastikan tagihan ini memang milik penyewa yang login
         if (!$tagihan || $tagihan['penyewa_id'] !== $penyewa['id']) {
             return redirect()->to('/tenant/tagihan')->with('error', 'Tagihan tidak ditemukan.');
         }
 
-        // Ambil semua pembayaran milik penyewa ini (lintas tagihan)
+        // Ambil semua riwayat pembayaran penyewa ini dengan join ke tagihan
+        // Menggunakan right join agar tagihan tanpa pembayaran pun tetap muncul
         $data['pembayaran'] = $this->pembayaranModel
             ->select('
                 tagihan.id as tagihan_id,
@@ -370,16 +357,15 @@ class TagihanController extends BaseController
             ->where('tagihan.penyewa_id', $penyewa['id'])
             ->orderBy('tagihan.tahun', 'DESC')
             ->orderBy('tagihan.bulan', 'DESC')
-            ->findAll();            
-        // $data['pembayaran'] = $this->pembayaranModel->where('tagihan_id', $id)->findAll();
-        $data['tagihan']    = $tagihan;
-        $data['penyewa']    = $penyewa;
+            ->findAll();
+
+        $data['tagihan'] = $tagihan;
+        $data['penyewa'] = $penyewa;
 
         return view('tenant/detail_tagihan', $data);
     }
-    // =====================
-    // HELPER - List nama bulan
-    // =====================
+
+    // Helper private: mapping nomor bulan ke nama bulan Bahasa Indonesia
     private function getListBulan()
     {
         return [
