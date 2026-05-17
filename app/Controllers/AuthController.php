@@ -8,6 +8,7 @@ use CodeIgniter\HTTP\ResponseInterface;
 
 class AuthController extends BaseController
 {
+    // Tampilkan halaman login
     public function login()
     {
         // kalau sudah login, langsung redirect
@@ -18,6 +19,7 @@ class AuthController extends BaseController
         return view('auth/login');
     }
 
+    // Proses login saat user klik tombol masuk
     public function attemptLogin()
     {
         // 1. validasi input dulu
@@ -36,6 +38,7 @@ class AuthController extends BaseController
         $email    = $this->request->getPost('email');
         $password = $this->request->getPost('password');
 
+        // 2. Cari user berdasarkan email
         $user = $model->where('email', $email)->first();
 
         // 2. cek user ada atau tidak
@@ -45,20 +48,20 @@ class AuthController extends BaseController
                 ->with('error', 'Email atau password salah.');
         }
 
-        // 3. cek password
+        // 3. Verifikasi password dengan hash di database
         if (!password_verify($password, $user['password'])) {
             return redirect()->back()
                 ->withInput()
                 ->with('error', 'Email atau password salah.');
         }
 
-        // 4. cek akun aktif
+        // 4. Cek apakah akun aktif (bisa dinonaktifkan oleh admin)
         if ($user['is_active'] != 1) {
             return redirect()->back()
                 ->with('error', 'Akun kamu dinonaktifkan. Hubungi admin.');
         }
 
-        // 5. set session
+        // 5. Simpan data user ke session agar bisa diakses di seluruh aplikasi
         session()->set([
             'user_id'  => $user['id'],
             'name'     => $user['name'],
@@ -66,34 +69,39 @@ class AuthController extends BaseController
             'logged_in' => true,
         ]);
 
-        // 6. cek must_change_password
+        // 6. Jika akun baru atau password baru di-reset admin, paksa ganti password dulu
         if ($user['must_change_password'] == 1) {
             return redirect()->to('/change-password')
                 ->with('info', 'Kamu harus mengganti password sebelum melanjutkan.');
         }
 
-        // 7. redirect sesuai role
+        // 7. Redirect ke dashboard sesuai role
         return $this->redirectByRole($user['role']);
     }
 
+    // Hapus semua session dan redirect ke halaman login
     public function logout()
     {
         session()->destroy();
         return redirect()->to('/login')->with('success', 'Berhasil logout.');
     }
 
+    // Tampilkan halaman unauthorized (akses ditolak)
     public function unauthorized()
     {
         return view('errors/unauthorized');
     }
 
+    // Tampilkan form ganti password
     public function changePassword()
     {
         return view('auth/change_password');
     }
 
+    // Proses ganti password
     public function updatePassword()
     {
+        // Validasi: minimal 8 karakter, harus ada huruf besar, huruf kecil, dan angka
         $rules = [
             'password_baru' => [
                 'rules'  => 'required|min_length[8]|regex_match[/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).+$/]',
@@ -103,6 +111,7 @@ class AuthController extends BaseController
                     'regex_match' => 'Password harus mengandung huruf besar, huruf kecil, dan angka.',
                 ],
             ],
+            // Konfirmasi harus sama persis dengan password baru
             'konfirmasi_password' => [
                 'rules'  => 'required|matches[password_baru]',
                 'errors' => [
@@ -121,6 +130,7 @@ class AuthController extends BaseController
         $model = new UserModel();
         $userId = session()->get('user_id');
 
+        // Hash password baru sebelum disimpan, lalu tandai sudah ganti password
         $model->update($userId, [
             'password'             => password_hash($this->request->getPost('password_baru'), PASSWORD_DEFAULT),
             'must_change_password' => 0,
@@ -130,7 +140,7 @@ class AuthController extends BaseController
             ->with('success', 'Password berhasil diubah.');
     }
 
-    // helper redirect by role
+    // Helper: tentukan tujuan redirect berdasarkan role user
     private function redirectByRole(string $role)
     {
         return match ($role) {

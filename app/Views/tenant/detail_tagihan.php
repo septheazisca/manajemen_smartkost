@@ -70,9 +70,9 @@
                 </div>
                 <div class="d-grid gap-2 mt-4">
                     <?php if ($tagihan['status'] !== 'lunas' && $tagihan['status'] !== 'menunggu_konfirmasi') : ?>
-                    <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalBayar">
-                        <i class="bi bi-credit-card me-1"></i> Bayar Sekarang
-                    </button>
+                        <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#modalBayar">
+                            <i class="bi bi-credit-card me-1"></i> Bayar Sekarang
+                        </button>
                     <?php endif; ?>
                     <a href="/tenant/tagihan" class="btn btn-outline-secondary btn-sm">
                         <i class="bi bi-arrow-left"></i> Kembali ke Daftar
@@ -117,73 +117,73 @@
                     </thead>
                     <tbody>
                         <?php if (!empty($pembayaran)) : ?>
-                        <?php foreach ($pembayaran as $p) : ?>
+                            <?php foreach ($pembayaran as $p) : ?>
+                                <tr>
+                                    <td>
+                                        <?php if ($p['created_at']) : ?>
+                                            <div class="fw-semibold small"><?= date('d M Y', strtotime($p['created_at'])) ?></div>
+                                            <div class="text-muted" style="font-size: 11px;"><?= date('H:i', strtotime($p['created_at'])) ?> WIB</div>
+                                        <?php else : ?>
+                                            <span class="text-muted small">-</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 fw-normal">
+                                            <?= str_pad($p['bulan'], 2, '0', STR_PAD_LEFT) ?>/<?= $p['tahun'] ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <?php if ($p['jumlah_bayar']) : ?>
+                                            <span class="text-primary fw-bold">Rp <?= number_format($p['jumlah_bayar'], 0, ',', '.') ?></span>
+                                        <?php else : ?>
+                                            <span class="text-muted small">-</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-center">
+                                        <?php if ($p['bukti_transfer']) : ?>
+                                            <a href="/uploads/bukti_transfer/<?= $p['bukti_transfer'] ?>"
+                                                target="_blank" class="btn btn-sm btn-light border" title="Lihat Bukti">
+                                                <i class="bi bi-image text-primary"></i>
+                                            </a>
+                                        <?php else : ?>
+                                            <span class="text-muted small">-</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-center">
+                                        <?php
+                                        // Tentukan status berdasarkan status_tagihan dan status_pembayaran
+                                        if ($p['status_tagihan'] === 'lunas') {
+                                            $sc = ['class' => 'bg-success-subtle text-success border-success', 'label' => 'Lunas'];
+                                        } elseif ($p['status_tagihan'] === 'menunggu_konfirmasi') {
+                                            $sc = ['class' => 'bg-info-subtle text-info border-info', 'label' => 'Menunggu Konfirmasi'];
+                                        } elseif ($p['status_pembayaran'] === 'ditolak') {
+                                            $sc = ['class' => 'bg-danger-subtle text-danger border-danger', 'label' => 'Ditolak'];
+                                        } elseif ($p['status_tagihan'] === 'menunggak') {
+                                            $sc = ['class' => 'bg-danger-subtle text-danger border-danger', 'label' => 'Menunggak'];
+                                        } else {
+                                            $sc = ['class' => 'bg-warning-subtle text-warning border-warning', 'label' => 'Belum Bayar'];
+                                        }
+                                        ?>
+                                        <span class="badge <?= $sc['class'] ?> border px-2 fw-normal">
+                                            <?= $sc['label'] ?>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <div class="text-muted small" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                            <?= $p['catatan_admin'] ? esc($p['catatan_admin']) : '<span class="opacity-50">Tidak ada catatan</span>' ?>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else : ?>
                             <tr>
-                                <td>
-                                    <?php if ($p['created_at']) : ?>
-                                        <div class="fw-semibold small"><?= date('d M Y', strtotime($p['created_at'])) ?></div>
-                                        <div class="text-muted" style="font-size: 11px;"><?= date('H:i', strtotime($p['created_at'])) ?> WIB</div>
-                                    <?php else : ?>
-                                        <span class="text-muted small">-</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 fw-normal">
-                                        <?= str_pad($p['bulan'], 2, '0', STR_PAD_LEFT) ?>/<?= $p['tahun'] ?>
-                                    </span>
-                                </td>
-                                <td>
-                                    <?php if ($p['jumlah_bayar']) : ?>
-                                        <span class="text-primary fw-bold">Rp <?= number_format($p['jumlah_bayar'], 0, ',', '.') ?></span>
-                                    <?php else : ?>
-                                        <span class="text-muted small">-</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td class="text-center">
-                                    <?php if ($p['bukti_transfer']) : ?>
-                                        <a href="/uploads/bukti_transfer/<?= $p['bukti_transfer'] ?>"
-                                            target="_blank" class="btn btn-sm btn-light border" title="Lihat Bukti">
-                                            <i class="bi bi-image text-primary"></i>
-                                        </a>
-                                    <?php else : ?>
-                                        <span class="text-muted small">-</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td class="text-center">
-                                    <?php
-                                    // Tentukan status berdasarkan status_tagihan dan status_pembayaran
-                                    if ($p['status_tagihan'] === 'lunas') {
-                                        $sc = ['class' => 'bg-success-subtle text-success border-success', 'label' => 'Lunas'];
-                                    } elseif ($p['status_tagihan'] === 'menunggu_konfirmasi') {
-                                        $sc = ['class' => 'bg-info-subtle text-info border-info', 'label' => 'Menunggu Konfirmasi'];
-                                    } elseif ($p['status_pembayaran'] === 'ditolak') {
-                                        $sc = ['class' => 'bg-danger-subtle text-danger border-danger', 'label' => 'Ditolak'];
-                                    } elseif ($p['status_tagihan'] === 'menunggak') {
-                                        $sc = ['class' => 'bg-danger-subtle text-danger border-danger', 'label' => 'Menunggak'];
-                                    } else {
-                                        $sc = ['class' => 'bg-warning-subtle text-warning border-warning', 'label' => 'Belum Bayar'];
-                                    }
-                                    ?>
-                                    <span class="badge <?= $sc['class'] ?> border px-2 fw-normal">
-                                        <?= $sc['label'] ?>
-                                    </span>
-                                </td>
-                                <td>
-                                    <div class="text-muted small" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                        <?= $p['catatan_admin'] ? esc($p['catatan_admin']) : '<span class="opacity-50">Tidak ada catatan</span>' ?>
+                                <td colspan="6" class="text-center py-5">
+                                    <div class="text-muted">
+                                        <i class="bi bi-cash-stack fs-1 opacity-25"></i>
+                                        <p class="mt-2">Belum ada riwayat pembayaran untuk tagihan ini.</p>
                                     </div>
                                 </td>
                             </tr>
-                        <?php endforeach; ?>
-                        <?php else : ?>
-                        <tr>
-                            <td colspan="6" class="text-center py-5">
-                                <div class="text-muted">
-                                    <i class="bi bi-cash-stack fs-1 opacity-25"></i>
-                                    <p class="mt-2">Belum ada riwayat pembayaran untuk tagihan ini.</p>
-                                </div>
-                            </td>
-                        </tr>
                         <?php endif; ?>
                     </tbody>
                 </table>
@@ -197,7 +197,7 @@
 <?php foreach ($pembayaran as $p) : ?>
     <?php if ($p['status_pembayaran'] === 'pending') : ?>
         <!-- APPROVE -->
-         <div class="modal fade" id="approveModal<?= $p['pembayaran_id'] ?>" tabindex="-1">
+        <div class="modal fade" id="approveModal<?= $p['pembayaran_id'] ?>" tabindex="-1">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content border-0 shadow-lg">
                     <form action="/admin/tagihan/approve/<?= $p['pembayaran_id'] ?>" method="post">
@@ -230,7 +230,7 @@
         </div>
 
         <!-- TOLAK (Disesuaikan agar seimbang dengan Approve) -->
-         <div class="modal fade" id="tolakModal<?= $p['pembayaran_id'] ?>" tabindex="-1">
+        <div class="modal fade" id="tolakModal<?= $p['pembayaran_id'] ?>" tabindex="-1">
             <div class="modal-dialog modal-dialog-centered">
                 <div class="modal-content border-0 shadow-lg">
                     <form action="/admin/tagihan/tolak/<?= $p['pembayaran_id'] ?>" method="post">

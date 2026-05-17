@@ -97,7 +97,7 @@
     <div class="sidebar-footer">
         <div class="user-card">
             <div class="user-avatar">
-                <?= strtoupper(substr(session()->get('name') ?? 'U', 0, 1)) ?>
+                <?php $name = session()->get('name'); $initial = (!empty(trim($name))) ? strtoupper(substr(trim($name), 0, 1)) : 'U'; echo $initial; ?>
             </div>
             <div class="user-info">
                 <strong><?= esc(session()->get('name') ?? '-') ?></strong>

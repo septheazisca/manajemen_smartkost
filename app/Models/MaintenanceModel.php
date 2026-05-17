@@ -57,22 +57,28 @@ class MaintenanceModel extends Model
     protected $beforeDelete   = [];
     protected $afterDelete    = [];
 
-    // ambil semua maintenance lengkap
-    public function getMaintenanceLengkap()
+    // ambil semua maintenance lengkap, bisa difilter per bulan & tahun
+    public function getMaintenanceLengkap($bulan = null, $tahun = null)
     {
-        return $this->select('
-                maintenance.*,
-                users.name as nama_penyewa,
-                kamar.nomor_kamar,
-                pj_users.name as nama_pj
-            ')
+        $builder = $this->select('
+            maintenance.*,
+            users.name as nama_penyewa,
+            kamar.nomor_kamar,
+            pj_users.name as nama_pj
+        ')
             ->join('penyewa', 'penyewa.id = maintenance.penyewa_id', 'left')
             ->join('users', 'users.id = penyewa.user_id', 'left')
             ->join('kamar', 'kamar.id = maintenance.kamar_id', 'left')
             ->join('penanggung_jawab', 'penanggung_jawab.id = maintenance.pj_id', 'left')
-            ->join('users as pj_users', 'pj_users.id = penanggung_jawab.user_id', 'left')
-            ->orderBy('maintenance.created_at', 'DESC')
-            ->findAll();
+            ->join('users as pj_users', 'pj_users.id = penanggung_jawab.user_id', 'left');
+
+        // Filter bulan & tahun hanya kalau parameter dikirim
+        if ($bulan && $tahun) {
+            $builder->where('MONTH(maintenance.created_at)', $bulan)
+                ->where('YEAR(maintenance.created_at)', $tahun);
+        }
+
+        return $builder->orderBy('maintenance.created_at', 'DESC')->findAll();
     }
 
     // ambil maintenance by pj_id (untuk dashboard PJ)
@@ -83,8 +89,8 @@ class MaintenanceModel extends Model
             ->join('users', 'users.id = penyewa.user_id', 'left')
             ->join('kamar', 'kamar.id = maintenance.kamar_id', 'left')
             ->groupStart()
-                ->where('maintenance.pj_id', $pjId)
-                ->orWhere('maintenance.pj_id', null)
+            ->where('maintenance.pj_id', $pjId)
+            ->orWhere('maintenance.pj_id', null)
             ->groupEnd()
             ->whereIn('maintenance.status', ['menunggu', 'proses'])
             ->orderBy('maintenance.created_at', 'DESC')

@@ -53,8 +53,8 @@ class PenanggungJawabModel extends Model
     protected $beforeDelete   = [];
     protected $afterDelete    = [];
 
-    // ambil semua PJ lengkap dengan data user
-    public function getPjLengkap($id = null) 
+    // Jika $id diisi, return satu data PJ (array). Jika tidak, return semua PJ (array of array)
+    public function getPjLengkap($id = null)
     {
         $this->select('
                 penanggung_jawab.*,

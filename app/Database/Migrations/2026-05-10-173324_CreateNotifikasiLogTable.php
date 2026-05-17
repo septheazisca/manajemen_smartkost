@@ -51,6 +51,7 @@ class CreateNotifikasiLogTable extends Migration
         ]);
 
         $this->forge->addKey('id', true);
+        $this->forge->addForeignKey('user_id', 'users', 'id', 'SET NULL', 'SET NULL');
         $this->forge->createTable('notifikasi_log');
     }
 

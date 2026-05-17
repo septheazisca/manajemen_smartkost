@@ -3,6 +3,7 @@
 namespace App\Controllers;
 
 use App\Controllers\BaseController;
+use App\Models\MaintenanceModel;
 use App\Models\PenanggungJawabModel;
 use App\Models\PengeluaranModel;
 use App\Models\UserModel;
@@ -10,6 +11,7 @@ use CodeIgniter\HTTP\ResponseInterface;
 
 class PenanggungJawabController extends BaseController
 {
+    // Semua model dideklarasikan sebagai property agar bisa dipakai di semua method
     protected $pjModel;
     protected $userModel;
     protected $pengeluaranModel;
@@ -21,19 +23,15 @@ class PenanggungJawabController extends BaseController
         $this->pengeluaranModel = new PengeluaranModel();
     }
 
-    // =====================
-    // INDEX - Admin lihat semua PJ
-    // =====================
+    // Tampilkan semua data PJ ke halaman admin
     public function index()
     {
         $data['pj_list'] = $this->pjModel->getPjLengkap();
-
         return view('admin/pj/index', $data);
     }
 
-    // =====================
-    // STORE - Admin tambah PJ baru
-    // =====================
+    // Tambah PJ baru beserta akun login-nya
+    // Data PJ disimpan di 2 tabel: users (untuk login) dan penanggung_jawab (untuk data kerja)
     public function store()
     {
         $rules = [
@@ -55,7 +53,8 @@ class PenanggungJawabController extends BaseController
 
         $phone = $this->request->getPost('phone');
 
-        // 1. buat akun user untuk PJ
+        // 1. Buat akun user untuk PJ, password default = nomor HP
+        // must_change_password = 1 agar PJ wajib ganti password saat pertama login
         $this->userModel->save([
             'name'                 => $this->request->getPost('nama'),
             'email'                => $this->request->getPost('email'),
@@ -68,7 +67,7 @@ class PenanggungJawabController extends BaseController
 
         $userId = $this->userModel->getInsertID();
 
-        // 2. simpan data PJ
+        // 2. Simpan data kerja PJ, dihubungkan ke akun user lewat user_id
         $this->pjModel->save([
             'user_id'      => $userId,
             'nama'         => $this->request->getPost('nama'),
@@ -90,9 +89,8 @@ class PenanggungJawabController extends BaseController
             ->with('success', 'Penanggung jawab berhasil ditambahkan. Password default: nomor HP.');
     }
 
-    // =====================
-    // UPDATE - Admin edit data PJ
-    // =====================
+    // Update data PJ di 2 tabel sekaligus dalam satu transaction
+    // Validasi email: kalau email tidak berubah, skip cek is_unique agar tidak error
     public function update($id)
     {
         $pj = $this->pjModel->find($id);
@@ -108,6 +106,7 @@ class PenanggungJawabController extends BaseController
             'phone'        => 'required',
             'spesialisasi' => 'permit_empty',
             'gaji_bulanan' => 'required|numeric',
+            // Cek is_unique hanya kalau email memang berubah
             'email'        => $this->request->getPost('email') !== $user['email']
                 ? 'required|valid_email|is_unique[users.email]'
                 : 'required|valid_email',
@@ -122,14 +121,14 @@ class PenanggungJawabController extends BaseController
         $db = \Config\Database::connect();
         $db->transStart();
 
-        // update tabel users
+        // Update data login di tabel users
         $this->userModel->update($pj['user_id'], [
             'name'  => $this->request->getPost('nama'),
             'email' => $this->request->getPost('email'),
             'phone' => $this->request->getPost('phone'),
         ]);
 
-        // update tabel penanggung_jawab
+        // Update data kerja di tabel penanggung_jawab
         $this->pjModel->update($id, [
             'nama'         => $this->request->getPost('nama'),
             'phone'        => $this->request->getPost('phone'),
@@ -149,9 +148,8 @@ class PenanggungJawabController extends BaseController
             ->with('success', 'Data penanggung jawab berhasil diupdate.');
     }
 
-    // =====================
-    // TOGGLE STATUS - Aktifkan / nonaktifkan PJ
-    // =====================
+    // Aktifkan atau nonaktifkan PJ
+    // Status diupdate di 2 tabel agar konsisten: PJ nonaktif tidak bisa login
     public function toggleStatus($id)
     {
         $pj = $this->pjModel->find($id);
@@ -160,20 +158,14 @@ class PenanggungJawabController extends BaseController
             return redirect()->back()->with('error', 'Data tidak ditemukan.');
         }
 
+        // Toggle: kalau aktif jadi nonaktif, kalau nonaktif jadi aktif
         $newStatus = $pj['is_active'] == 1 ? 0 : 1;
 
         $db = \Config\Database::connect();
         $db->transStart();
 
-        // nonaktifkan di tabel PJ
-        $this->pjModel->update($id, [
-            'is_active' => $newStatus,
-        ]);
-
-        // nonaktifkan juga di tabel users
-        $this->userModel->update($pj['user_id'], [
-            'is_active' => $newStatus,
-        ]);
+        $this->pjModel->update($id, ['is_active' => $newStatus]);
+        $this->userModel->update($pj['user_id'], ['is_active' => $newStatus]);
 
         $db->transComplete();
 
@@ -183,9 +175,8 @@ class PenanggungJawabController extends BaseController
             ->with('success', "Penanggung jawab berhasil {$status}.");
     }
 
-    // =====================
-    // BAYAR GAJI - Admin input pembayaran gaji bulanan PJ
-    // =====================
+    // Catat pembayaran gaji PJ ke tabel pengeluaran
+    // Ada pengecekan dobel bayar: gaji bulan yang sama tidak bisa dibayar 2 kali
     public function bayarGaji($id)
     {
         $pj = $this->pjModel->find($id);
@@ -208,7 +199,7 @@ class PenanggungJawabController extends BaseController
         $bulan = $this->request->getPost('bulan');
         $tahun = $this->request->getPost('tahun');
 
-        // cek apakah gaji bulan ini sudah dibayar
+        // Cegah dobel bayar: cek apakah sudah ada record gaji bulan ini
         $sudahBayar = $this->pengeluaranModel
             ->where('pj_id', $id)
             ->where('kategori', 'gaji')
@@ -221,7 +212,7 @@ class PenanggungJawabController extends BaseController
                 ->with('error', "Gaji {$pj['nama']} untuk bulan {$bulan}/{$tahun} sudah dibayar.");
         }
 
-        // nominal gaji bisa di-override atau pakai gaji_bulanan default
+        // Kalau admin input jumlah berbeda, pakai itu. Kalau tidak, pakai gaji default
         $jumlah = $this->request->getPost('jumlah') ?: $pj['gaji_bulanan'];
 
         $this->pengeluaranModel->save([
@@ -238,18 +229,16 @@ class PenanggungJawabController extends BaseController
             ->with('success', "Gaji {$pj['nama']} bulan {$bulan}/{$tahun} berhasil dicatat.");
     }
 
-    // =====================
-    // RIWAYAT GAJI - Admin lihat riwayat pembayaran gaji PJ
-    // =====================
+    // Tampilkan riwayat semua pembayaran gaji untuk satu PJ
     public function riwayatGaji($id)
     {
         $pj = $this->pjModel->getPjLengkap($id);
-        
+
         if (!$pj) {
             return redirect()->back()->with('error', 'Data tidak ditemukan.');
         }
 
-        $data['pj'] = $pj;
+        $data['pj']      = $pj;
         $data['riwayat'] = $this->pengeluaranModel
             ->where('pj_id', $id)
             ->where('kategori', 'gaji')
@@ -260,9 +249,8 @@ class PenanggungJawabController extends BaseController
         return view('admin/pj/riwayat_gaji', $data);
     }
 
-    // =====================
-    // RESET PASSWORD - Reset password PJ ke nomor HP
-    // =====================
+    // Reset password PJ kembali ke nomor HP
+    // must_change_password = 1 agar PJ wajib ganti password lagi saat login
     public function resetPassword($id)
     {
         $pj = $this->pjModel->find($id);
@@ -272,7 +260,7 @@ class PenanggungJawabController extends BaseController
         }
 
         $this->userModel->update($pj['user_id'], [
-            'password'             => password_hash($pj['phone'], PASSWORD_DEFAULT),
+            'password'             => password_hash((string) $pj['phone'], PASSWORD_DEFAULT),
             'must_change_password' => 1,
         ]);
 
@@ -280,9 +268,8 @@ class PenanggungJawabController extends BaseController
             ->with('success', 'Password berhasil direset ke nomor HP penanggung jawab.');
     }
 
-    // =====================
-    // DASHBOARD PJ - PJ lihat info diri sendiri
-    // =====================
+    // Dashboard PJ: tampilkan statistik tugas dan riwayat gaji milik PJ yang login
+    // MaintenanceModel diinisialisasi di sini karena hanya dipakai di method ini saja
     public function dashboardPj()
     {
         $userId = session()->get('user_id');
@@ -292,13 +279,13 @@ class PenanggungJawabController extends BaseController
             return redirect()->to('/login')->with('error', 'Data tidak ditemukan.');
         }
 
-        $maintenanceModel = new \App\Models\MaintenanceModel();
+        $maintenanceModel = new MaintenanceModel();
 
-        $data['pj']              = $pj;
-        $data['total_tugas']     = $maintenanceModel->where('pj_id', $pj['id'])->countAllResults();
-        $data['tugas_proses']    = $maintenanceModel->where('pj_id', $pj['id'])->where('status', 'proses')->countAllResults();
-        $data['tugas_selesai']   = $maintenanceModel->where('pj_id', $pj['id'])->where('status', 'selesai')->countAllResults();
-        $data['riwayat_gaji']    = $this->pengeluaranModel
+        $data['pj']            = $pj;
+        $data['total_tugas']   = $maintenanceModel->where('pj_id', $pj['id'])->countAllResults();
+        $data['tugas_proses']  = $maintenanceModel->where('pj_id', $pj['id'])->where('status', 'proses')->countAllResults();
+        $data['tugas_selesai'] = $maintenanceModel->where('pj_id', $pj['id'])->where('status', 'selesai')->countAllResults();
+        $data['riwayat_gaji']  = $this->pengeluaranModel
             ->where('pj_id', $pj['id'])
             ->where('kategori', 'gaji')
             ->orderBy('tahun', 'DESC')

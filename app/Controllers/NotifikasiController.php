@@ -10,10 +10,14 @@ use App\Models\UserModel;
 
 class NotifikasiController extends BaseController
 {
+    // Semua model dideklarasikan sebagai property agar bisa dipakai di semua method
     protected $notifikasiLogModel;
     protected $penyewaModel;
     protected $tagihanModel;
     protected $userModel;
+
+    // Token Fonnte diambil dari file .env agar tidak hardcode di kode
+    // Lebih aman karena file .env tidak ikut ke git repository
     protected $fonnteToken;
 
     public function __construct()
@@ -25,9 +29,8 @@ class NotifikasiController extends BaseController
         $this->fonnteToken        = env('FONNTE_TOKEN');
     }
 
-    // =====================
-    // INDEX - Halaman kirim notifikasi
-    // =====================
+    // Tampilkan halaman notifikasi beserta log 
+    // terbaru untuk referensi admin
     public function index()
     {
         $data['penyewa'] = $this->penyewaModel->getPenyewaLengkap();
@@ -38,9 +41,7 @@ class NotifikasiController extends BaseController
         return view('admin/notifikasi/index', $data);
     }
 
-    // =====================
-    // KIRIM CUSTOM - Admin kirim pesan bebas ke semua atau individu
-    // =====================
+    // Admin kirim pesan bebas ke semua penyewa atau satu penyewa tertentu
     public function kirimCustom()
     {
         $rules = [
@@ -57,6 +58,7 @@ class NotifikasiController extends BaseController
         $pesan  = $this->request->getPost('pesan');
         $target = $this->request->getPost('target');
 
+        // Tentukan penerima berdasarkan target yang dipilih admin
         if ($target === 'semua') {
             $penyewaList = $this->penyewaModel->getPenyewaLengkap();
         } else {
@@ -81,6 +83,7 @@ class NotifikasiController extends BaseController
             $noHp  = $penyewa['phone'];
             $hasil = $this->kirimWA($noHp, $pesan);
 
+            // Catat setiap pengiriman ke log, baik berhasil maupun gagal
             $this->notifikasiLogModel->save([
                 'user_id'         => $penyewa['user_id'],
                 'no_hp'           => $noHp,
@@ -102,14 +105,14 @@ class NotifikasiController extends BaseController
         return redirect()->to('/admin/notifikasi')->with('success', $msg);
     }
 
-    // =====================
-    // KIRIM REMINDER TAGIHAN - Reminder ke penyewa yang belum bayar
-    // =====================
+    // Kirim reminder otomatis ke penyewa yang belum bayar tagihan di bulan tertentu
+    // Pesan berisi detail tagihan lengkap termasuk nominal unik untuk memudahkan transfer
     public function kirimReminderTagihan()
     {
         $bulan = $this->request->getPost('bulan') ?? date('m');
         $tahun = $this->request->getPost('tahun') ?? date('Y');
 
+        // Ambil tagihan yang statusnya masih pending atau menunggak
         $tagihanBelumLunas = $this->tagihanModel
             ->select('tagihan.*, users.name, users.phone, kamar.nomor_kamar')
             ->join('penyewa', 'penyewa.id = tagihan.penyewa_id')
@@ -132,6 +135,7 @@ class NotifikasiController extends BaseController
         foreach ($tagihanBelumLunas as $tagihan) {
             $totalBayar = $tagihan['jumlah'] + $tagihan['nominal_unik'];
 
+            // Susun pesan dengan format yang mudah dibaca di WhatsApp
             $pesan  = "Halo *{$tagihan['name']}*,\n\n";
             $pesan .= "Ini adalah pengingat tagihan sewa kost kamu.\n\n";
             $pesan .= "📋 *Detail Tagihan*\n";
@@ -168,9 +172,8 @@ class NotifikasiController extends BaseController
         return redirect()->to('/admin/notifikasi')->with('success', $msg);
     }
 
-    // =====================
-    // KIRIM REMINDER TUNGGAKAN - Khusus yang menunggak
-    // =====================
+    // Kirim peringatan khusus ke penyewa yang statusnya menunggak
+    // Berbeda dengan reminder tagihan yang bisa untuk semua yang belum bayar
     public function kirimReminderTunggakan()
     {
         $menunggak = $this->tagihanModel->getMenunggak();
@@ -220,9 +223,8 @@ class NotifikasiController extends BaseController
         return redirect()->to('/admin/notifikasi')->with('success', $msg);
     }
 
-    // =====================
-    // LOG - Lihat riwayat notifikasi
-    // =====================
+    // Tampilkan semua riwayat pengiriman notifikasi
+    // Join ke tabel users untuk dapat nama penyewa
     public function log()
     {
         $data['log'] = $this->notifikasiLogModel
@@ -234,11 +236,11 @@ class NotifikasiController extends BaseController
         return view('admin/notifikasi/log', $data);
     }
 
-    // =====================
-    // HELPER - Kirim WA via Fonnte API
-    // =====================
+    // Helper private: kirim pesan WhatsApp via Fonnte API menggunakan cURL
+    // Return array berisi status berhasil/gagal dan response dari Fonnte
     private function kirimWA(string $noHp, string $pesan): array
     {
+        // Format nomor HP ke format internasional 62xxx sebelum dikirim
         $noHp = $this->formatNoHp($noHp);
 
         $curl = curl_init();
@@ -247,8 +249,8 @@ class NotifikasiController extends BaseController
             CURLOPT_URL            => 'https://api.fonnte.com/send',
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POST           => true,
-            CURLOPT_TIMEOUT        => 30,
-            CURLOPT_CONNECTTIMEOUT => 10,
+            CURLOPT_TIMEOUT        => 30,         // batas waktu tunggu response
+            CURLOPT_CONNECTTIMEOUT => 10,         // batas waktu koneksi
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_SSL_VERIFYHOST => false,
             CURLOPT_POSTFIELDS     => [
@@ -264,10 +266,9 @@ class NotifikasiController extends BaseController
         $error    = curl_error($curl);
         curl_close($curl);
 
-        // TAMBAH DI SINI
-        log_message('error', 'Fonnte raw response: ' . $response);
-        log_message('error', 'Fonnte curl error: ' . $error);
-        log_message('error', 'Fonnte token: ' . $this->fonnteToken);
+        // Log response untuk memudahkan debugging jika ada masalah pengiriman
+        // log_message('debug', 'Fonnte raw response: ' . $response);
+        // log_message('debug', 'Fonnte curl error: ' . $error);
 
         if ($error) {
             return ['success' => false, 'message' => $error];
@@ -276,17 +277,18 @@ class NotifikasiController extends BaseController
         $result = json_decode($response, true);
 
         return [
+            // Fonnte kadang return status true atau string 'true', keduanya ditangani
             'success'  => isset($result['status']) && ($result['status'] === true || $result['status'] === 'true'),
             'message'  => $result['reason'] ?? $result['message'] ?? 'OK',
             'response' => $result,
         ];
     }
 
-    // =====================
-    // HELPER - Format nomor HP ke format 62xxx
-    // =====================
+    // Helper private: ubah nomor HP ke format internasional 62xxx
+    // Contoh: 08123456789 → 628123456789
     private function formatNoHp(string $noHp): string
     {
+        // Hapus semua karakter selain angka (strip spasi, strip, dll)
         $noHp = preg_replace('/\D/', '', $noHp);
 
         if (str_starts_with($noHp, '0')) {
@@ -298,9 +300,7 @@ class NotifikasiController extends BaseController
         return $noHp;
     }
 
-    // =====================
-    // HELPER - List nama bulan
-    // =====================
+    // Helper private: mapping nomor bulan ke nama bulan Bahasa Indonesia
     private function getListBulan(): array
     {
         return [

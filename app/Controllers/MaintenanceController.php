@@ -12,6 +12,7 @@ use CodeIgniter\HTTP\ResponseInterface;
 
 class MaintenanceController extends BaseController
 {
+    // Semua model dideklarasikan sebagai property agar bisa dipakai di semua method
     protected $maintenanceModel;
     protected $penyewaModel;
     protected $pjModel;
@@ -27,9 +28,7 @@ class MaintenanceController extends BaseController
         $this->kamarModel       = new KamarModel();
     }
 
-    // =====================
-    // INDEX - Admin lihat semua laporan maintenance
-    // =====================
+    // Tampilkan semua laporan maintenance ke admin beserta daftar PJ aktif untuk form assign
     public function index()
     {
         $data['maintenance'] = $this->maintenanceModel->getMaintenanceLengkap();
@@ -38,9 +37,7 @@ class MaintenanceController extends BaseController
         return view('admin/maintenance/index', $data);
     }
 
-    // =====================
-    // ASSIGN - Admin assign maintenance ke PJ
-    // =====================
+    // Admin assign laporan ke PJ, status otomatis berubah jadi 'proses'
     public function assign($id)
     {
         $maintenance = $this->maintenanceModel->find($id);
@@ -65,9 +62,7 @@ class MaintenanceController extends BaseController
             ->with('success', 'Laporan berhasil di-assign ke penanggung jawab.');
     }
 
-    // =====================
-    // SELESAI - PJ tandai maintenance selesai + input biaya
-    // =====================
+    // PJ tandai laporan selesai dan input biaya yang dikeluarkan
     public function selesai($id)
     {
         $maintenance = $this->maintenanceModel->find($id);
@@ -76,7 +71,8 @@ class MaintenanceController extends BaseController
             return redirect()->back()->with('error', 'Data tidak ditemukan.');
         }
 
-        // pastikan yang akses adalah PJ yang di-assign
+        // Keamanan: pastikan yang akses adalah PJ yang memang di-assign ke laporan ini
+        // Mencegah PJ lain menandai selesai laporan yang bukan tugasnya
         $userId = session()->get('user_id');
         $pj     = $this->pjModel->getPjByUserId($userId);
 
@@ -100,7 +96,7 @@ class MaintenanceController extends BaseController
         $db = \Config\Database::connect();
         $db->transStart();
 
-        // 1. update status maintenance
+        // 1. Update status maintenance jadi selesai
         $this->maintenanceModel->update($id, [
             'status'     => 'selesai',
             'catatan_pj' => $this->request->getPost('catatan_pj'),
@@ -108,7 +104,8 @@ class MaintenanceController extends BaseController
             'selesai_at' => date('Y-m-d H:i:s'),
         ]);
 
-        // 2. otomatis catat ke pengeluaran
+        // 2. Kalau ada biaya, otomatis catat ke tabel pengeluaran kategori 'maintenance'
+        // Ini yang membuat pengeluaran maintenance tidak perlu diinput manual oleh admin
         if ($biaya > 0) {
             $this->pengeluaranModel->save([
                 'keterangan'     => 'Biaya maintenance: ' . $maintenance['deskripsi'],
@@ -117,7 +114,7 @@ class MaintenanceController extends BaseController
                 'bulan'          => date('m'),
                 'tahun'          => date('Y'),
                 'pj_id'          => $pj['id'],
-                'maintenance_id' => $id,
+                'maintenance_id' => $id, // referensi ke laporan asal, dipakai untuk cegah edit/hapus manual
             ]);
         }
 
@@ -131,9 +128,7 @@ class MaintenanceController extends BaseController
             ->with('success', 'Maintenance selesai. Biaya berhasil dicatat.');
     }
 
-    // =====================
-    // LAPOR - Penyewa lapor kerusakan
-    // =====================
+    // Penyewa lapor kerusakan, foto bersifat opsional
     public function lapor()
     {
         $userId  = session()->get('user_id');
@@ -153,7 +148,7 @@ class MaintenanceController extends BaseController
                 ->with('errors', $this->validator->getErrors());
         }
 
-        // handle upload foto (opsional)
+        // Proses upload foto jika ada, validasi tipe dan ukuran file
         $fotoName = null;
         $foto     = $this->request->getFile('foto');
 
@@ -172,10 +167,12 @@ class MaintenanceController extends BaseController
                     ->with('error', 'Ukuran foto maksimal 2MB.');
             }
 
+            // Generate nama acak agar tidak bentrok dengan file lain
             $fotoName = $foto->getRandomName();
             $foto->move(FCPATH . 'uploads/maintenance', $fotoName);
         }
 
+        // Status awal selalu 'menunggu', menunggu admin assign ke PJ
         $this->maintenanceModel->save([
             'penyewa_id' => $penyewa['id'],
             'kamar_id'   => $penyewa['kamar_id'],
@@ -188,9 +185,7 @@ class MaintenanceController extends BaseController
             ->with('success', 'Laporan kerusakan berhasil dikirim. Menunggu tindakan admin.');
     }
 
-    // =====================
-    // INDEX PENYEWA - Penyewa lihat laporan milik sendiri
-    // =====================
+    // Penyewa lihat semua laporan milik sendiri saja
     public function laporanSaya()
     {
         $userId  = session()->get('user_id');
@@ -210,9 +205,7 @@ class MaintenanceController extends BaseController
         return view('tenant/maintenance', $data);
     }
 
-    // =====================
-    // INDEX PJ - PJ lihat maintenance yang di-assign ke dia
-    // =====================
+    // PJ lihat semua laporan yang di-assign ke dia atau belum di-assign siapapun
     public function indexPj()
     {
         $userId = session()->get('user_id');
@@ -228,9 +221,8 @@ class MaintenanceController extends BaseController
         return view('pj/maintenance', $data);
     }
 
-    // =====================
-    // DETAIL - Admin & PJ lihat detail maintenance
-    // =====================
+    // Detail laporan, bisa diakses admin dan PJ
+    // View yang ditampilkan berbeda tergantung role yang sedang login
     public function detail($id)
     {
         $maintenance = $this->maintenanceModel
@@ -256,13 +248,15 @@ class MaintenanceController extends BaseController
         $role = session()->get('role');
         $view = $role === 'admin' ? 'admin/maintenance/detail' : 'pj/maintenance_detail';
 
-        // return view($view, ['maintenance' => $maintenance]);
         return view($view, [
             'maintenance' => $maintenance,
-            'pj_list'     => $this->pjModel->where('is_active', 1)->findAll(), // tambah ini
+            // Daftar PJ aktif dikirim untuk form assign di halaman detail admin
+            'pj_list'     => $this->pjModel->where('is_active', 1)->findAll(),
         ]);
     }
 
+    // PJ ambil sendiri laporan yang belum di-assign, tanpa perlu tunggu admin
+    // Mencegah dobel ambil: cek dulu apakah pj_id sudah terisi
     public function ambil($id)
     {
         $maintenance = $this->maintenanceModel->find($id);
@@ -278,6 +272,10 @@ class MaintenanceController extends BaseController
         $userId = session()->get('user_id');
         $pj     = $this->pjModel->getPjByUserId($userId);
 
+        if (!$pj) {
+            return redirect()->back()->with('error', 'Data PJ tidak ditemukan.');
+        }
+
         $this->maintenanceModel->update($id, [
             'pj_id'       => $pj['id'],
             'status'      => 'proses',
@@ -288,9 +286,8 @@ class MaintenanceController extends BaseController
             ->with('success', 'Laporan berhasil diambil, segera kerjakan.');
     }
 
-    // =====================
-    // DELETE - Admin hapus laporan maintenance
-    // =====================
+    // Admin hapus laporan maintenance
+    // File foto di storage ikut dihapus agar tidak ada file sampah
     public function delete($id)
     {
         $maintenance = $this->maintenanceModel->find($id);
@@ -299,11 +296,10 @@ class MaintenanceController extends BaseController
             return redirect()->back()->with('error', 'Data tidak ditemukan.');
         }
 
-        // hapus foto jika ada
         if ($maintenance['foto']) {
             $fotoPath = FCPATH . 'uploads/maintenance/' . $maintenance['foto'];
             if (file_exists($fotoPath)) {
-                unlink($fotoPath);
+                unlink($fotoPath); // hapus file fisik dari server
             }
         }
 
@@ -313,6 +309,8 @@ class MaintenanceController extends BaseController
             ->with('success', 'Laporan maintenance berhasil dihapus.');
     }
 
+    // Penyewa lihat detail satu laporan milik sendiri
+    // Ada pengecekan penyewa_id agar penyewa tidak bisa akses laporan milik orang lain
     public function detailTenant($id)
     {
         $userId  = session()->get('user_id');
@@ -327,7 +325,7 @@ class MaintenanceController extends BaseController
             ->join('kamar', 'kamar.id = maintenance.kamar_id', 'left')
             ->join('penanggung_jawab', 'penanggung_jawab.id = maintenance.pj_id', 'left')
             ->where('maintenance.id', $id)
-            ->where('maintenance.penyewa_id', $penyewa['id'])
+            ->where('maintenance.penyewa_id', $penyewa['id']) // filter ketat: hanya milik sendiri
             ->first();
 
         if (!$maintenance) {

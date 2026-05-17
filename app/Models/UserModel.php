@@ -40,19 +40,19 @@ class UserModel extends Model
     // Validation
     protected $validationRules      = [];
     protected $validationMessages   = [
-        'name' => [
-            'required'   => 'Nama wajib diisi.',
-            'min_length' => 'Nama minimal 3 karakter.',
-        ],
-        'email' => [
-            'required'    => 'Email wajib diisi.',
-            'valid_email' => 'Format email tidak valid.',
-            'is_unique'   => 'Email sudah digunakan.',
-        ],
-        'password' => [
-            'required'   => 'Password wajib diisi.',
-            'min_length' => 'Password minimal 6 karakter.',
-        ],
+        // 'name' => [
+        //     'required'   => 'Nama wajib diisi.',
+        //     'min_length' => 'Nama minimal 3 karakter.',
+        // ],
+        // 'email' => [
+        //     'required'    => 'Email wajib diisi.',
+        //     'valid_email' => 'Format email tidak valid.',
+        //     'is_unique'   => 'Email sudah digunakan.',
+        // ],
+        // 'password' => [
+        //     'required'   => 'Password wajib diisi.',
+        //     'min_length' => 'Password minimal 6 karakter.',
+        // ],
     ];
     protected $skipValidation       = true;
     protected $cleanValidationRules = true;

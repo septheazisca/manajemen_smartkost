@@ -66,7 +66,8 @@ class CreatePenyewaTable extends Migration
 
         $this->forge->addKey('id', true);
         $this->forge->addForeignKey('user_id', 'users', 'id', 'CASCADE', 'CASCADE');
-        $this->forge->addForeignKey('kamar_id', 'kamar', 'id', 'CASCADE', 'CASCADE');
+        // $this->forge->addForeignKey('kamar_id', 'kamar', 'id', 'CASCADE', 'CASCADE');
+        $this->forge->addForeignKey('kamar_id', 'kamar', 'id', 'RESTRICT', 'RESTRICT');
         $this->forge->createTable('penyewa');
     }
 

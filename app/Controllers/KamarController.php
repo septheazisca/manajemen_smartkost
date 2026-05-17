@@ -10,57 +10,78 @@ use CodeIgniter\HTTP\ResponseInterface;
 
 class KamarController extends BaseController
 {
+    // Siapkan model kamar dan fasilitas agar bisa langsung dipakai di semua fungsi
+    // Disimpan sebagai property agar bisa dipakai di semua method
+    protected $kamarModel;
+    protected $fasilitasModel;
+    protected $pivotModel;
+
+    public function __construct()
+    {
+        $this->kamarModel     = new KamarModel();
+        $this->fasilitasModel = new FasilitasModel();
+        $this->pivotModel     = new KamarFasilitasModel();
+    }
+
+    // Tampilkan semua kamar beserta fasilitas yang dimiliki masing-masing
     public function index()
     {
-        $kamarModel     = new KamarModel();
-        $fasilitasModel = new FasilitasModel();
-        $pivotModel     = new KamarFasilitasModel();
-    
-        $rooms = $kamarModel->findAll();
-    
-        // Ambil fasilitas per kamar: [kamar_id => [fasilitas_id, ...]]
+        $rooms = $this->kamarModel->findAll();
+
+        // Buat mapping fasilitas per kamar dalam bentuk array
+        // Hasilnya: [kamar_id => [fasilitas_id, fasilitas_id, ...]]
+        // Dipakai di view untuk tahu checkbox fasilitas mana yang harus dicentang
         $roomFacilities = [];
         foreach ($rooms as $room) {
-            $rows = $pivotModel->where('kamar_id', $room['id'])->findAll();
+            $rows = $this->pivotModel->where('kamar_id', $room['id'])->findAll();
             $roomFacilities[$room['id']] = array_column($rows, 'fasilitas_id');
         }
-    
+
         $data = [
             'rooms'          => $rooms,
-            'facilities'     => $fasilitasModel->findAll(),
-            'roomFacilities' => $roomFacilities,   // <-- ini yang kurang
+            'facilities'     => $this->fasilitasModel->findAll(),
+            'roomFacilities' => $roomFacilities,
         ];
-    
+
         return view('admin/kamar', $data);
     }
 
+    // Simpan kamar baru beserta fasilitas yang dipilih
     public function store()
     {
-        $kamarModel = new KamarModel();
-        $pivotModel = new KamarFasilitasModel();
+        // Validasi input wajib sebelum simpan ke database
+        $rules = [
+            'nomor_kamar' => 'required|is_unique[kamar.nomor_kamar]',
+            'harga'       => 'required|numeric|greater_than[0]',
+            'lantai'      => 'required|numeric',
+        ];
 
-        $kamarModel->save([
+        if (!$this->validate($rules)) {
+            return redirect()->back()
+                ->withInput()
+                ->with('errors', $this->validator->getErrors());
+        }
+        // Simpan data kamar, status default 'kosong' karena belum ada penyewa
+        $this->kamarModel->save([
             'nomor_kamar' => $this->request->getPost('nomor_kamar'),
-            'lantai' => $this->request->getPost('lantai'),
-            'luas' => $this->request->getPost('luas'),
-            'harga' => $this->request->getPost('harga'),
-            'deskripsi' => $this->request->getPost('deskripsi'),
-        
-            // default
-            'status' => 'kosong',
+            'lantai'      => $this->request->getPost('lantai'),
+            'luas'        => $this->request->getPost('luas'),
+            'harga'       => $this->request->getPost('harga'),
+            'deskripsi'   => $this->request->getPost('deskripsi'),
+            'status'      => 'kosong',
         ]);
 
-        $kamar_id = $kamarModel->insertID();
+        // Ambil ID kamar yang baru saja disimpan
+        $kamar_id = $this->kamarModel->insertID();
 
-        // fasilitas (array)
+        // Simpan relasi kamar-fasilitas ke tabel pivot (kamar_fasilitas)
+        // Fasilitas dikirim sebagai array checkbox dari form, contoh: [1, 2, 3]
         $fasilitas = $this->request->getPost('fasilitas');
-        // contoh: [1,2,3]
-
         if ($fasilitas) {
             foreach ($fasilitas as $f) {
-                $pivotModel->save([
-                    'kamar_id' => $kamar_id,
-                    'fasilitas_id' => $f
+                $this->pivotModel->save([
+                    'kamar_id'     => $kamar_id,
+                    'fasilitas_id' => $f,
                 ]);
             }
         }
@@ -68,43 +89,68 @@ class KamarController extends BaseController
         return redirect()->back()->with('success', 'Kamar berhasil ditambah');
     }
 
+    // Update data kamar dan sinkronisasi fasilitas
     public function update($id)
     {
-        $kamarModel = new KamarModel();
-        $pivotModel = new KamarFasilitasModel();
-    
-        $kamarModel->update($id, [
+        // Validasi input wajib sebelum simpan ke database
+        $rules = [
+            'nomor_kamar' => "required|is_unique[kamar.nomor_kamar,id,{$id}]",
+            'harga'       => 'required|numeric|greater_than[0]',
+            'lantai'      => 'required|numeric',
+        ];
+
+        if (!$this->validate($rules)) {
+            return redirect()->back()
+                ->withInput()
+                ->with('errors', $this->validator->getErrors());
+        }
+
+        // Update data utama kamar
+        $this->kamarModel->update($id, [
             'nomor_kamar' => $this->request->getPost('nomor_kamar'),
             'lantai'      => $this->request->getPost('lantai'),
             'luas'        => $this->request->getPost('luas'),
             'harga'       => $this->request->getPost('harga'),
             'deskripsi'   => $this->request->getPost('deskripsi'),
         ]);
-    
-        // ✅ Sync fasilitas: hapus lama, insert baru
-        $pivotModel->where('kamar_id', $id)->delete();
-    
+
+        // Sync fasilitas: hapus semua relasi lama lalu insert yang baru
+        // Cara ini lebih simpel daripada membandingkan satu per satu mana yang berubah
+        $this->pivotModel->where('kamar_id', $id)->delete();
+
         $fasilitas = $this->request->getPost('fasilitas');
         if ($fasilitas) {
             foreach ($fasilitas as $f) {
-                $pivotModel->save([
-                    'kamar_id'    => $id,
+                $this->pivotModel->save([
+                    'kamar_id'     => $id,
                     'fasilitas_id' => $f,
                 ]);
             }
         }
-    
+
         return redirect()->back()->with('success', 'Kamar berhasil diupdate');
     }
 
+    // Hapus kamar beserta semua relasi fasilitasnya
+    // Relasi di tabel pivot harus dihapus dulu sebelum kamarnya,
+    // agar tidak terjadi error foreign key constraint
     public function delete($id)
     {
-        $kamarModel = new KamarModel();
-        $pivotModel = new KamarFasilitasModel();
+        $kamar = $this->kamarModel->find($id);
 
-        $pivotModel->where('kamar_id', $id)->delete();
-        $kamarModel->delete($id);
+        // Cegah error kalau ID tidak ditemukan
+        if (!$kamar) {
+            return redirect()->back()->with('error', 'Kamar tidak ditemukan.');
+        }
 
-        return redirect()->back();
+        // Cegah hapus kamar yang masih terisi penyewa
+        if ($kamar['status'] === 'terisi') {
+            return redirect()->back()->with('error', 'Kamar tidak bisa dihapus karena masih ada penyewa.');
+        }
+
+        $this->pivotModel->where('kamar_id', $id)->delete();
+        $this->kamarModel->delete($id);
+
+        return redirect()->back()->with('success', 'Kamar berhasil dihapus.');
     }
 }
