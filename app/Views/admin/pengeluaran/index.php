@@ -11,7 +11,7 @@
 <!-- Filter Box -->
 <div class="table-card mb-4" style="padding: 1.5rem;">
     <form method="get" class="row g-3 align-items-end">
-        <div class="col-md-3">
+        <div class="col-md-5">
             <label class="form-label fw-bold">Bulan</label>
             <select name="bulan" class="form-select">
                 <?php foreach ($list_bulan as $val => $label): ?>
@@ -19,16 +19,16 @@
                 <?php endforeach; ?>
             </select>
         </div>
-        <div class="col-md-2">
+        <div class="col-md-5">
             <label class="form-label fw-bold">Tahun</label>
             <input type="number" name="tahun" class="form-control" value="<?= $tahun ?>">
         </div>
-        <div class="col-md-2">
+        <div class="col-md-1">
             <button type="submit" class="btn-primary-custom w-100" style="height: 38px;">
                 <i class="bi bi-filter"></i> Filter
             </button>
         </div>
-        <div class="col-md-2">
+        <div class="col-md-1">
             <a href="/admin/pengeluaran/rekap?bulan=<?= $bulan ?>&tahun=<?= $tahun ?>" class="btn-cancel w-100 d-flex align-items-center justify-content-center" style="height: 38px; text-decoration: none;">
                 <i class="bi bi-file-earmark-text me-1"></i> Rekap
             </a>

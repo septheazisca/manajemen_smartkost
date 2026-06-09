@@ -24,7 +24,7 @@
 <!-- Filter Box -->
 <div class="table-card mb-4" style="padding: 1.5rem;">
     <form method="get" class="row g-3 align-items-end">
-        <div class="col-md-3">
+        <div class="col-md-5">
             <label class="form-label fw-bold small text-uppercase">Bulan</label>
             <select name="bulan" class="form-select">
                 <?php foreach ($list_bulan as $val => $label): ?>
@@ -32,7 +32,7 @@
                 <?php endforeach; ?>
             </select>
         </div>
-        <div class="col-md-2">
+        <div class="col-md-5">
             <label class="form-label fw-bold small text-uppercase">Tahun</label>
             <input type="number" name="tahun" class="form-control" value="<?= $tahun ?>">
         </div>
