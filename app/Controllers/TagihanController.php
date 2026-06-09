@@ -383,4 +383,239 @@ class TagihanController extends BaseController
             '12' => 'Desember',
         ];
     }
+
+
+    public function exportExcel()
+    {
+        $bulan = $this->request->getGet('bulan') ?? date('m');
+        $tahun = $this->request->getGet('tahun') ?? date('Y');
+
+        $tagihan = $this->tagihanModel->getTagihanLengkap($bulan, $tahun);
+
+        $namaBulan = $this->getListBulan()[$bulan] ?? $bulan;
+
+        // HITUNG RINGKASAN
+        $totalTagihan = 0;
+        $totalLunas = 0;
+        $totalMenunggak = 0;
+
+        $jumlahLunas = 0;
+        $jumlahMenunggak = 0;
+
+        foreach ($tagihan as $t) {
+
+            $jumlah = (int)$t['jumlah'];
+
+            $totalTagihan += $jumlah;
+
+            if (strtolower($t['status']) == 'lunas') {
+                $totalLunas += $jumlah;
+                $jumlahLunas++;
+            } else {
+                $totalMenunggak += $jumlah;
+                $jumlahMenunggak++;
+            }
+        }
+
+        // EXCEL
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Tagihan Kost');
+
+        // JUDUL
+        $sheet->mergeCells('A1:F1');
+        $sheet->setCellValue('A1', 'LAPORAN TAGIHAN KAMAR KOST');
+
+        $sheet->mergeCells('A2:F2');
+        $sheet->setCellValue(
+            'A2',
+            'Periode : ' . $namaBulan . ' ' . $tahun
+        );
+
+        $sheet->mergeCells('A3:F3');
+        $sheet->setCellValue(
+            'A3',
+            'Dicetak pada : ' . date('d F Y H:i')
+        );
+
+        $sheet->getStyle('A1')->getFont()
+            ->setBold(true)
+            ->setSize(16);
+
+        $sheet->getStyle('A2:A3')->getFont()
+            ->setItalic(true);
+
+        $sheet->getStyle('A1:F3')->getAlignment()
+            ->setHorizontal(
+                \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER
+            );
+
+        // RINGKASAN
+        $sheet->setCellValue('A5', 'Total Tagihan');
+        $sheet->setCellValue('B5', $totalTagihan);
+
+        $sheet->setCellValue('A6', 'Total Lunas');
+        $sheet->setCellValue('B6', $totalLunas);
+
+        $sheet->setCellValue('A7', 'Total Menunggak');
+        $sheet->setCellValue('B7', $totalMenunggak);
+
+        $sheet->setCellValue('D5', 'Jumlah Lunas');
+        $sheet->setCellValue('E5', $jumlahLunas . ' Penyewa');
+
+        $sheet->setCellValue('D6', 'Jumlah Menunggak');
+        $sheet->setCellValue('E6', $jumlahMenunggak . ' Penyewa');
+
+        // Format Rupiah Ringkasan
+        foreach (['B5', 'B6', 'B7'] as $cell) {
+            $sheet->getStyle($cell)
+                ->getNumberFormat()
+                ->setFormatCode('#,##0');
+        }
+
+        $sheet->getStyle('A5:E7')->getFont()->setBold(true);
+
+        // HEADER TABEL
+        $headers = [
+            'No',
+            'Nama Penyewa',
+            'Kamar',
+            'Tagihan',
+            'Jatuh Tempo',
+            'Status'
+        ];
+
+        $col = 'A';
+        foreach ($headers as $header) {
+            $sheet->setCellValue($col . '9', $header);
+            $col++;
+        }
+
+        $sheet->getStyle('A9:F9')->applyFromArray([
+            'font' => [
+                'bold' => true,
+                'color' => ['rgb' => 'FFFFFF']
+            ],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '7F77DD']
+            ]
+        ]);
+
+        // DATA TABEL
+        $row = 10;
+        $no = 1;
+
+        foreach ($tagihan as $t) {
+
+            $sheet->setCellValue('A' . $row, $no++);
+            $sheet->setCellValue('B' . $row, $t['nama']);
+            $sheet->setCellValue('C' . $row, $t['nama_kamar']);
+            $sheet->setCellValue('D' . $row, (int)$t['jumlah']);
+
+            $sheet->setCellValue(
+                'E' . $row,
+                date('d/m/Y', strtotime($t['jatuh_tempo']))
+            );
+
+            $sheet->setCellValue(
+                'F' . $row,
+                ucfirst($t['status'])
+            );
+
+            // Format Rupiah
+            $sheet->getStyle('D' . $row)
+                ->getNumberFormat()
+                ->setFormatCode('#,##0');
+
+            // Warna Status
+            if (strtolower($t['status']) == 'lunas') {
+
+                $sheet->getStyle('F' . $row)
+                    ->getFont()
+                    ->getColor()
+                    ->setRGB('198754');
+            } else {
+
+                $sheet->getStyle('F' . $row)
+                    ->getFont()
+                    ->getColor()
+                    ->setRGB('DC3545');
+            }
+
+            // Zebra Table
+            if ($row % 2 == 0) {
+
+                $sheet->getStyle('A' . $row . ':F' . $row)
+                    ->getFill()
+                    ->setFillType(
+                        \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID
+                    )
+                    ->getStartColor()
+                    ->setRGB('F8F9FA');
+            }
+
+            $row++;
+        }
+
+        // TOTAL AKHIR
+        $sheet->mergeCells('A' . $row . ':C' . $row);
+        $sheet->setCellValue('A' . $row, 'TOTAL TAGIHAN');
+
+        $sheet->setCellValue('D' . $row, $totalTagihan);
+
+        $sheet->getStyle('A' . $row . ':D' . $row)->applyFromArray([
+            'font' => [
+                'bold' => true
+            ],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => 'E9ECEF']
+            ]
+        ]);
+
+        $sheet->getStyle('D' . $row)
+            ->getNumberFormat()
+            ->setFormatCode('#,##0');
+
+        // BORDER
+        $sheet->getStyle('A9:F' . $row)
+            ->getBorders()
+            ->getAllBorders()
+            ->setBorderStyle(
+                \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN
+            );
+
+        // Border Ringkasan
+        $sheet->getStyle('A5:E7')
+            ->getBorders()
+            ->getAllBorders()
+            ->setBorderStyle(
+                \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN
+            );
+
+        // AUTO SIZE
+        foreach (range('A', 'F') as $column) {
+            $sheet->getColumnDimension($column)
+                ->setAutoSize(true);
+        }
+
+        // Freeze Header
+        $sheet->freezePane('A10');
+
+        // DOWNLOAD
+        $filename = 'laporan-tagihan-' .
+            strtolower($namaBulan) .
+            '-' .
+            $tahun .
+            '.xlsx';
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $writer->save('php://output');
+        exit;
+    }
 }

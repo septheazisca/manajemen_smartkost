@@ -49,6 +49,7 @@ $routes->group('admin', ['filter' => 'role:admin'], function ($routes) {
     $routes->post('tagihan/tolak/(:num)', 'TagihanController::tolak/$1');
     $routes->post('tagihan/tandai-menunggak/(:num)', 'TagihanController::tandaiMenunggak/$1');
     $routes->get('tagihan/(:num)', 'TagihanController::show/$1');
+    $routes->get('tagihan/export-excel', 'TagihanController::exportExcel');
 
     // maintenance - spesifik dulu, dynamic di bawah
     $routes->get('maintenance', 'MaintenanceController::index');
