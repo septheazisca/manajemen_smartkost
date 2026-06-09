@@ -415,6 +415,7 @@ a {text-decoration: none; list-style: none;}
   transition: border-color .18s, color .18s, background .18s;
 }
 .action-btn.edit:hover  { border-color: var(--info); color: var(--info); background: #eff6ff; }
+.action-btn.warning:hover { border-color: var(--warning); color: var(--warning); background: #fffbeb; }
 .action-btn.del:hover   { border-color: var(--danger); color: var(--danger); background: #fef2f2; }
 .action-btn.view:hover  { border-color: var(--primary); color: var(--primary); background: var(--primary-xlight); }
 

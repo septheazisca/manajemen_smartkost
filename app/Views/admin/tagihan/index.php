@@ -1,6 +1,42 @@
 <?= $this->extend('layouts/main') ?>
 <?= $this->section('content') ?>
 
+<style>
+    .custom-filter-group {
+        border-radius: 8px !important;
+        overflow: hidden;
+        border: 1px solid #e2e8f0;
+        transition: all 0.2s ease-in-out;
+    }
+
+    .custom-filter-group:focus-within {
+        border-color: #C484F5;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+
+    .custom-filter-group .input-group-text,
+    .custom-filter-group .form-select,
+    .custom-filter-group .btn {
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    .custom-filter-group .form-select:not(:last-child) {
+        border-right: 1px solid #f1f5f9 !important;
+    }
+
+    .custom-filter-group .input-group-text {
+        color: #64748b;
+        padding-right: 0.5rem;
+    }
+
+    .custom-filter-group .form-select {
+        color: #334155;
+        font-weight: 500;
+        cursor: pointer;
+    }
+</style>
+
 <!-- Breadcrumb -->
 <div class="breadcrumb-custom mb-3">
     <a href="/admin/dashboard">
@@ -14,44 +50,55 @@
 <div class="table-card">
 
     <!-- HEADER -->
-    <div class="table-card-header">
-        <div>
-            <div class="table-card-title">Manajemen Tagihan</div>
-            <div class="table-card-sub text-muted">Periode: <?= $list_bulan[$bulan] ?> <?= $tahun ?> — Total <?= count($tagihan) ?> data</div>
+
+    <div class="table-card-header d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 w-100">
+        <div class="text-nowrap">
+            <div class="table-card-title fw-bold" style="font-size: 1.15rem; color: #1e293b;">Manajemen Tagihan</div>
+            <div class="table-card-sub text-muted small">Periode: <?= $list_bulan[$bulan] ?> <?= $tahun ?> — Total <?= count($tagihan) ?> data</div>
         </div>
-        <div class="toolbar">
-            <button class="btn-add" data-bs-toggle="modal" data-bs-target="#generateModal">
-                <i class="bi bi-lightning-charge"></i> Generate Tagihan
+
+        <div class="d-flex align-items-center gap-2 flex-grow-1 justify-content-end" style="max-width: 500px;">
+            <div class="input-group flex-grow-1" style="max-width: 260px;">
+                <input type="text" id="searchTagihan" class="form-control" placeholder="Cari tagihan...">
+                <span class="input-group-text bg-light text-muted">
+                    <i class="bi bi-search"></i>
+                </span>
+            </div>
+
+            <button class="btn btn-primary btn-add text-nowrap" data-bs-toggle="modal" data-bs-target="#generateModal">
+                <i class="bi bi-plus-lg me-1"></i> Generate Tagihan
             </button>
         </div>
     </div>
 
     <!-- FILTER & STATS -->
-    <!-- FILTER & STATS -->
     <div class="px-3 py-4 border-bottom bg-light-subtle">
         <div class="row g-3 align-items-center">
 
-            <!-- Filter Form (Kiri) -->
+            <!-- Kode HTML Anda yang sudah disesuaikan kelasnya -->
             <div class="col-12 col-xl-4">
                 <form method="get" action="/admin/tagihan" class="d-flex gap-2">
-                    <div class="input-group input-group-sm shadow-sm">
-                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-calendar3"></i></span>
-                        <select name="bulan" class="form-select border-start-0" style="min-width: 110px;">
+                    <div class="input-group input-group-sm custom-filter-group shadow-sm bg-white">
+                        <span class="input-group-text bg-white"><i class="bi bi-calendar3"></i></span>
+
+                        <select name="bulan" class="form-select p-3" style="">
                             <?php foreach ($list_bulan as $k => $v) : ?>
                                 <option value="<?= $k ?>" <?= $bulan == $k ? 'selected' : '' ?>>
                                     <?= $v ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
-                        <select name="tahun" class="form-select border-start-0">
+
+                        <select name="tahun" class="form-select">
                             <?php for ($y = date('Y'); $y >= date('Y') - 3; $y--) : ?>
                                 <option value="<?= $y ?>" <?= $tahun == $y ? 'selected' : '' ?>>
                                     <?= $y ?>
                                 </option>
                             <?php endfor; ?>
                         </select>
-                        <button type="submit" class="btn btn-primary px-3">
-                            <i class="bi bi-funnel"></i>
+
+                        <button type="submit" class="btn px-3 d-flex align-items-center" style="background-color: #C484F5 !important; color: white;">
+                            <i class="bi bi-funnel-fill me-1"></i> Filter
                         </button>
                     </div>
                 </form>
@@ -137,7 +184,7 @@
 
     <!-- TABLE -->
     <div class="tbl-wrap">
-        <table class="data-table">
+        <table class="data-table" id="tableTagihan">
             <thead>
                 <tr>
                     <th width="50">No</th>
@@ -209,7 +256,7 @@
                                     <?php endif; ?>
 
                                     <?php if ($t['status'] === 'pending') : ?>
-                                        <button class="action-btn edit bg-warning text-dark border-0" title="Tandai Menunggak" data-bs-toggle="modal" data-bs-target="#menunggakModal<?= $t['id'] ?>">
+                                        <button class="action-btn warning" title="Tandai Menunggak" data-bs-toggle="modal" data-bs-target="#menunggakModal<?= $t['id'] ?>">
                                             <i class="bi bi-exclamation-circle"></i>
                                         </button>
                                     <?php endif; ?>
@@ -273,8 +320,8 @@
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                    <button type="submit" class="btn btn-primary">
+                    <button type="button" class="btn text-nowrap" style="background-color: #e0e0e0;" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-primary btn-add text-nowrap">
                         <i class="bi bi-lightning"></i> Generate
                     </button>
                 </div>
@@ -406,5 +453,30 @@
     <?php endif; ?>
 
 <?php endforeach; ?>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+
+        const searchInput = document.getElementById('searchTagihan');
+        const table = document.getElementById('tableTagihan');
+        const rows = table.querySelectorAll('tbody tr');
+
+        searchInput.addEventListener('keyup', function() {
+
+            const keyword = this.value.toLowerCase();
+
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+
+                if (text.includes(keyword)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+        });
+    });
+</script>
 
 <?= $this->endSection() ?>
