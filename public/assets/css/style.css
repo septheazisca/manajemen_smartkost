@@ -27,6 +27,7 @@
 body { font-family: var(--font); background: var(--bg-soft); color: var(--text-dark); }
 a {text-decoration: none; list-style: none;}
 
+.bg-primary { background: var(--accent) !important; }
 /* ── SIDEBAR ───────────────────────────────── */
 .sidebar {
   position: fixed; top: 0; left: 0;
