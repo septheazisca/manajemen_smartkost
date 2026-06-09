@@ -10,16 +10,22 @@
 
 <div class="table-card">
 
-    <!-- Header -->
-    <div class="table-card-header">
-        <div>
-            <div class="table-card-title">Data Kamar Kost</div>
-            <div class="table-card-sub">Total <?= count($rooms) ?> kamar</div>
+    <div class="table-card-header d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 w-100">
+        <div class="text-nowrap">
+            <div class="table-card-title fw-bold" style="font-size: 1.15rem; color: #1e293b;">Data Kamar Kost</div>
+            <div class="table-card-sub text-muted small">Total <?= count($rooms) ?> kamar</div>
         </div>
 
-        <div class="toolbar">
-            <button class="btn-add" data-bs-toggle="modal" data-bs-target="#addModal">
-                <i class="bi bi-plus-lg"></i> Tambah Kamar
+        <div class="d-flex align-items-center gap-2 flex-grow-1 justify-content-end" style="max-width: 500px;">
+            <div class="input-group flex-grow-1" style="max-width: 260px;">
+                <input type="text" id="searchKamar" class="form-control" placeholder="Cari nomor kamar...">
+                <span class="input-group-text bg-light text-muted">
+                    <i class="bi bi-search"></i>
+                </span>
+            </div>
+
+            <button class="btn btn-primary btn-add text-nowrap" data-bs-toggle="modal" data-bs-target="#addModal">
+                <i class="bi bi-plus-lg me-1"></i> Tambah Kamar
             </button>
         </div>
     </div>
@@ -54,7 +60,7 @@
 
     <!-- TABLE -->
     <div class="tbl-wrap">
-        <table class="data-table">
+        <table class="data-table" id="tableKamar">
             <thead>
                 <tr>
                     <th>No</th>
@@ -62,8 +68,8 @@
                     <th>Lantai</th>
                     <th>Luas</th>
                     <th>Harga</th>
-                    <th>Status</th>
-                    <th>Aksi</th>
+                    <th class="text-center">Status</th>
+                    <th class="text-center">Aksi</th>
                 </tr>
             </thead>
 
@@ -84,9 +90,15 @@
                             <td><?= $r['lantai'] ?></td>
                             <td><?= $r['luas'] ?></td>
                             <td>Rp <?= number_format($r['harga']) ?></td>
-                            <td><?= $r['status'] ?></td>
-                            <td>
-                                <div style="display:flex;gap:.35rem;">
+                            <td class="text-center">
+                                <?php if ($r['status'] == 'terisi') : ?>
+                                    <span class="badge bg-success">Terisi</span>
+                                <?php else : ?>
+                                    <span class="badge bg-danger">Kosong</span>
+                                <?php endif; ?>
+                            </td>
+                            <td class="d-flex justify-content-center">
+                                <div style="display:flex;gap:.35rem; margin: 0 auto; ">
                                     <button class="action-btn edit"
                                         data-bs-toggle="modal"
                                         data-bs-target="#editModal<?= $r['id'] ?>">
@@ -331,4 +343,29 @@
         });
     });
 </script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+
+        const searchInput = document.getElementById('searchKamar');
+        const table = document.getElementById('tableKamar');
+        const rows = table.querySelectorAll('tbody tr');
+
+        searchInput.addEventListener('keyup', function() {
+
+            const keyword = this.value.toLowerCase();
+
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+
+                if (text.includes(keyword)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+        });
+    });
+</script>
+
 <?= $this->endSection() ?>
