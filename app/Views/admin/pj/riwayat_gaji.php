@@ -52,11 +52,11 @@
             <div class="table-card-title">Log Pembayaran Gaji</div>
             <div class="table-card-sub">Menampilkan histori pengiriman gaji per bulan</div>
         </div>
-        <div class="toolbar">
+        <!-- <div class="toolbar">
             <a href="/admin/pj" class="btn-cancel text-decoration-none border shadow-sm">
                 <i class="bi bi-arrow-left"></i> Kembali ke Daftar
             </a>
-        </div>
+        </div> -->
     </div>
 
     <div class="tbl-wrap">
