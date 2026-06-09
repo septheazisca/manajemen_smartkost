@@ -29,32 +29,73 @@ class DashboardController extends BaseController
     // Dashboard admin: kumpulkan semua data ringkasan operasional kost
     private function adminDashboard()
     {
-        $kamarModel      = new KamarModel();
-        $penyewaModel    = new PenyewaModel();
-        $tagihanModel    = new TagihanModel();
-        $pembayaranModel = new PembayaranModel();
+        $kamarModel       = new KamarModel();
+        $penyewaModel     = new PenyewaModel();
+        $tagihanModel     = new TagihanModel();
+        $pembayaranModel  = new PembayaranModel();
         $maintenanceModel = new MaintenanceModel();
+        $pengeluaranModel = new \App\Models\PengeluaranModel();
 
         $bulan = date('m');
         $tahun = date('Y');
 
+        // Data pemasukan 6 bulan terakhir untuk chart
+        $pemasukanBulanan = [];
+        $labelBulan = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $b = date('m', strtotime("-$i months"));
+            $y = date('Y', strtotime("-$i months"));
+            $total = $pembayaranModel
+                ->select('SUM(jumlah_bayar) as total')
+                ->join('tagihan', 'tagihan.id = pembayaran.tagihan_id')
+                ->where('pembayaran.status', 'approved')
+                ->where('tagihan.bulan', $b)
+                ->where('tagihan.tahun', $y)
+                ->first()['total'] ?? 0;
+            $pemasukanBulanan[] = (int) $total;
+            $labelBulan[] = date('M Y', strtotime("-$i months"));
+        }
+
+        // Data pengeluaran 6 bulan terakhir untuk chart
+        $pengeluaranBulanan = [];
+        for ($i = 5; $i >= 0; $i--) {
+            $b = date('m', strtotime("-$i months"));
+            $y = date('Y', strtotime("-$i months"));
+            $total = $pengeluaranModel
+                ->selectSum('jumlah', 'total')
+                ->where('bulan', $b)
+                ->where('tahun', $y)
+                ->first()['total'] ?? 0;
+            $pengeluaranBulanan[] = (int) $total;
+        }
+
+        // Penyewa yang paling sering menunggak
+        $seringMenunggak = $tagihanModel
+            ->select('users.name, kamar.nomor_kamar, COUNT(tagihan.id) as jumlah_tunggakan')
+            ->join('penyewa', 'penyewa.id = tagihan.penyewa_id')
+            ->join('users', 'users.id = penyewa.user_id')
+            ->join('kamar', 'kamar.id = penyewa.kamar_id')
+            ->where('tagihan.status', 'menunggak')
+            ->groupBy('tagihan.penyewa_id')
+            ->orderBy('jumlah_tunggakan', 'DESC')
+            ->findAll(5);
+
+        // Status tagihan bulan ini untuk pie chart
+        $statusTagihan = [
+            'lunas'              => $tagihanModel->where('bulan', $bulan)->where('tahun', $tahun)->where('status', 'lunas')->countAllResults(),
+            'pending'            => $tagihanModel->where('bulan', $bulan)->where('tahun', $tahun)->where('status', 'pending')->countAllResults(),
+            'menunggu_konfirmasi' => $tagihanModel->where('bulan', $bulan)->where('tahun', $tahun)->where('status', 'menunggu_konfirmasi')->countAllResults(),
+            'menunggak'          => $tagihanModel->where('bulan', $bulan)->where('tahun', $tahun)->where('status', 'menunggak')->countAllResults(),
+        ];
+
         $data = [
-            // Statistik kamar
-            'total_kamar'        => $kamarModel->countAll(),
-            'kamar_terisi'       => $kamarModel->where('status', 'terisi')->countAllResults(),
-            'kamar_kosong'       => $kamarModel->where('status', 'kosong')->countAllResults(),
-
-            // Hanya hitung penyewa yang belum checkout (tanggal_keluar masih null)
-            'total_penyewa'      => $penyewaModel->where('tanggal_keluar', null)->countAllResults(),
-
-            // Tagihan yang butuh perhatian admin
-            'tagihan_pending'    => $tagihanModel->where('status', 'menunggu_konfirmasi')->countAllResults(),
-            'tagihan_menunggak'  => $tagihanModel->where('status', 'menunggak')->countAllResults(),
-
-            // Laporan kerusakan yang belum ditangani
+            'total_kamar'         => $kamarModel->countAll(),
+            'kamar_terisi'        => $kamarModel->where('status', 'terisi')->countAllResults(),
+            'kamar_kosong'        => $kamarModel->where('status', 'kosong')->countAllResults(),
+            'total_penyewa'       => $penyewaModel->where('tanggal_keluar', null)->countAllResults(),
+            'tagihan_pending'     => $tagihanModel->where('status', 'menunggu_konfirmasi')->countAllResults(),
+            'tagihan_menunggak'   => $tagihanModel->where('status', 'menunggak')->countAllResults(),
             'maintenance_pending' => $maintenanceModel->where('status', 'menunggu')->countAllResults(),
-
-            // Total uang masuk bulan ini dari pembayaran yang sudah di-approve
             'pemasukan_bulan_ini' => $pembayaranModel
                 ->select('SUM(jumlah_bayar) as total')
                 ->join('tagihan', 'tagihan.id = pembayaran.tagihan_id')
@@ -62,13 +103,15 @@ class DashboardController extends BaseController
                 ->where('tagihan.bulan', $bulan)
                 ->where('tagihan.tahun', $tahun)
                 ->first()['total'] ?? 0,
-
-            // Daftar pembayaran yang menunggu konfirmasi admin
             'pembayaran_pending'  => $pembayaranModel->getPembayaranPending(),
+            'maintenance_terbaru' => $maintenanceModel->getMaintenanceLengkap(),
 
-            // Semua laporan maintenance untuk ditampilkan di tabel dashboard
-            'maintenance_terbaru' => $maintenanceModel
-                ->getMaintenanceLengkap(),
+            // Data baru untuk chart
+            'pemasukan_bulanan'   => $pemasukanBulanan,
+            'pengeluaran_bulanan' => $pengeluaranBulanan,
+            'label_bulan'         => $labelBulan,
+            'sering_menunggak'    => $seringMenunggak,
+            'status_tagihan'      => $statusTagihan,
         ];
 
         return view('admin/dashboard', $data);
@@ -141,7 +184,7 @@ class DashboardController extends BaseController
         $data['total_maintenance'] = $maintenanceModel
             ->where('penyewa_id', $penyewa['id'])
             ->countAllResults();
-            
+
         // Laporan yang masih dalam proses penanganan
         $data['maintenance_proses'] = $maintenanceModel
             ->where('penyewa_id', $penyewa['id'])
