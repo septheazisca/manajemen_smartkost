@@ -108,9 +108,10 @@
             <div class="table-card-sub">Periode: <?= $list_bulan[str_pad($bulan, 2, '0', STR_PAD_LEFT)] ?> <?= $tahun ?></div>
         </div>
         <div class="toolbar">
-             <button onclick="window.print()" class="btn-cancel border">
-                <i class="bi bi-printer"></i> Cetak Laporan
-            </button>
+            <a href="/admin/pengeluaran/export-excel?bulan=<?= $bulan ?>&tahun=<?= $tahun ?>"
+                class="btn-cancel border">
+                <i class="bi bi-file-earmark-excel"></i> Export Excel
+            </a>
         </div>
     </div>
 
