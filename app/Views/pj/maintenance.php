@@ -8,17 +8,6 @@
     <span>Tugas Maintenance</span>
 </div>
 
-<!-- Stat Cards -->
-<?php
-$totalMenunggu = 0;
-$totalProses   = 0;
-$totalSelesai  = 0;
-foreach ($maintenance as $m) {
-    if ($m['status'] == 'menunggu') $totalMenunggu++;
-    if ($m['status'] == 'proses')   $totalProses++;
-    if ($m['status'] == 'selesai')  $totalSelesai++;
-}
-?>
 <div class="row g-3 mb-4">
     <div class="col-md-4">
         <div class="stat-card">
@@ -27,7 +16,7 @@ foreach ($maintenance as $m) {
             </div>
             <div class="stat-info">
                 <div class="stat-label">Menunggu</div>
-                <div class="stat-value"><?= $totalMenunggu ?></div>
+                <div class="stat-value"><?= $totalMenunggu ?? 0 ?></div>
             </div>
         </div>
     </div>
@@ -38,7 +27,7 @@ foreach ($maintenance as $m) {
             </div>
             <div class="stat-info">
                 <div class="stat-label">Sedang Diproses</div>
-                <div class="stat-value"><?= $totalProses ?></div>
+                <div class="stat-value"><?= $totalProses ?? 0 ?></div>
             </div>
         </div>
     </div>
@@ -49,7 +38,7 @@ foreach ($maintenance as $m) {
             </div>
             <div class="stat-info">
                 <div class="stat-label">Selesai</div>
-                <div class="stat-value"><?= $totalSelesai ?></div>
+                <div class="stat-value"><?= $totalSelesai ?? 0 ?></div>
             </div>
         </div>
     </div>

@@ -69,15 +69,24 @@ foreach ($maintenance as $m) {
 
 <!-- Table -->
 <div class="table-card">
-    <div class="table-card-header">
-        <div>
-            <div class="table-card-title">Laporan Maintenance</div>
-            <div class="table-card-sub">Semua laporan kerusakan dari penyewa</div>
+    <div class="table-card-header d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 w-100">
+        <div class="text-nowrap">
+            <div class="table-card-title fw-bold" style="font-size: 1.15rem; color: #1e293b;">Laporan Maintenance</div>
+            <div class="table-card-sub text-muted small">Total <?= count($maintenance) ?> laporan</div>
+        </div>
+
+        <div class="d-flex align-items-center gap-2 flex-grow-1 justify-content-end" style="max-width: 500px;">
+            <div class="input-group flex-grow-1" style="max-width: 260px;">
+                <input type="text" id="searchMaintenance" class="form-control" placeholder="Cari laporan maintenance...">
+                <span class="input-group-text bg-light text-muted">
+                    <i class="bi bi-search"></i>
+                </span>
+            </div>
         </div>
     </div>
 
     <div class="tbl-wrap">
-        <table class="data-table">
+        <table class="data-table" id="tableMaintenance">
             <thead>
                 <tr>
                     <th>No</th>
@@ -171,6 +180,31 @@ foreach ($maintenance as $m) {
                     if (result.isConfirmed) window.location.href = url;
                 });
             });
+        });
+    });
+</script>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+
+        const searchInput = document.getElementById('searchMaintenance');
+        const table = document.getElementById('tableMaintenance');
+        const rows = table.querySelectorAll('tbody tr');
+
+        searchInput.addEventListener('keyup', function() {
+
+            const keyword = this.value.toLowerCase();
+
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+
+                if (text.includes(keyword)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
         });
     });
 </script>

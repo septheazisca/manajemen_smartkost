@@ -193,4 +193,92 @@ class PengeluaranController extends BaseController
             '12' => 'Desember',
         ];
     }
+
+    public function exportExcel()
+    {
+        $bulan = $this->request->getGet('bulan') ?? date('m');
+        $tahun = $this->request->getGet('tahun') ?? date('Y');
+
+        $pengeluaran = $this->pengeluaranModel->getPengeluaranLengkap($bulan, $tahun);
+        $total       = $this->pengeluaranModel->getTotalPengeluaran($bulan, $tahun);
+        $namaBulan   = $this->getListBulan()[$bulan] ?? $bulan;
+
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet       = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Pengeluaran');
+
+        // Header judul
+        $sheet->setCellValue('A1', 'LAPORAN PENGELUARAN SMARTKOST');
+        $sheet->setCellValue('A2', 'Periode: ' . $namaBulan . ' ' . $tahun);
+        $sheet->setCellValue('A3', 'Digenerate: ' . date('d/m/Y H:i:s'));
+
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+        $sheet->getStyle('A2')->getFont()->setItalic(true);
+
+        // Header tabel
+        $headers = ['No', 'Keterangan', 'Kategori', 'PJ Terkait', 'Jumlah (Rp)', 'Sumber', 'Tanggal'];
+        foreach ($headers as $i => $header) {
+            $col = chr(65 + $i);
+            $sheet->setCellValue($col . '5', $header);
+            $sheet->getStyle($col . '5')->getFont()->setBold(true);
+            $sheet->getStyle($col . '5')->getFill()
+                ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                ->getStartColor()->setRGB('7F77DD');
+            $sheet->getStyle($col . '5')->getFont()->getColor()->setRGB('FFFFFF');
+        }
+
+        // Isi data
+        $row = 6;
+        $no  = 1;
+        foreach ($pengeluaran as $p) {
+            $sheet->setCellValue('A' . $row, $no++);
+            $sheet->setCellValue('B' . $row, $p['keterangan']);
+            $sheet->setCellValue('C' . $row, ucfirst($p['kategori']));
+            $sheet->setCellValue('D' . $row, $p['nama_pj'] ?? '-');
+            $sheet->setCellValue('E' . $row, (int) $p['jumlah']);
+            $sheet->setCellValue('F' . $row, $p['maintenance_id'] ? 'Otomatis' : 'Manual');
+            $sheet->setCellValue('G' . $row, date('d/m/Y', strtotime($p['created_at'])));
+
+            // Format rupiah kolom E
+            $sheet->getStyle('E' . $row)->getNumberFormat()->setFormatCode('#,##0');
+
+            // Warna baris selang-seling
+            if ($no % 2 == 0) {
+                $sheet->getStyle('A' . $row . ':G' . $row)->getFill()
+                    ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                    ->getStartColor()->setRGB('F3F2FF');
+            }
+
+            $row++;
+        }
+
+        // Baris total
+        $sheet->setCellValue('D' . $row, 'TOTAL');
+        $sheet->setCellValue('E' . $row, (int) $total);
+        $sheet->getStyle('D' . $row . ':E' . $row)->getFont()->setBold(true);
+        $sheet->getStyle('E' . $row)->getNumberFormat()->setFormatCode('#,##0');
+        $sheet->getStyle('D' . $row . ':E' . $row)->getFill()
+            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+            ->getStartColor()->setRGB('EEEDFE');
+
+        // Auto size kolom
+        foreach (['A', 'B', 'C', 'D', 'E', 'F', 'G'] as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        // Border tabel
+        $sheet->getStyle('A5:G' . ($row))->getBorders()->getAllBorders()
+            ->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
+
+        // Output
+        $writer   = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $filename = 'pengeluaran-' . $bulan . '-' . $tahun . '.xlsx';
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+
+        $writer->save('php://output');
+        exit;
+    }
 }

@@ -12,22 +12,29 @@
 <div class="table-card">
 
     <!-- Header -->
-    <div class="table-card-header">
-        <div>
-            <div class="table-card-title">Data Fasilitas Kamar</div>
-            <div class="table-card-sub">Total <?= count($facilities) ?> fasilitas</div>
+    <div class="table-card-header d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 w-100">
+        <div class="text-nowrap">
+            <div class="table-card-title fw-bold" style="font-size: 1.15rem; color: #1e293b;">Data Fasilitas Kamar</div>
+            <div class="table-card-sub text-muted small">Total <?= count($facilities) ?> fasilitas</div>
         </div>
 
-        <div class="toolbar">
-            <button class="btn-add" data-bs-toggle="modal" data-bs-target="#addModal">
-                <i class="bi bi-plus-lg"></i> Tambah Fasilitas
+        <div class="d-flex align-items-center gap-2 flex-grow-1 justify-content-end" style="max-width: 500px;">
+            <div class="input-group flex-grow-1" style="max-width: 260px;">
+                <input type="text" id="searchFasilitas" class="form-control" placeholder="Cari nama fasilitas...">
+                <span class="input-group-text bg-light text-muted">
+                    <i class="bi bi-search"></i>
+                </span>
+            </div>
+
+            <button class="btn btn-primary btn-add text-nowrap" data-bs-toggle="modal" data-bs-target="#addModal">
+                <i class="bi bi-plus-lg me-1"></i> Tambah Fasilitas
             </button>
         </div>
     </div>
 
     <!-- Table -->
     <div class="tbl-wrap">
-        <table class="data-table">
+        <table class="data-table" id="tableFasilitas">
             <thead>
                 <tr>
                     <th>No</th>
@@ -167,5 +174,29 @@
         document.getElementById('delTarget').textContent = r ? r.nomor : '';
         modalDel.show();
     }
+</script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+
+        const searchInput = document.getElementById('searchFasilitas');
+        const table = document.getElementById('tableFasilitas');
+        const rows = table.querySelectorAll('tbody tr');
+
+        searchInput.addEventListener('keyup', function() {
+
+            const keyword = this.value.toLowerCase();
+
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+
+                if (text.includes(keyword)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+        });
+    });
 </script>
 <?= $this->endSection() ?>

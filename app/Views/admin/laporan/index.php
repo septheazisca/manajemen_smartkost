@@ -15,10 +15,10 @@
         <p class="text-muted small mb-0">Ringkasan arus kas masuk dan keluar sistem</p>
     </div>
     <div class="d-flex gap-2">
-        <a href="/admin/laporan/export-pdf?bulan=<?= $bulan ?>&tahun=<?= $tahun ?>" class="btn-cancel border-danger text-danger" style="text-decoration: none;">
+        <a href="/admin/laporan/export-pdf?bulan=<?= $bulan ?>&tahun=<?= $tahun ?>" class="btn btn-outline-danger" style="text-decoration: none;">
             <i class="bi bi-file-pdf me-1"></i> PDF
         </a>
-        <a href="/admin/laporan/export-excel?bulan=<?= $bulan ?>&tahun=<?= $tahun ?>" class="btn-primary-custom bg-success border-success" style="text-decoration: none;">
+        <a href="/admin/laporan/export-excel?bulan=<?= $bulan ?>&tahun=<?= $tahun ?>" class="btn btn-outline-success" style="text-decoration: none;">
             <i class="bi bi-file-earmark-excel me-1"></i> Excel
         </a>
     </div>
@@ -27,7 +27,7 @@
 <!-- Filter Periode -->
 <div class="table-card mb-4" style="padding: 1.5rem;">
     <form method="get" class="row g-3 align-items-end">
-        <div class="col-md-3">
+        <div class="col-md-5">
             <label class="form-label fw-bold small text-uppercase">Bulan</label>
             <select name="bulan" class="form-select">
                 <?php foreach ($list_bulan as $val => $label): ?>
@@ -35,7 +35,7 @@
                 <?php endforeach; ?>
             </select>
         </div>
-        <div class="col-md-2">
+        <div class="col-md-5">
             <label class="form-label fw-bold small text-uppercase">Tahun</label>
             <input type="number" name="tahun" class="form-control" value="<?= $tahun ?>">
         </div>

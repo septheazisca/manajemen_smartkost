@@ -49,6 +49,7 @@ $routes->group('admin', ['filter' => 'role:admin'], function ($routes) {
     $routes->post('tagihan/tolak/(:num)', 'TagihanController::tolak/$1');
     $routes->post('tagihan/tandai-menunggak/(:num)', 'TagihanController::tandaiMenunggak/$1');
     $routes->get('tagihan/(:num)', 'TagihanController::show/$1');
+    $routes->get('tagihan/export-excel', 'TagihanController::exportExcel');
 
     // maintenance - spesifik dulu, dynamic di bawah
     $routes->get('maintenance', 'MaintenanceController::index');
@@ -71,6 +72,7 @@ $routes->group('admin', ['filter' => 'role:admin'], function ($routes) {
     $routes->post('pengeluaran/update/(:num)', 'PengeluaranController::update/$1');
     $routes->get('pengeluaran/delete/(:num)', 'PengeluaranController::delete/$1');
     $routes->get('pengeluaran/rekap', 'PengeluaranController::rekap');
+    $routes->get('pengeluaran/export-excel', 'PengeluaranController::exportExcel');
 
     // laporan
     $routes->get('laporan', 'LaporanController::index');
@@ -93,7 +95,7 @@ $routes->group('admin', ['filter' => 'role:admin'], function ($routes) {
 // =====================
 $routes->group('pj', ['filter' => 'role:pj'], function ($routes) {
 
-    $routes->get('dashboard', 'PenanggungJawabController::dashboardPj');
+    $routes->get('dashboard', 'DashboardController::index');
 
     // maintenance - spesifik dulu, dynamic di bawah
     $routes->get('maintenance', 'MaintenanceController::indexPj');

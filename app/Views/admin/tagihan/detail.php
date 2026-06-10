@@ -17,7 +17,7 @@
         <div class="table-card border-0 shadow-sm">
             <div class="table-card-header bg-white">
                 <div class="table-card-title">Ringkasan Tagihan</div>
-                <div class="badge rounded-pill bg-primary-subtle text-primary px-3">
+                <div class="btn btn-primary btn-add text-nowrap px-3">
                     ID #<?= $tagihan['id'] ?>
                 </div>
             </div>
@@ -50,7 +50,7 @@
                     </li>
                     <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-3">
                         <span class="text-muted"><i class="bi bi-whatsapp me-2"></i>WhatsApp</span>
-                        <a href="https://wa.me/<?= $tagihan['phone'] ?>" target="_blank" class="text-decoration-none"><?= esc($tagihan['phone']) ?></a>
+                        <a href="https://wa.me/<?= $tagihan['phone'] ?>" target="_blank" class="text-decoration-none" style="color: var(--accent)"> <?= esc($tagihan['phone']) ?></a>
                     </li>
                     <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-3">
                         <span class="text-muted"><i class="bi bi-calendar-event me-2"></i>Jatuh Tempo</span>
@@ -115,7 +115,7 @@
                                         <div class="text-muted" style="font-size: 11px;"><?= date('H:i', strtotime($p['created_at'])) ?> WIB</div>
                                     </td>
                                     <td>
-                                        <span class="text-primary fw-bold">Rp <?= number_format($p['jumlah_bayar'], 0, ',', '.') ?></span>
+                                        <span class="fw-bold" style="color: var(--accent)">Rp <?= number_format($p['jumlah_bayar'], 0, ',', '.') ?></span>
                                     </td>
                                     <td class="text-center">
                                         <?php if ($p['bukti_transfer']) : ?>
@@ -123,7 +123,7 @@
                                                 target="_blank"
                                                 class="btn btn-sm btn-light border"
                                                 title="Lihat Bukti">
-                                                <i class="bi bi-image text-primary"></i>
+                                                <i class="bi bi-image" style="color: var(--accent)"></i>
                                             </a>
                                         <?php else : ?>
                                             <span class="text-muted small">-</span>

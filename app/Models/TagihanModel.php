@@ -78,6 +78,7 @@ class TagihanModel extends Model
 
         return $builder->orderBy('tagihan.created_at', 'DESC')->findAll();
     }
+    
 
     // ambil tagihan by penyewa_id (untuk dashboard penyewa)
     public function getTagihanByPenyewa($penyewaId)

@@ -215,8 +215,14 @@ class MaintenanceController extends BaseController
             return redirect()->to('/pj/dashboard')->with('error', 'Data tidak ditemukan.');
         }
 
+        // Data ini biarkan saja untuk mengisi tabel di bawah card
         $data['maintenance'] = $this->maintenanceModel->getMaintenanceByPj($pj['id']);
         $data['pj']          = $pj;
+
+        // AMBIL HITUNGAN LANGSUNG DARI DATABASE (Abaikan filter array view)
+        $data['totalMenunggu'] = $this->maintenanceModel->where('status', 'menunggu')->countAllResults();
+        $data['totalProses']   = $this->maintenanceModel->where('status', 'proses')->where('pj_id', $pj['id'])->countAllResults();
+        $data['totalSelesai']  = $this->maintenanceModel->where('status', 'selesai')->where('pj_id', $pj['id'])->countAllResults();
 
         return view('pj/maintenance', $data);
     }
