@@ -268,30 +268,4 @@ class PenanggungJawabController extends BaseController
             ->with('success', 'Password berhasil direset ke nomor HP penanggung jawab.');
     }
 
-    // Dashboard PJ: tampilkan statistik tugas dan riwayat gaji milik PJ yang login
-    // MaintenanceModel diinisialisasi di sini karena hanya dipakai di method ini saja
-    public function dashboardPj()
-    {
-        $userId = session()->get('user_id');
-        $pj     = $this->pjModel->getPjByUserId($userId);
-
-        if (!$pj) {
-            return redirect()->to('/login')->with('error', 'Data tidak ditemukan.');
-        }
-
-        $maintenanceModel = new MaintenanceModel();
-
-        $data['pj']            = $pj;
-        $data['total_tugas']   = $maintenanceModel->where('pj_id', $pj['id'])->countAllResults();
-        $data['tugas_proses']  = $maintenanceModel->where('pj_id', $pj['id'])->where('status', 'proses')->countAllResults();
-        $data['tugas_selesai'] = $maintenanceModel->where('pj_id', $pj['id'])->where('status', 'selesai')->countAllResults();
-        $data['riwayat_gaji']  = $this->pengeluaranModel
-            ->where('pj_id', $pj['id'])
-            ->where('kategori', 'gaji')
-            ->orderBy('tahun', 'DESC')
-            ->orderBy('bulan', 'DESC')
-            ->findAll();
-
-        return view('pj/dashboard', $data);
-    }
 }

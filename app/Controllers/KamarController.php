@@ -32,9 +32,15 @@ class KamarController extends BaseController
         // Hasilnya: [kamar_id => [fasilitas_id, fasilitas_id, ...]]
         // Dipakai di view untuk tahu checkbox fasilitas mana yang harus dicentang
         $roomFacilities = [];
-        foreach ($rooms as $room) {
-            $rows = $this->pivotModel->where('kamar_id', $room['id'])->findAll();
-            $roomFacilities[$room['id']] = array_column($rows, 'fasilitas_id');
+        if (!empty($rooms)) {
+            $roomIds = array_column($rooms, 'id');
+            // Optimasi N+1: Ambil semua data pivot sekaligus menggunakan whereIn
+            $allPivot = $this->pivotModel->whereIn('kamar_id', $roomIds)->findAll();
+            
+            // Map berdasarkan kamar_id di memori PHP
+            foreach ($allPivot as $pivot) {
+                $roomFacilities[$pivot['kamar_id']][] = $pivot['fasilitas_id'];
+            }
         }
 
         $data = [

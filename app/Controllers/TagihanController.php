@@ -56,50 +56,15 @@ class TagihanController extends BaseController
             return redirect()->back()->with('error', 'Belum ada penyewa aktif.');
         }
 
-        $db = \Config\Database::connect();
-        $db->transStart();
+        $result = $this->tagihanModel->generateBulk($semuaPenyewa, $bulan, $tahun);
 
-        $berhasil = 0;
-        $skip     = 0;
-
-        foreach ($semuaPenyewa as $penyewa) {
-            // Skip penyewa yang sudah punya tagihan di bulan & tahun yang sama
-            $sudahAda = $this->tagihanModel->isTagihanExist($penyewa['id'], $bulan, $tahun);
-
-            if ($sudahAda) {
-                $skip++;
-                continue;
-            }
-
-            // Nominal unik berbeda tiap penyewa, dihitung dari penyewa_id
-            // Tujuannya agar admin bisa identifikasi siapa yang bayar dari nominal transfer
-            $nominalUnik = $this->tagihanModel->generateNominalUnik($penyewa['id']);
-
-            // Jatuh tempo selalu tanggal 10 bulan tersebut
-            $jatuhTempo = $tahun . '-' . str_pad($bulan, 2, '0', STR_PAD_LEFT) . '-10';
-
-            $this->tagihanModel->save([
-                'penyewa_id'   => $penyewa['id'],
-                'bulan'        => $bulan,
-                'tahun'        => $tahun,
-                'jumlah'       => $penyewa['harga'],
-                'nominal_unik' => $nominalUnik,
-                'status'       => 'pending',
-                'jatuh_tempo'  => $jatuhTempo,
-            ]);
-
-            $berhasil++;
-        }
-
-        $db->transComplete();
-
-        if ($db->transStatus() === false) {
+        if ($result === false) {
             return redirect()->back()->with('error', 'Gagal generate tagihan.');
         }
 
-        $pesan = "Tagihan berhasil digenerate untuk {$berhasil} penyewa.";
-        if ($skip > 0) {
-            $pesan .= " {$skip} penyewa dilewati karena tagihan sudah ada.";
+        $pesan = "Tagihan berhasil digenerate untuk {$result['berhasil']} penyewa.";
+        if ($result['skip'] > 0) {
+            $pesan .= " {$result['skip']} penyewa dilewati karena tagihan sudah ada.";
         }
 
         return redirect()->to('/admin/tagihan')->with('success', $pesan);
@@ -110,14 +75,7 @@ class TagihanController extends BaseController
     // yang dibutuhkan untuk tampil di view (nama penyewa, nomor kamar, dll)
     public function show($id)
     {
-        $tagihan = $this->tagihanModel->getTagihanLengkap();
-
-        // Filter array untuk cari tagihan dengan id yang sesuai
-        $tagihan = array_filter($tagihan, function ($t) use ($id) {
-            return $t['id'] == $id;
-        });
-
-        $tagihan = reset($tagihan);
+        $tagihan = $this->tagihanModel->getTagihanLengkapById($id);
 
         if (!$tagihan) {
             return redirect()->to('/tagihan')->with('error', 'Tagihan tidak ditemukan');
@@ -321,15 +279,7 @@ class TagihanController extends BaseController
             return redirect()->to('/tenant/tagihan')->with('error', 'Data penyewa tidak ditemukan.');
         }
 
-        // Cari tagihan di array hasil getTagihanLengkap agar dapat data join-nya
-        $semua   = $this->tagihanModel->getTagihanLengkap();
-        $tagihan = null;
-        foreach ($semua as $t) {
-            if ($t['id'] == $id) {
-                $tagihan = $t;
-                break;
-            }
-        }
+        $tagihan = $this->tagihanModel->getTagihanLengkapById($id);
 
         // Keamanan: pastikan tagihan ini memang milik penyewa yang login
         if (!$tagihan || $tagihan['penyewa_id'] !== $penyewa['id']) {
@@ -365,24 +315,7 @@ class TagihanController extends BaseController
         return view('tenant/detail_tagihan', $data);
     }
 
-    // Helper private: mapping nomor bulan ke nama bulan Bahasa Indonesia
-    private function getListBulan()
-    {
-        return [
-            '01' => 'Januari',
-            '02' => 'Februari',
-            '03' => 'Maret',
-            '04' => 'April',
-            '05' => 'Mei',
-            '06' => 'Juni',
-            '07' => 'Juli',
-            '08' => 'Agustus',
-            '09' => 'September',
-            '10' => 'Oktober',
-            '11' => 'November',
-            '12' => 'Desember',
-        ];
-    }
+
 
 
     public function exportExcel()

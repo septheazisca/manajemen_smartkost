@@ -78,6 +78,66 @@ class TagihanModel extends Model
 
         return $builder->orderBy('tagihan.created_at', 'DESC')->findAll();
     }
+
+    // Ambil detail satu tagihan berdasarkan ID
+    public function getTagihanLengkapById($id)
+    {
+        return $this->select('
+            tagihan.*,
+            users.name AS nama,
+            users.phone,
+            kamar.nomor_kamar AS nama_kamar
+        ')
+            ->join('penyewa', 'penyewa.id = tagihan.penyewa_id')
+            ->join('users', 'users.id = penyewa.user_id')
+            ->join('kamar', 'kamar.id = penyewa.kamar_id')
+            ->where('tagihan.id', $id)
+            ->first();
+    }
+
+    // Generate tagihan massal untuk semua penyewa aktif
+    public function generateBulk($semuaPenyewa, $bulan, $tahun)
+    {
+        $db = \Config\Database::connect();
+        $db->transStart();
+
+        $berhasil = 0;
+        $skip     = 0;
+
+        foreach ($semuaPenyewa as $penyewa) {
+            // Skip penyewa yang sudah punya tagihan di bulan & tahun yang sama
+            $sudahAda = $this->isTagihanExist($penyewa['id'], $bulan, $tahun);
+
+            if ($sudahAda) {
+                $skip++;
+                continue;
+            }
+
+            // Nominal unik berbeda tiap penyewa
+            $nominalUnik = $this->generateNominalUnik($penyewa['id']);
+            $jatuhTempo = $tahun . '-' . str_pad($bulan, 2, '0', STR_PAD_LEFT) . '-10';
+
+            $this->save([
+                'penyewa_id'   => $penyewa['id'],
+                'bulan'        => $bulan,
+                'tahun'        => $tahun,
+                'jumlah'       => $penyewa['harga'],
+                'nominal_unik' => $nominalUnik,
+                'status'       => 'pending',
+                'jatuh_tempo'  => $jatuhTempo,
+            ]);
+
+            $berhasil++;
+        }
+
+        $db->transComplete();
+
+        if ($db->transStatus() === false) {
+            return false;
+        }
+
+        return ['berhasil' => $berhasil, 'skip' => $skip];
+    }
     
 
     // ambil tagihan by penyewa_id (untuk dashboard penyewa)

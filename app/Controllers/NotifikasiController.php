@@ -80,21 +80,8 @@ class NotifikasiController extends BaseController
         $gagal    = 0;
 
         foreach ($penyewaList as $penyewa) {
-            $noHp  = $penyewa['phone'];
-            $hasil = $this->kirimWA($noHp, $pesan);
-
-            // Catat setiap pengiriman ke log, baik berhasil maupun gagal
-            $this->notifikasiLogModel->save([
-                'user_id'         => $penyewa['user_id'],
-                'no_hp'           => $noHp,
-                'pesan'           => $pesan,
-                'jenis'           => 'custom',
-                'status_kirim'    => $hasil['success'] ? 'terkirim' : 'gagal',
-                'response_fonnte' => json_encode($hasil),
-                'sent_at'         => date('Y-m-d H:i:s'),
-            ]);
-
-            $hasil['success'] ? $berhasil++ : $gagal++;
+            $success = $this->kirimDanCatat($penyewa['user_id'], $penyewa['phone'], $pesan, 'custom');
+            $success ? $berhasil++ : $gagal++;
         }
 
         $msg = "Notifikasi terkirim ke {$berhasil} penyewa.";
@@ -148,20 +135,8 @@ class NotifikasiController extends BaseController
             $pesan .= "Mohon segera lakukan pembayaran dan upload bukti transfer di aplikasi SmarKost.\n\n";
             $pesan .= "Terima kasih 🙏";
 
-            $noHp  = $tagihan['phone'];
-            $hasil = $this->kirimWA($noHp, $pesan);
-
-            $this->notifikasiLogModel->save([
-                'user_id'         => null,
-                'no_hp'           => $noHp,
-                'pesan'           => $pesan,
-                'jenis'           => 'tagihan',
-                'status_kirim'    => $hasil['success'] ? 'terkirim' : 'gagal',
-                'response_fonnte' => json_encode($hasil),
-                'sent_at'         => date('Y-m-d H:i:s'),
-            ]);
-
-            $hasil['success'] ? $berhasil++ : $gagal++;
+            $success = $this->kirimDanCatat(null, $tagihan['phone'], $pesan, 'tagihan');
+            $success ? $berhasil++ : $gagal++;
         }
 
         $msg = "Reminder tagihan terkirim ke {$berhasil} penyewa.";
@@ -199,20 +174,8 @@ class NotifikasiController extends BaseController
             $pesan .= "Mohon segera hubungi admin atau lakukan pembayaran secepatnya.\n\n";
             $pesan .= "Terima kasih 🙏";
 
-            $noHp  = $tagihan['phone'];
-            $hasil = $this->kirimWA($noHp, $pesan);
-
-            $this->notifikasiLogModel->save([
-                'user_id'         => null,
-                'no_hp'           => $noHp,
-                'pesan'           => $pesan,
-                'jenis'           => 'tunggakan',
-                'status_kirim'    => $hasil['success'] ? 'terkirim' : 'gagal',
-                'response_fonnte' => json_encode($hasil),
-                'sent_at'         => date('Y-m-d H:i:s'),
-            ]);
-
-            $hasil['success'] ? $berhasil++ : $gagal++;
+            $success = $this->kirimDanCatat(null, $tagihan['phone'], $pesan, 'tunggakan');
+            $success ? $berhasil++ : $gagal++;
         }
 
         $msg = "Notifikasi tunggakan terkirim ke {$berhasil} penyewa.";
@@ -234,6 +197,24 @@ class NotifikasiController extends BaseController
             ->findAll();
 
         return view('admin/notifikasi/log', $data);
+    }
+
+    // Helper private: Kirim WhatsApp lalu otomatis simpan ke tabel log
+    private function kirimDanCatat($userId, $noHp, $pesan, $jenis): bool
+    {
+        $hasil = $this->kirimWA($noHp, $pesan);
+
+        $this->notifikasiLogModel->save([
+            'user_id'         => $userId,
+            'no_hp'           => $noHp,
+            'pesan'           => $pesan,
+            'jenis'           => $jenis,
+            'status_kirim'    => $hasil['success'] ? 'terkirim' : 'gagal',
+            'response_fonnte' => json_encode($hasil),
+            'sent_at'         => date('Y-m-d H:i:s'),
+        ]);
+
+        return $hasil['success'];
     }
 
     // Helper private: kirim pesan WhatsApp via Fonnte API menggunakan cURL
@@ -300,22 +281,5 @@ class NotifikasiController extends BaseController
         return $noHp;
     }
 
-    // Helper private: mapping nomor bulan ke nama bulan Bahasa Indonesia
-    private function getListBulan(): array
-    {
-        return [
-            '01' => 'Januari',
-            '02' => 'Februari',
-            '03' => 'Maret',
-            '04' => 'April',
-            '05' => 'Mei',
-            '06' => 'Juni',
-            '07' => 'Juli',
-            '08' => 'Agustus',
-            '09' => 'September',
-            '10' => 'Oktober',
-            '11' => 'November',
-            '12' => 'Desember',
-        ];
-    }
+
 }
