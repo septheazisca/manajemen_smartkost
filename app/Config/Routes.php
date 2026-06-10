@@ -95,7 +95,7 @@ $routes->group('admin', ['filter' => 'role:admin'], function ($routes) {
 // =====================
 $routes->group('pj', ['filter' => 'role:pj'], function ($routes) {
 
-    $routes->get('dashboard', 'PenanggungJawabController::dashboardPj');
+    $routes->get('dashboard', 'DashboardController::index');
 
     // maintenance - spesifik dulu, dynamic di bawah
     $routes->get('maintenance', 'MaintenanceController::indexPj');
