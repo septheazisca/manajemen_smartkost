@@ -247,12 +247,12 @@
                                     </a>
 
                                     <?php if ($t['status'] === 'menunggu_konfirmasi') : ?>
-                                        <button class="action-btn edit bg-success text-white border-0" title="Approve" data-bs-toggle="modal" data-bs-target="#approveModal<?= $t['id'] ?>">
+                                        <!-- <button class="action-btn edit bg-success text-white border-0" title="Approve" data-bs-toggle="modal" data-bs-target="#approveModal<?= $t['id'] ?>">
                                             <i class="bi bi-check-lg"></i>
-                                        </button>
-                                        <button class="action-btn del" title="Tolak" data-bs-toggle="modal" data-bs-target="#tolakModal<?= $t['id'] ?>">
+                                        </button> -->
+                                        <!-- <button class="action-btn del" title="Tolak" data-bs-toggle="modal" data-bs-target="#tolakModal<?= $t['id'] ?>">
                                             <i class="bi bi-x-lg"></i>
-                                        </button>
+                                        </button> -->
                                     <?php endif; ?>
 
                                     <?php if ($t['status'] === 'pending') : ?>

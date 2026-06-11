@@ -135,7 +135,7 @@ foreach ($tagihan as $t) {
                                 <?php else: ?>
                                     <span class="text-success small"><i class="bi bi-check-circle"></i> Lunas</span>
                                 <?php endif; ?>
-                                <a href="/tenant/detail_tagihan/<?= $t['id'] ?>" class="action-btn edit" title="Detail">
+                                <a href="/tenant/tagihan/detail/<?= $t['id'] ?>" class="action-btn edit" title="Detail">
                                         <i class="bi bi-eye"></i>
                                 </a>
                             </td>

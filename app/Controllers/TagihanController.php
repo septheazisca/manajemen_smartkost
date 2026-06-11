@@ -270,6 +270,7 @@ class TagihanController extends BaseController
 
     // Detail satu tagihan beserta semua riwayat pembayaran penyewa tersebut
     // Riwayat diambil lintas tagihan agar penyewa bisa lihat semua histori pembayaran
+    // detail satu tagihan beserta semua riwayat pembayaran penyewa tersebut
     public function detailTagihan($id)
     {
         $userId  = session()->get('user_id');
@@ -281,32 +282,26 @@ class TagihanController extends BaseController
 
         $tagihan = $this->tagihanModel->getTagihanLengkapById($id);
 
-        // Keamanan: pastikan tagihan ini memang milik penyewa yang login
         if (!$tagihan || $tagihan['penyewa_id'] !== $penyewa['id']) {
             return redirect()->to('/tenant/tagihan')->with('error', 'Tagihan tidak ditemukan.');
         }
 
-        // Ambil semua riwayat pembayaran penyewa ini dengan join ke tagihan
-        // Menggunakan right join agar tagihan tanpa pembayaran pun tetap muncul
+        // PERBAIKAN QUERY: Ambil murni dari pembayaran yang join ke tagihan
         $data['pembayaran'] = $this->pembayaranModel
             ->select('
-                tagihan.id as tagihan_id,
-                tagihan.bulan,
-                tagihan.tahun,
-                tagihan.status as status_tagihan,
-                tagihan.jumlah,
-                tagihan.nominal_unik,
-                pembayaran.id as pembayaran_id,
-                pembayaran.jumlah_bayar,
-                pembayaran.bukti_transfer,
-                pembayaran.status as status_pembayaran,
-                pembayaran.catatan_admin,
-                pembayaran.created_at
-            ')
-            ->join('tagihan', 'tagihan.id = pembayaran.tagihan_id', 'right')
-            ->where('tagihan.penyewa_id', $penyewa['id'])
-            ->orderBy('tagihan.tahun', 'DESC')
-            ->orderBy('tagihan.bulan', 'DESC')
+            pembayaran.id as pembayaran_id,
+            pembayaran.jumlah_bayar,
+            pembayaran.bukti_transfer,
+            pembayaran.status as status_pembayaran,
+            pembayaran.catatan_admin,
+            pembayaran.created_at,
+            pembayaran.updated_at,
+            tagihan.id as tagihan_id,
+            tagihan.status as status_tagihan
+        ')
+            ->join('tagihan', 'tagihan.id = pembayaran.tagihan_id', 'left') // Ubah jadi left join
+            ->where('pembayaran.tagihan_id', $id) // Kunci berdasarkan tagihan_id di pembayaran
+            ->orderBy('pembayaran.created_at', 'DESC') // Yang terbaru di atas (Bisa diubah ke ASC kalau mau urutan dari lama ke baru)
             ->findAll();
 
         $data['tagihan'] = $tagihan;
