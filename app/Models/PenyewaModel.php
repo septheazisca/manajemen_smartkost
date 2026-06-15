@@ -22,6 +22,9 @@ class PenyewaModel extends Model
         'status_pekerjaan',
         'status_pernikahan',
         'nomor_darurat',
+        'rating',
+        'testimoni',
+        'tampilkan_testimoni',
         'created_at',
         'updated_at'
     ];

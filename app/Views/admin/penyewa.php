@@ -145,6 +145,95 @@
     </div>
 </div>
 
+<!-- TESTIMONIALS MONITORING CARD -->
+<div class="table-card mt-4">
+    <div class="table-card-header d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-3 w-100">
+        <div class="text-nowrap">
+            <div class="table-card-title fw-bold" style="font-size: 1.15rem; color: #1e293b;">Pemantauan Rating & Testimoni Kost</div>
+            <div class="table-card-sub text-muted small">Total <?= count($all_ratings) ?> ulasan dari penyewa</div>
+        </div>
+
+        <div class="d-flex align-items-center gap-2 flex-grow-1 justify-content-end" style="max-width: 500px;">
+            <div class="input-group flex-grow-1" style="max-width: 260px;">
+                <input type="text" id="searchRating" class="form-control" placeholder="Cari ulasan/nama...">
+                <span class="input-group-text bg-light text-muted">
+                    <i class="bi bi-search"></i>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <div class="tbl-wrap">
+        <table class="data-table" id="tableRating">
+            <thead>
+                <tr>
+                    <th>No</th>
+                    <th>Nama Penyewa</th>
+                    <th>Kamar</th>
+                    <th>Bintang</th>
+                    <th>Ulasan / Testimoni</th>
+                    <th class="text-center">Status Beranda</th>
+                    <th class="text-center">Status Sewa</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php if (!empty($all_ratings)) : ?>
+                    <?php $no = 1; foreach ($all_ratings as $r) : ?>
+                        <tr>
+                            <td><?= $no++ ?></td>
+                            <td>
+                                <strong><?= esc($r['name']) ?></strong>
+                                <div class="text-muted small"><?= esc($r['phone']) ?></div>
+                            </td>
+                            <td>
+                                <?= !empty($r['nomor_kamar']) ? 'Kamar ' . esc($r['nomor_kamar']) : '<span class="text-muted small">Sudah Keluar</span>' ?>
+                            </td>
+                            <td>
+                                <div class="d-flex gap-1" style="color: #ff9829;">
+                                    <?php for($i=1; $i<=5; $i++): ?>
+                                        <i class="bi <?= ($i <= $r['rating']) ? 'bi-star-fill' : 'bi-star' ?>"></i>
+                                    <?php endfor; ?>
+                                </div>
+                            </td>
+                            <td style="max-width: 300px; white-space: normal; line-height: 1.4;">
+                                <?= esc($r['testimoni']) ?>
+                            </td>
+                            <td class="text-center">
+                                <?php if (($r['tampilkan_testimoni'] ?? 1) == 1) : ?>
+                                    <span class="badge bg-success">Ditampilkan</span>
+                                <?php else : ?>
+                                    <span class="badge bg-danger">Disembunyikan</span>
+                                <?php endif; ?>
+                            </td>
+                            <td>
+                                <div class="small">
+                                    Mulai: <?= date('d M Y', strtotime($r['tanggal_masuk'])) ?>
+                                </div>
+                                <?php if (!empty($r['tanggal_keluar'])) : ?>
+                                    <div class="text-danger small">
+                                        Keluar: <?= date('d M Y', strtotime($r['tanggal_keluar'])) ?>
+                                    </div>
+                                <?php else : ?>
+                                    <div class="text-success small">
+                                        Aktif / Menyewa
+                                    </div>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php else : ?>
+                    <tr>
+                        <td colspan="7" class="text-center py-4 text-muted">
+                            <i class="bi bi-chat-left-heart fs-4 d-block mb-2"></i>
+                            Belum ada rating atau testimoni yang diberikan oleh penyewa.
+                        </td>
+                    </tr>
+                <?php endif; ?>
+            </tbody>
+        </table>
+    </div>
+</div>
+
 
 <!-- ================================= -->
 <!-- ADD MODAL -->
@@ -389,21 +478,29 @@
         const table = document.getElementById('tablePenyewa');
         const rows = table.querySelectorAll('tbody tr');
 
-        searchInput.addEventListener('keyup', function() {
-
-            const keyword = this.value.toLowerCase();
-
-            rows.forEach(row => {
-                const text = row.textContent.toLowerCase();
-
-                if (text.includes(keyword)) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
+        if (searchInput && table) {
+            searchInput.addEventListener('keyup', function() {
+                const keyword = this.value.toLowerCase();
+                rows.forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    row.style.display = text.includes(keyword) ? '' : 'none';
+                });
             });
+        }
 
-        });
+        // Search Rating & Testimoni
+        const searchRatingInput = document.getElementById('searchRating');
+        const tableRating = document.getElementById('tableRating');
+        if (searchRatingInput && tableRating) {
+            const ratingRows = tableRating.querySelectorAll('tbody tr');
+            searchRatingInput.addEventListener('keyup', function() {
+                const keyword = this.value.toLowerCase();
+                ratingRows.forEach(row => {
+                    const text = row.textContent.toLowerCase();
+                    row.style.display = text.includes(keyword) ? '' : 'none';
+                });
+            });
+        }
     });
 </script>
 

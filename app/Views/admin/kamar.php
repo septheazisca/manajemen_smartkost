@@ -144,16 +144,24 @@
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form action="/admin/kamar/store" method="post">
+            <form action="/admin/kamar/store" method="post" enctype="multipart/form-data">
                 <div class="modal-body">
                     <div class="row">
                         <div class="col-md-6 mb-2">
                             <label class="form-label">Nomor Kamar</label>
-                            <input type="text" name="nomor_kamar" class="form-control mb-2" placeholder="Nomor Kamar Kost">
+                            <input type="text" name="nomor_kamar" class="form-control mb-2" placeholder="Nomor Kamar Kost" required>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Tipe Kamar</label>
+                            <select name="tipe" class="form-select mb-2" required>
+                                <option value="Standard">Standard</option>
+                                <option value="Deluxe">Deluxe</option>
+                                <option value="Premium">Premium</option>
+                            </select>
                         </div>
                         <div class="col-md-6 mb-2">
                             <label class="form-label">Lantai Kamar</label>
-                            <input type="number" name="lantai" class="form-control mb-2" placeholder="Lantai Kamar Kost">
+                            <input type="number" name="lantai" class="form-control mb-2" placeholder="Lantai Kamar Kost" required>
                         </div>
                         <div class="col-md-6 mb-2">
                             <label class="form-label">Luas Kamar</label>
@@ -161,7 +169,11 @@
                         </div>
                         <div class="col-md-6 mb-2">
                             <label class="form-label">Harga Kamar</label>
-                            <input type="text" name="harga" class="form-control mb-2" placeholder="Harga Kamar Kost">
+                            <input type="text" name="harga" class="form-control mb-2" placeholder="Harga Kamar Kost" required>
+                        </div>
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label">Foto Kamar</label>
+                            <input type="file" name="foto" class="form-control mb-2" accept="image/*">
                         </div>
                         <div class="col-md-12 mb-2">
                             <label class="form-label">Deskripsi Kamar</label>
@@ -221,30 +233,45 @@
                 </div>
 
                 <!-- ✅ action diarahkan ke update dengan ID kamar -->
-                <form action="/admin/kamar/update/<?= $r['id'] ?>" method="post">
-
-                    <div class="modal-body">
-                        <div class="row">
-                            <div class="col-md-6 mb-2">
-                                <label class="form-label">Nomor Kamar</label>
-                                <input type="text" name="nomor_kamar" class="form-control mb-2" value="<?= $r['nomor_kamar'] ?>">
-                            </div>
-                            <div class="col-md-6 mb-2">
-                                <label class="form-label">Lantai Kamar</label>
-                                <input type="number" name="lantai" class="form-control mb-2" value="<?= $r['lantai'] ?>">
-                            </div>
-                            <div class="col-md-6 mb-2">
-                                <label class="form-label">Luas Kamar</label>
-                                <input type="text" name="luas" class="form-control mb-2" value="<?= $r['luas'] ?>">
-                            </div>
-                            <div class="col-md-6 mb-2">
-                                <label class="form-label">Harga Kamar</label>
-                                <input type="text" name="harga" class="form-control mb-2" value="<?= $r['harga'] ?>">
-                            </div>
-                            <div class="col-md-12 mb-2">
-                                <label class="form-label">Deskripsi Kamar</label>
-                                <textarea name="deskripsi" class="form-control mb-2"><?= $r['deskripsi'] ?></textarea>
-                            </div>
+                <form action="/admin/kamar/update/<?= $r['id'] ?>" method="post" enctype="multipart/form-data">
+ 
+                     <div class="modal-body">
+                         <div class="row">
+                             <div class="col-md-6 mb-2">
+                                 <label class="form-label">Nomor Kamar</label>
+                                 <input type="text" name="nomor_kamar" class="form-control mb-2" value="<?= $r['nomor_kamar'] ?>" required>
+                             </div>
+                             <div class="col-md-6 mb-2">
+                                 <label class="form-label">Tipe Kamar</label>
+                                 <select name="tipe" class="form-select mb-2" required>
+                                     <option value="Standard" <?= ($r['tipe'] ?? '') === 'Standard' ? 'selected' : '' ?>>Standard</option>
+                                     <option value="Deluxe" <?= ($r['tipe'] ?? '') === 'Deluxe' ? 'selected' : '' ?>>Deluxe</option>
+                                     <option value="Premium" <?= ($r['tipe'] ?? '') === 'Premium' ? 'selected' : '' ?>>Premium</option>
+                                 </select>
+                             </div>
+                             <div class="col-md-6 mb-2">
+                                 <label class="form-label">Lantai Kamar</label>
+                                 <input type="number" name="lantai" class="form-control mb-2" value="<?= $r['lantai'] ?>" required>
+                             </div>
+                             <div class="col-md-6 mb-2">
+                                 <label class="form-label">Luas Kamar</label>
+                                 <input type="text" name="luas" class="form-control mb-2" value="<?= $r['luas'] ?>">
+                             </div>
+                             <div class="col-md-6 mb-2">
+                                 <label class="form-label">Harga Kamar</label>
+                                 <input type="text" name="harga" class="form-control mb-2" value="<?= $r['harga'] ?>" required>
+                             </div>
+                             <div class="col-md-6 mb-2">
+                                 <label class="form-label">Foto Kamar</label>
+                                 <input type="file" name="foto" class="form-control mb-2" accept="image/*">
+                                 <?php if (!empty($r['foto'])): ?>
+                                     <small class="text-muted d-block">Foto saat ini: <?= esc($r['foto']) ?></small>
+                                 <?php endif; ?>
+                             </div>
+                             <div class="col-md-12 mb-2">
+                                 <label class="form-label">Deskripsi Kamar</label>
+                                 <textarea name="deskripsi" class="form-control mb-2"><?= $r['deskripsi'] ?></textarea>
+                             </div>
                             <div class="col-md-12 mb-2">
                                 <label class="form-label fw-bold">Fasilitas Kamar</label>
                                 <div style="height:150px;overflow-y:auto;overflow-x:hidden;border:1px solid #dee2e6;padding:10px;border-radius:5px;">

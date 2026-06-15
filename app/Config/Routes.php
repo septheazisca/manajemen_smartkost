@@ -5,9 +5,14 @@ use CodeIgniter\Router\RouteCollection;
 /** @var RouteCollection $routes */
 
 // =====================
+// FRONT PAGE & DETAIL
+// =====================
+$routes->get('/', 'HomeController::index');
+$routes->get('/kamar/(:num)', 'HomeController::detail/$1');
+
+// =====================
 // AUTH
 // =====================
-$routes->get('/', 'AuthController::login');
 $routes->get('/login', 'AuthController::login');
 $routes->post('/login', 'AuthController::attemptLogin');
 $routes->get('/logout', 'AuthController::logout');
@@ -27,6 +32,11 @@ $routes->group('admin', ['filter' => 'role:admin'], function ($routes) {
     $routes->post('fasilitas/store', 'FasilitasController::store');
     $routes->post('fasilitas/update/(:num)', 'FasilitasController::update/$1');
     $routes->get('fasilitas/delete/(:num)', 'FasilitasController::delete/$1');
+    
+    // fasilitas bersama (shared)
+    $routes->post('fasilitas-bersama/store', 'FasilitasController::storeShared');
+    $routes->post('fasilitas-bersama/update/(:num)', 'FasilitasController::updateShared/$1');
+    $routes->get('fasilitas-bersama/delete/(:num)', 'FasilitasController::deleteShared/$1');
 
     // kamar
     $routes->get('kamar', 'KamarController::index');
@@ -125,4 +135,8 @@ $routes->group('tenant', ['filter' => 'role:penyewa'], function ($routes) {
     $routes->get('maintenance', 'MaintenanceController::laporanSaya');
     $routes->post('maintenance/lapor', 'MaintenanceController::lapor');
     $routes->get('maintenance/(:num)', 'MaintenanceController::detailTenant/$1');
+
+    // rating & testimoni
+    $routes->post('rating/save', 'PenyewaController::saveRating');
+    $routes->get('rating/toggle', 'PenyewaController::toggleRatingVisibility');
 });

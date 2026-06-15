@@ -60,20 +60,39 @@ class KamarController extends BaseController
             'nomor_kamar' => 'required|is_unique[kamar.nomor_kamar]',
             'harga'       => 'required|numeric|greater_than[0]',
             'lantai'      => 'required|numeric',
+            'tipe'        => 'required',
         ];
+
+        $foto = $this->request->getFile('foto');
+        if ($foto && $foto->isValid() && !$foto->hasMoved()) {
+            $rules['foto'] = 'max_size[foto,2048]|is_image[foto]|mime_in[foto,image/jpg,image/jpeg,image/png]';
+        }
 
         if (!$this->validate($rules)) {
             return redirect()->back()
                 ->withInput()
                 ->with('errors', $this->validator->getErrors());
         }
+
+        $fotoName = null;
+        if ($foto && $foto->isValid() && !$foto->hasMoved()) {
+            $fotoName = $foto->getRandomName();
+            // Create target folder if it doesn't exist
+            if (!is_dir(FCPATH . 'uploads/kamar')) {
+                mkdir(FCPATH . 'uploads/kamar', 0777, true);
+            }
+            $foto->move(FCPATH . 'uploads/kamar', $fotoName);
+        }
+
         // Simpan data kamar, status default 'kosong' karena belum ada penyewa
         $this->kamarModel->save([
             'nomor_kamar' => $this->request->getPost('nomor_kamar'),
+            'tipe'        => $this->request->getPost('tipe'),
             'lantai'      => $this->request->getPost('lantai'),
             'luas'        => $this->request->getPost('luas'),
             'harga'       => $this->request->getPost('harga'),
             'deskripsi'   => $this->request->getPost('deskripsi'),
+            'foto'        => $fotoName,
             'status'      => 'kosong',
         ]);
 
@@ -103,7 +122,13 @@ class KamarController extends BaseController
             'nomor_kamar' => "required|is_unique[kamar.nomor_kamar,id,{$id}]",
             'harga'       => 'required|numeric|greater_than[0]',
             'lantai'      => 'required|numeric',
+            'tipe'        => 'required',
         ];
+
+        $foto = $this->request->getFile('foto');
+        if ($foto && $foto->isValid() && !$foto->hasMoved()) {
+            $rules['foto'] = 'max_size[foto,2048]|is_image[foto]|mime_in[foto,image/jpg,image/jpeg,image/png]';
+        }
 
         if (!$this->validate($rules)) {
             return redirect()->back()
@@ -111,14 +136,33 @@ class KamarController extends BaseController
                 ->with('errors', $this->validator->getErrors());
         }
 
-        // Update data utama kamar
-        $this->kamarModel->update($id, [
+        $updateData = [
             'nomor_kamar' => $this->request->getPost('nomor_kamar'),
+            'tipe'        => $this->request->getPost('tipe'),
             'lantai'      => $this->request->getPost('lantai'),
             'luas'        => $this->request->getPost('luas'),
             'harga'       => $this->request->getPost('harga'),
             'deskripsi'   => $this->request->getPost('deskripsi'),
-        ]);
+        ];
+
+        if ($foto && $foto->isValid() && !$foto->hasMoved()) {
+            $fotoName = $foto->getRandomName();
+            if (!is_dir(FCPATH . 'uploads/kamar')) {
+                mkdir(FCPATH . 'uploads/kamar', 0777, true);
+            }
+            $foto->move(FCPATH . 'uploads/kamar', $fotoName);
+
+            // Hapus foto lama dari server
+            $oldKamar = $this->kamarModel->find($id);
+            if (!empty($oldKamar['foto']) && file_exists(FCPATH . 'uploads/kamar/' . $oldKamar['foto'])) {
+                unlink(FCPATH . 'uploads/kamar/' . $oldKamar['foto']);
+            }
+
+            $updateData['foto'] = $fotoName;
+        }
+
+        // Update data utama kamar
+        $this->kamarModel->update($id, $updateData);
 
         // Sync fasilitas: hapus semua relasi lama lalu insert yang baru
         // Cara ini lebih simpel daripada membandingkan satu per satu mana yang berubah

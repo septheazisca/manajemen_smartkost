@@ -14,11 +14,13 @@ class KamarModel extends Model
     protected $protectFields    = true;
     protected $allowedFields    = [
         'nomor_kamar',
+        'tipe',
         'lantai',
         'luas',
         'harga',
         'status',
         'deskripsi',
+        'foto',
         'created_at',
         'updated_at'
     ];

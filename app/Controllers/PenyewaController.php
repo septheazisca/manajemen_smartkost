@@ -27,6 +27,14 @@ class PenyewaController extends BaseController
     {
         $data['penyewa']      = $this->penyewaModel->getPenyewaLengkap();
         $data['kamar_kosong'] = $this->kamarModel->getKamarKosong();
+        
+        // Ambil semua ulasan & rating kost untuk dipantau admin
+        $data['all_ratings']  = $this->penyewaModel->select('penyewa.*, users.name, users.phone, kamar.nomor_kamar')
+            ->join('users', 'users.id = penyewa.user_id')
+            ->join('kamar', 'kamar.id = penyewa.kamar_id', 'left')
+            ->where('penyewa.rating !=', null)
+            ->orderBy('penyewa.id', 'DESC')
+            ->findAll();
 
         return view('admin/penyewa', $data);
     }
@@ -308,5 +316,56 @@ class PenyewaController extends BaseController
 
         return redirect()->to('/tenant/profile')
             ->with('success', 'Profil berhasil diupdate.');
+    }
+
+    // Simpan atau edit rating & testimoni penyewa
+    public function saveRating()
+    {
+        $userId  = session()->get('user_id');
+        $penyewa = $this->penyewaModel->getPenyewaByUserId($userId);
+
+        if (!$penyewa) {
+            return redirect()->back()->with('error', 'Data penyewa tidak ditemukan.');
+        }
+
+        $rules = [
+            'rating'    => 'required|integer|greater_than_equal_to[1]|less_than_equal_to[5]',
+            'testimoni' => 'required|min_length[5]'
+        ];
+
+        if (!$this->validate($rules)) {
+            return redirect()->back()
+                ->withInput()
+                ->with('errors_rating', $this->validator->getErrors());
+        }
+
+        $this->penyewaModel->update($penyewa['id'], [
+            'rating'              => $this->request->getPost('rating'),
+            'testimoni'           => $this->request->getPost('testimoni'),
+            'tampilkan_testimoni' => 1 // Selalu tampilkan secara default saat dikirim/diedit
+        ]);
+
+        return redirect()->back()->with('success_rating', 'Penilaian Anda berhasil disimpan.');
+    }
+
+    // Toggle sembunyikan/tampilkan testimoni
+    public function toggleRatingVisibility()
+    {
+        $userId  = session()->get('user_id');
+        $penyewa = $this->penyewaModel->getPenyewaByUserId($userId);
+
+        if (!$penyewa) {
+            return redirect()->back()->with('error', 'Data penyewa tidak ditemukan.');
+        }
+
+        $newStatus = ($penyewa['tampilkan_testimoni'] == 1) ? 0 : 1;
+
+        $this->penyewaModel->update($penyewa['id'], [
+            'tampilkan_testimoni' => $newStatus
+        ]);
+
+        $message = ($newStatus == 1) ? 'Ulasan Anda kembali ditampilkan di halaman utama.' : 'Ulasan Anda berhasil disembunyikan dari halaman utama.';
+
+        return redirect()->back()->with('success_rating', $message);
     }
 }
