@@ -75,6 +75,8 @@ $routes->group('admin', ['filter' => 'role:admin'], function ($routes) {
     $routes->get('pj/reset-password/(:num)', 'PenanggungJawabController::resetPassword/$1');
     $routes->post('pj/bayar-gaji/(:num)', 'PenanggungJawabController::bayarGaji/$1');
     $routes->get('pj/riwayat-gaji/(:num)', 'PenanggungJawabController::riwayatGaji/$1');
+    $routes->get('pj/export-gaji/(:num)', 'PenanggungJawabController::exportGaji/$1');
+
 
     // pengeluaran
     $routes->get('pengeluaran', 'PengeluaranController::index');
