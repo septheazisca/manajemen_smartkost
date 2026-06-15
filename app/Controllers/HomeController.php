@@ -81,6 +81,7 @@ class HomeController extends BaseController
             'totalUlasan'       => $totalUlasan,
             'testimonials'      => $testimonials,
             'shared_facilities' => $this->getSharedFacilities(),
+            'kost_details'      => $this->getKostDetails(),
         ];
 
         return view('home', $data);
@@ -148,6 +149,7 @@ class HomeController extends BaseController
             'roomReviewsCount'  => $roomReviewsCount,
             'similarRooms'      => $similarRooms,
             'shared_facilities' => $this->getSharedFacilities(),
+            'kost_details'      => $this->getKostDetails(),
         ];
 
         return view('detail', $data);

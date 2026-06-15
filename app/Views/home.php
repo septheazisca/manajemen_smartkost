@@ -349,17 +349,25 @@
   <footer class="footer-section" id="kontak">
     <div class="container">
       <div class="row g-4">
-        <div class="col-lg-4 col-md-6">
+        <div class="col-lg-6 col-md-6">
           <div class="footer-brand">
             <div class="footer-brand-icon"><i class="fas fa-house-chimney"></i></div>
             Smart<span>Kost</span>
           </div>
-          <p class="footer-desc">Hunian modern & nyaman untuk mahasiswa dan profesional muda. Fasilitas lengkap, harga bersahabat.</p>
+          <p class="footer-desc"><?= esc($kost_details['detail_kost'] ?? '') ?></p>
           <div class="mt-3">
-            <a href="#" class="footer-social"><i class="fab fa-instagram"></i></a>
-            <a href="#" class="footer-social"><i class="fab fa-whatsapp"></i></a>
-            <a href="#" class="footer-social"><i class="fab fa-tiktok"></i></a>
-            <a href="#" class="footer-social"><i class="fab fa-twitter"></i></a>
+            <?php if (!empty($kost_details['link_instagram'])): ?>
+              <a href="<?= esc($kost_details['link_instagram']) ?>" target="_blank" class="footer-social"><i class="fab fa-instagram"></i></a>
+            <?php endif; ?>
+            <?php if (!empty($kost_details['link_whatsapp'])): ?>
+              <a href="<?= esc($kost_details['link_whatsapp']) ?>" target="_blank" class="footer-social"><i class="fab fa-whatsapp"></i></a>
+            <?php endif; ?>
+            <?php if (!empty($kost_details['link_tiktok'])): ?>
+              <a href="<?= esc($kost_details['link_tiktok']) ?>" target="_blank" class="footer-social"><i class="fab fa-tiktok"></i></a>
+            <?php endif; ?>
+            <?php if (!empty($kost_details['link_twitter'])): ?>
+              <a href="<?= esc($kost_details['link_twitter']) ?>" target="_blank" class="footer-social"><i class="fab fa-twitter"></i></a>
+            <?php endif; ?>
           </div>
         </div>
         <div class="col-lg-2 col-md-6 col-6">
@@ -369,32 +377,32 @@
           <a href="#fasilitas" class="footer-link">Fasilitas</a>
           <a href="#testimoni" class="footer-link">Testimoni</a>
         </div>
-        <div class="col-lg-2 col-md-6 col-6">
-          <div class="footer-heading">Info</div>
-          <a href="#" class="footer-link">Cara Sewa</a>
-          <a href="#" class="footer-link">Syarat & Ketentuan</a>
-          <a href="#" class="footer-link">Kebijakan Privasi</a>
-          <a href="#" class="footer-link">FAQ</a>
-        </div>
         <div class="col-lg-4 col-md-6">
           <div class="footer-heading">Hubungi Kami</div>
-          <div class="d-flex align-items-start gap-2 mb-2">
-            <i class="fas fa-location-dot mt-1" style="color:var(--primary);font-size:.85rem;flex-shrink:0"></i>
-            <span style="font-size:.83rem">Jl. Margonda Raya No. 42, Depok, Jawa Barat</span>
-          </div>
-          <div class="d-flex align-items-center gap-2 mb-2">
-            <i class="fas fa-phone" style="color:var(--primary);font-size:.85rem"></i>
-            <span style="font-size:.83rem">+62 812-3456-7890</span>
-          </div>
-          <div class="d-flex align-items-center gap-2 mb-3">
-            <i class="fas fa-envelope" style="color:var(--primary);font-size:.85rem"></i>
-            <span style="font-size:.83rem">halo@smartkost.id</span>
-          </div>
-          <div style="background:rgba(196,132,245,.12);border:1px solid rgba(196,132,245,.2);border-radius:var(--radius-sm);padding:.85rem 1rem;">
-            <div style="font-size:.78rem;font-weight:700;color:#fff;margin-bottom:.3rem">Jam Operasional</div>
-            <div style="font-size:.78rem">Senin – Sabtu: 08.00 – 20.00 WIB</div>
-            <div style="font-size:.78rem">Minggu: 09.00 – 17.00 WIB</div>
-          </div>
+          <?php if (!empty($kost_details['alamat'])): ?>
+            <div class="d-flex align-items-start gap-2 mb-2">
+              <i class="fas fa-location-dot mt-1" style="color:var(--primary);font-size:.85rem;flex-shrink:0"></i>
+              <span style="font-size:.83rem"><?= esc($kost_details['alamat']) ?></span>
+            </div>
+          <?php endif; ?>
+          <?php if (!empty($kost_details['no_telepon'])): ?>
+            <div class="d-flex align-items-center gap-2 mb-2">
+              <i class="fas fa-phone" style="color:var(--primary);font-size:.85rem"></i>
+              <span style="font-size:.83rem"><?= esc($kost_details['no_telepon']) ?></span>
+            </div>
+          <?php endif; ?>
+          <?php if (!empty($kost_details['email'])): ?>
+            <div class="d-flex align-items-center gap-2 mb-3">
+              <i class="fas fa-envelope" style="color:var(--primary);font-size:.85rem"></i>
+              <span style="font-size:.83rem"><?= esc($kost_details['email']) ?></span>
+            </div>
+          <?php endif; ?>
+          <?php if (!empty($kost_details['jam_operasi'])): ?>
+            <div style="background:rgba(196,132,245,.12);border:1px solid rgba(196,132,245,.2);border-radius:var(--radius-sm);padding:.85rem 1rem;">
+              <div style="font-size:.78rem;font-weight:700;color:#fff;margin-bottom:.3rem">Jam Operasional</div>
+              <div style="font-size:.78rem; line-height:1.45;"><?= nl2br(esc($kost_details['jam_operasi'])) ?></div>
+            </div>
+          <?php endif; ?>
         </div>
       </div>
       <div class="footer-bottom">

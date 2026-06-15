@@ -98,6 +98,10 @@ $routes->group('admin', ['filter' => 'role:admin'], function ($routes) {
     $routes->post('notifikasi/kirim-reminder-tagihan', 'NotifikasiController::kirimReminderTagihan');
     $routes->post('notifikasi/kirim-reminder-tunggakan', 'NotifikasiController::kirimReminderTunggakan');
     $routes->post('notifikasi/kirim-info', 'NotifikasiController::kirimInfo');
+
+    // detail kost
+    $routes->get('detail-kost', 'DetailKostController::index');
+    $routes->post('detail-kost/update', 'DetailKostController::update');
 });
 
 // =====================

@@ -48,6 +48,9 @@
             </a>
 
             <div class="nav-section-label">Sistem</div>
+            <a href="/admin/detail-kost" class="nav-link-custom <?= str_starts_with(uri_string(), 'admin/detail-kost') ? 'active' : '' ?>">
+                <i class="bi bi-info-circle"></i> Detail Kost
+            </a>
             <a href="/admin/notifikasi" class="nav-link-custom <?= str_starts_with(uri_string(), 'admin/notifikasi') ? 'active' : '' ?>">
                 <i class="bi bi-whatsapp"></i> Notifikasi WA
             </a>
