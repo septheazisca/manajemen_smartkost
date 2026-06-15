@@ -112,6 +112,7 @@ $routes->group('admin', ['filter' => 'role:admin'], function ($routes) {
 $routes->group('pj', ['filter' => 'role:pj'], function ($routes) {
 
     $routes->get('dashboard', 'DashboardController::index');
+    $routes->get('export-gaji', 'PenanggungJawabController::exportGajiSelf');
 
     // maintenance - spesifik dulu, dynamic di bawah
     $routes->get('maintenance', 'MaintenanceController::indexPj');

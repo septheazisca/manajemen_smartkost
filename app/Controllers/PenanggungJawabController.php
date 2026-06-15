@@ -370,4 +370,16 @@ class PenanggungJawabController extends BaseController
             ->with('success', 'Password berhasil direset ke nomor HP penanggung jawab.');
     }
 
+    // Export riwayat gaji untuk PJ yang sedang login
+    public function exportGajiSelf()
+    {
+        $userId = session()->get('user_id');
+        $pj     = $this->pjModel->getPjByUserId($userId);
+
+        if (!$pj) {
+            return redirect()->back()->with('error', 'Data tidak ditemukan.');
+        }
+
+        return $this->exportGaji($pj['id']);
+    }
 }
