@@ -546,4 +546,174 @@ class TagihanController extends BaseController
         $writer->save('php://output');
         exit;
     }
+
+    // Export tagihan saya (tenant) ke Excel
+    public function exportExcelSaya()
+    {
+        $userId  = session()->get('user_id');
+        $penyewa = $this->penyewaModel->getPenyewaByUserId($userId);
+
+        if (!$penyewa) {
+            return redirect()->to('/tenant/dashboard')->with('error', 'Data penyewa tidak ditemukan.');
+        }
+
+        $tagihan = $this->tagihanModel->getTagihanByPenyewa($penyewa['id']);
+
+        // HITUNG RINGKASAN
+        $totalTagihan = 0;
+        $totalLunas = 0;
+        $totalMenunggak = 0;
+
+        foreach ($tagihan as $t) {
+            $jumlah = (int)$t['jumlah'];
+            $totalTagihan += $jumlah;
+
+            if (strtolower($t['status']) == 'lunas') {
+                $totalLunas += $jumlah;
+            } else {
+                $totalMenunggak += $jumlah;
+            }
+        }
+
+        // EXCEL
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Tagihan Saya');
+
+        // JUDUL
+        $sheet->mergeCells('A1:E1');
+        $sheet->setCellValue('A1', 'LAPORAN HISTORI TAGIHAN SAYA');
+
+        $sheet->mergeCells('A2:E2');
+        $sheet->setCellValue('A2', 'Nama Penyewa: ' . $penyewa['name']);
+
+        $sheet->mergeCells('A3:E3');
+        $sheet->setCellValue('A3', 'Kamar: Kamar ' . ($penyewa['nomor_kamar'] ?? '-'));
+
+        $sheet->mergeCells('A4:E4');
+        $sheet->setCellValue('A4', 'Dicetak pada: ' . date('d F Y H:i'));
+
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+        $sheet->getStyle('A2:A3')->getFont()->setBold(true);
+        $sheet->getStyle('A4')->getFont()->setItalic(true);
+
+        $sheet->getStyle('A1:E4')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+        // RINGKASAN
+        $sheet->setCellValue('A6', 'Total Tagihan');
+        $sheet->setCellValue('B6', $totalTagihan);
+
+        $sheet->setCellValue('A7', 'Total Lunas');
+        $sheet->setCellValue('B7', $totalLunas);
+
+        $sheet->setCellValue('A8', 'Total Menunggak/Pending');
+        $sheet->setCellValue('B8', $totalMenunggak);
+
+        // Format Rupiah Ringkasan
+        foreach (['B6', 'B7', 'B8'] as $cell) {
+            $sheet->getStyle($cell)->getNumberFormat()->setFormatCode('#,##0');
+        }
+
+        $sheet->getStyle('A6:B8')->getFont()->setBold(true);
+
+        // HEADER TABEL
+        $headers = [
+            'No',
+            'Bulan & Tahun',
+            'Jumlah Tagihan',
+            'Jatuh Tempo',
+            'Status'
+        ];
+
+        $col = 'A';
+        foreach ($headers as $header) {
+            $sheet->setCellValue($col . '10', $header);
+            $col++;
+        }
+
+        $sheet->getStyle('A10:E10')->applyFromArray([
+            'font' => [
+                'bold' => true,
+                'color' => ['rgb' => 'FFFFFF']
+            ],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '7F77DD']
+            ]
+        ]);
+
+        // DATA TABEL
+        $row = 11;
+        $no = 1;
+        $listBulan = $this->getListBulan();
+
+        foreach ($tagihan as $t) {
+            $namaBulan = $listBulan[str_pad($t['bulan'], 2, '0', STR_PAD_LEFT)] ?? $t['bulan'];
+            $periode = $namaBulan . ' ' . $t['tahun'];
+
+            $sheet->setCellValue('A' . $row, $no++);
+            $sheet->setCellValue('B' . $row, $periode);
+            $sheet->setCellValue('C' . $row, (int)$t['jumlah']);
+            $sheet->setCellValue('D' . $row, date('d/m/Y', strtotime($t['jatuh_tempo'])));
+            $sheet->setCellValue('E' . $row, ucfirst($t['status']));
+
+            // Format Rupiah
+            $sheet->getStyle('C' . $row)->getNumberFormat()->setFormatCode('#,##0');
+
+            // Warna Status
+            if (strtolower($t['status']) == 'lunas') {
+                $sheet->getStyle('E' . $row)->getFont()->getColor()->setRGB('198754');
+            } else {
+                $sheet->getStyle('E' . $row)->getFont()->getColor()->setRGB('DC3545');
+            }
+
+            // Zebra Table
+            if ($row % 2 == 0) {
+                $sheet->getStyle('A' . $row . ':E' . $row)->getFill()
+                    ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                    ->getStartColor()->setRGB('F8F9FA');
+            }
+
+            $row++;
+        }
+
+        // TOTAL AKHIR
+        $sheet->mergeCells('A' . $row . ':B' . $row);
+        $sheet->setCellValue('A' . $row, 'TOTAL TAGIHAN');
+        $sheet->setCellValue('C' . $row, $totalTagihan);
+
+        $sheet->getStyle('A' . $row . ':C' . $row)->applyFromArray([
+            'font' => [
+                'bold' => true
+            ],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => 'E9ECEF']
+            ]
+        ]);
+
+        $sheet->getStyle('C' . $row)->getNumberFormat()->setFormatCode('#,##0');
+
+        // BORDER
+        $sheet->getStyle('A10:E' . $row)->getBorders()->getAllBorders()
+            ->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
+
+        $sheet->getStyle('A6:B8')->getBorders()->getAllBorders()
+            ->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
+
+        // AUTO SIZE
+        foreach (range('A', 'E') as $column) {
+            $sheet->getColumnDimension($column)->setAutoSize(true);
+        }
+
+        $filename = 'histori-tagihan-' . urlencode(strtolower(str_replace(' ', '-', $penyewa['name']))) . '.xlsx';
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $writer->save('php://output');
+        exit;
+    }
 }
