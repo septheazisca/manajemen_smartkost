@@ -20,8 +20,8 @@ class FasilitasController extends BaseController
     // Tampilkan semua data fasilitas ke halaman admin
     public function index()
     {
-        $data['facilities'] = $this->facilityModel->findAll();
-        $data['shared_facilities'] = $this->getSharedFacilities();
+        $data['facilities'] = $this->facilityModel->where('tipe', 'kamar')->findAll();
+        $data['shared_facilities'] = $this->facilityModel->where('tipe', 'bersama')->findAll();
         return view('admin/fasilitas', $data);
     }
 
@@ -35,6 +35,7 @@ class FasilitasController extends BaseController
 
         $this->facilityModel->save([
             'nama_fasilitas' => $this->request->getPost('nama_fasilitas'),
+            'tipe'           => 'kamar',
         ]);
 
         return redirect()->back()->with('success', 'Fasilitas berhasil ditambahkan.');
@@ -66,16 +67,6 @@ class FasilitasController extends BaseController
     // FASILITAS BERSAMA (JSON File CRUD)
     // ============================================
 
-    // Simpan data fasilitas bersama ke file JSON
-    protected function saveSharedFacilities($data)
-    {
-        $path = $this->getSharedFacilitiesPath();
-        if (!is_dir(WRITEPATH)) {
-            mkdir(WRITEPATH, 0777, true);
-        }
-        file_put_contents($path, json_encode($data, JSON_PRETTY_PRINT));
-    }
-
     // Simpan fasilitas bersama baru
     public function storeShared()
     {
@@ -86,21 +77,11 @@ class FasilitasController extends BaseController
             return redirect()->back()->with('error_bersama', 'Nama fasilitas bersama wajib diisi.');
         }
 
-        $shared = $this->getSharedFacilities();
-        
-        // Generate new ID (max ID + 1)
-        $newId = 1;
-        if (!empty($shared)) {
-            $newId = max(array_column($shared, 'id')) + 1;
-        }
-
-        $shared[] = [
-            'id' => $newId,
+        $this->facilityModel->save([
             'nama_fasilitas' => $nama,
-            'icon' => $icon
-        ];
-
-        $this->saveSharedFacilities($shared);
+            'tipe'           => 'bersama',
+            'icon'           => $icon,
+        ]);
 
         return redirect()->back()->with('success_bersama', 'Fasilitas bersama berhasil ditambahkan.');
     }
@@ -115,23 +96,10 @@ class FasilitasController extends BaseController
             return redirect()->back()->with('error_bersama', 'Nama fasilitas bersama wajib diisi.');
         }
 
-        $shared = $this->getSharedFacilities();
-        $found = false;
-
-        foreach ($shared as &$item) {
-            if ($item['id'] == $id) {
-                $item['nama_fasilitas'] = $nama;
-                $item['icon'] = $icon;
-                $found = true;
-                break;
-            }
-        }
-
-        if (!$found) {
-            return redirect()->back()->with('error_bersama', 'Fasilitas bersama tidak ditemukan.');
-        }
-
-        $this->saveSharedFacilities($shared);
+        $this->facilityModel->update($id, [
+            'nama_fasilitas' => $nama,
+            'icon'           => $icon,
+        ]);
 
         return redirect()->back()->with('success_bersama', 'Fasilitas bersama berhasil diperbarui.');
     }
@@ -139,16 +107,7 @@ class FasilitasController extends BaseController
     // Hapus fasilitas bersama
     public function deleteShared($id)
     {
-        $shared = $this->getSharedFacilities();
-        $filtered = array_filter($shared, function ($item) use ($id) {
-            return $item['id'] != $id;
-        });
-
-        // Re-index array values to keep the JSON file neat
-        $filtered = array_values($filtered);
-
-        $this->saveSharedFacilities($filtered);
-
+        $this->facilityModel->delete($id);
         return redirect()->back()->with('success_bersama', 'Fasilitas bersama berhasil dihapus.');
     }
 }

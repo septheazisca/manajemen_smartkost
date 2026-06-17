@@ -72,6 +72,9 @@ class HomeController extends BaseController
             ->orderBy('penyewa.id', 'DESC')
             ->findAll();
 
+        $fasilitasModel = new FasilitasModel();
+        $sharedFacilities = $fasilitasModel->where('tipe', 'bersama')->findAll();
+
         $data = [
             'rooms'             => $rooms,
             'totalKamar'        => $totalKamar,
@@ -80,7 +83,7 @@ class HomeController extends BaseController
             'avgRating'         => $avgRating,
             'totalUlasan'       => $totalUlasan,
             'testimonials'      => $testimonials,
-            'shared_facilities' => $this->getSharedFacilities(),
+            'shared_facilities' => $sharedFacilities,
             'kost_details'      => $this->getKostDetails(),
         ];
 
@@ -142,13 +145,16 @@ class HomeController extends BaseController
             $similarRooms = array_merge($similarRooms, $extraRooms);
         }
 
+        $fasilitasModel = new FasilitasModel();
+        $sharedFacilities = $fasilitasModel->where('tipe', 'bersama')->findAll();
+
         $data = [
             'kamar'             => $kamar,
             'reviews'           => $reviews,
             'roomAvgRating'     => $roomAvgRating,
             'roomReviewsCount'  => $roomReviewsCount,
             'similarRooms'      => $similarRooms,
-            'shared_facilities' => $this->getSharedFacilities(),
+            'shared_facilities' => $sharedFacilities,
             'kost_details'      => $this->getKostDetails(),
         ];
 
