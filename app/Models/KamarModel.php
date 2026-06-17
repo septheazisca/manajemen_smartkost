@@ -78,20 +78,4 @@ class KamarModel extends Model
         return $kamar;
     }
 
-    public function getAllWithFasilitas()
-    {
-        $kamarList           = $this->findAll();
-        $kamarFasilitasModel = new KamarFasilitasModel();
-        $fasilitasModel      = new FasilitasModel();
-
-        foreach ($kamarList as &$kamar) {
-            $pivotRows       = $kamarFasilitasModel->where('kamar_id', $kamar['id'])->findAll();
-            $fasilitasIds    = array_column($pivotRows, 'fasilitas_id');
-            $kamar['fasilitas'] = !empty($fasilitasIds)
-                ? $fasilitasModel->whereIn('id', $fasilitasIds)->findAll()
-                : [];
-        }
-
-        return $kamarList;
-    }
 }

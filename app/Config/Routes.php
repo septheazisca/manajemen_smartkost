@@ -136,7 +136,6 @@ $routes->group('tenant', ['filter' => 'role:penyewa'], function ($routes) {
     $routes->get('tagihan', 'TagihanController::tagihanSaya');
     $routes->get('tagihan/export', 'TagihanController::exportExcelSaya');
     $routes->get('tagihan/detail/(:num)', 'TagihanController::detailTagihan/$1');
-    $routes->post('tagihan/bayar/(:num)', 'TagihanController::uploadBukti/$1');
     $routes->post('tagihan/upload-bukti/(:num)', 'TagihanController::uploadBukti/$1');
 
     // maintenance - spesifik dulu, dynamic di bawah

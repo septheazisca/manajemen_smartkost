@@ -107,5 +107,41 @@ abstract class BaseController extends Controller
             $model->insert($data);
         }
     }
+
+    /**
+     * Tentukan path penyimpanan file JSON fasilitas bersama.
+     * @return string
+     */
+    protected function getSharedFacilitiesPath()
+    {
+        return WRITEPATH . 'shared_facilities.json';
+    }
+
+    /**
+     * Ambil data fasilitas bersama dari file JSON, return array.
+     * @return array
+     */
+    protected function getSharedFacilities()
+    {
+        $path = $this->getSharedFacilitiesPath();
+        if (!file_exists($path)) {
+            $default = [
+                ['id' => 1, 'nama_fasilitas' => 'CCTV 24 Jam', 'icon' => 'fa-shield-halved'],
+                ['id' => 2, 'nama_fasilitas' => 'Parkir Motor Luas', 'icon' => 'fa-motorcycle'],
+                ['id' => 3, 'nama_fasilitas' => 'Laundry Mandiri', 'icon' => 'fa-tshirt'],
+                ['id' => 4, 'nama_fasilitas' => 'Dapur Bersama', 'icon' => 'fa-utensils'],
+                ['id' => 5, 'nama_fasilitas' => 'Ruang Tamu Bersama', 'icon' => 'fa-couch'],
+                ['id' => 6, 'nama_fasilitas' => 'Taman Mini', 'icon' => 'fa-leaf'],
+            ];
+            if (!is_dir(WRITEPATH)) {
+                mkdir(WRITEPATH, 0777, true);
+            }
+            file_put_contents($path, json_encode($default, JSON_PRETTY_PRINT));
+            return $default;
+        }
+
+        $content = file_get_contents($path);
+        return json_decode($content, true) ?: [];
+    }
 }
 

@@ -101,7 +101,7 @@ class NotifikasiController extends BaseController
 
         // Ambil tagihan yang statusnya masih pending atau menunggak
         $tagihanBelumLunas = $this->tagihanModel
-            ->select('tagihan.*, users.name, users.phone, kamar.nomor_kamar')
+            ->select('tagihan.*, users.name, users.phone, kamar.nomor_kamar, penyewa.user_id')
             ->join('penyewa', 'penyewa.id = tagihan.penyewa_id')
             ->join('users', 'users.id = penyewa.user_id')
             ->join('kamar', 'kamar.id = penyewa.kamar_id')
@@ -135,7 +135,7 @@ class NotifikasiController extends BaseController
             $pesan .= "Mohon segera lakukan pembayaran dan upload bukti transfer di aplikasi SmarKost.\n\n";
             $pesan .= "Terima kasih 🙏";
 
-            $success = $this->kirimDanCatat(null, $tagihan['phone'], $pesan, 'tagihan');
+            $success = $this->kirimDanCatat($tagihan['user_id'], $tagihan['phone'], $pesan, 'tagihan');
             $success ? $berhasil++ : $gagal++;
         }
 
@@ -174,7 +174,7 @@ class NotifikasiController extends BaseController
             $pesan .= "Mohon segera hubungi admin atau lakukan pembayaran secepatnya.\n\n";
             $pesan .= "Terima kasih 🙏";
 
-            $success = $this->kirimDanCatat(null, $tagihan['phone'], $pesan, 'tunggakan');
+            $success = $this->kirimDanCatat($tagihan['user_id'], $tagihan['phone'], $pesan, 'tunggakan');
             $success ? $berhasil++ : $gagal++;
         }
 

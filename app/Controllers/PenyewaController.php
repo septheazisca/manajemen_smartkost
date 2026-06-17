@@ -135,22 +135,17 @@ class PenyewaController extends BaseController
         }
 
         $db = \Config\Database::connect();
-        $db->transBegin();
+        $db->transStart();
 
         // Update data login di tabel users
-        $updateUser = $this->userModel->update($penyewa['user_id'], [
+        $this->userModel->update($penyewa['user_id'], [
             'name'  => $this->request->getPost('name'),
             'email' => $this->request->getPost('email'),
             'phone' => $this->request->getPost('phone'),
         ]);
 
-        if (!$updateUser) {
-            $db->transRollback();
-            return redirect()->back()->withInput()->with('error', 'Gagal update user.');
-        }
-
         // Update data sewa di tabel penyewa
-        $updatePenyewa = $this->penyewaModel->update($id, [
+        $this->penyewaModel->update($id, [
             'tanggal_masuk'    => $this->request->getPost('tanggal_masuk'),
             'alamat'           => $this->request->getPost('alamat'),
             'asal_kota'        => $this->request->getPost('asal_kota'),
@@ -159,12 +154,11 @@ class PenyewaController extends BaseController
             'nomor_darurat'    => $this->request->getPost('nomor_darurat'),
         ]);
 
-        if (!$updatePenyewa) {
-            $db->transRollback();
-            return redirect()->back()->withInput()->with('error', 'Gagal update data penyewa.');
-        }
+        $db->transComplete();
 
-        $db->transCommit();
+        if ($db->transStatus() === false) {
+            return redirect()->back()->withInput()->with('error', 'Gagal mengupdate data penyewa.');
+        }
 
         return redirect()->to('/admin/penyewa')
             ->with('success', 'Data penyewa berhasil diupdate.');

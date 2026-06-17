@@ -79,25 +79,6 @@ class PenyewaModel extends Model
             ->findAll();
     }
 
-    // ambil satu penyewa lengkap by penyewa.id
-    public function getPenyewaById($id)
-    {
-        return $this->select('
-                penyewa.*,
-                users.name,
-                users.email,
-                users.phone,
-                users.is_active,
-                kamar.nomor_kamar,
-                kamar.harga,
-                kamar.lantai
-            ')
-            ->join('users', 'users.id = penyewa.user_id')
-            ->join('kamar', 'kamar.id = penyewa.kamar_id')
-            ->where('penyewa.id', $id)
-            ->first();
-    }
-
     // ambil penyewa by user_id (untuk dashboard penyewa)
     public function getPenyewaByUserId($userId)
     {

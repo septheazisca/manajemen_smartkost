@@ -63,10 +63,11 @@ class AuthController extends BaseController
 
         // 5. Simpan data user ke session agar bisa diakses di seluruh aplikasi
         session()->set([
-            'user_id'  => $user['id'],
-            'name'     => $user['name'],
-            'role'     => $user['role'],
-            'logged_in' => true,
+            'user_id'              => $user['id'],
+            'name'                 => $user['name'],
+            'role'                 => $user['role'],
+            'must_change_password' => $user['must_change_password'],
+            'logged_in'            => true,
         ]);
 
         // 6. Jika akun baru atau password baru di-reset admin, paksa ganti password dulu
@@ -136,7 +137,10 @@ class AuthController extends BaseController
             'must_change_password' => 0,
         ]);
 
-        return redirect()->to('/change-password')
+        // Update status di session agar filter tidak memblokir lagi
+        session()->set('must_change_password', 0);
+
+        return $this->redirectByRole(session()->get('role'))
             ->with('success', 'Password berhasil diubah.');
     }
 

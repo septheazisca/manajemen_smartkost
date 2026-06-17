@@ -32,6 +32,7 @@
             <?php endif; ?>
 
             <form method="post" action="/login">
+                <?= csrf_field() ?>
                 <!-- Form -->
                 <div class="my-3">
                     <label class="form-label">Email</label>

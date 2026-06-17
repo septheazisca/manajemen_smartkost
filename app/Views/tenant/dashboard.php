@@ -231,6 +231,7 @@
                 <!-- FORM / EDIT MODE -->
                 <div id="ratingFormMode" style="display: <?= $hasRating ? 'none' : 'block' ?>;">
                     <form action="/tenant/rating/save" method="post" onsubmit="return validateRatingForm()">
+                        <?= csrf_field() ?>
                         <label class="form-label mb-1">Berikan Bintang Anda</label>
                         <div class="star-rating mb-3 d-flex gap-2" style="font-size: 1.8rem; color: #e2e8f0; cursor: pointer; user-select: none;">
                             <i class="bi bi-star-fill star-item" data-value="1"></i>

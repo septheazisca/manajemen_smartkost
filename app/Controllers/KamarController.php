@@ -199,6 +199,15 @@ class KamarController extends BaseController
         }
 
         $this->pivotModel->where('kamar_id', $id)->delete();
+        
+        // Hapus file foto dari disk jika ada
+        if (!empty($kamar['foto'])) {
+            $fotoPath = FCPATH . 'uploads/kamar/' . $kamar['foto'];
+            if (file_exists($fotoPath)) {
+                unlink($fotoPath);
+            }
+        }
+
         $this->kamarModel->delete($id);
 
         return redirect()->back()->with('success', 'Kamar berhasil dihapus.');

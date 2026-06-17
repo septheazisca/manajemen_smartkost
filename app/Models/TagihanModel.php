@@ -165,7 +165,8 @@ class TagihanModel extends Model
                 tagihan.*,
                 users.name,
                 users.phone,
-                kamar.nomor_kamar
+                kamar.nomor_kamar,
+                penyewa.user_id
             ')
             ->join('penyewa', 'penyewa.id = tagihan.penyewa_id')
             ->join('users', 'users.id = penyewa.user_id')
