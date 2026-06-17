@@ -202,7 +202,7 @@ class PenanggungJawabController extends BaseController
         // Cegah dobel bayar: cek apakah sudah ada record gaji bulan ini
         $sudahBayar = $this->pengeluaranModel
             ->where('pj_id', $id)
-            ->where('kategori', 'gaji')
+            ->where('kategori_pengeluaran_id', 2)
             ->where('bulan', $bulan)
             ->where('tahun', $tahun)
             ->first();
@@ -216,13 +216,13 @@ class PenanggungJawabController extends BaseController
         $jumlah = $this->request->getPost('jumlah') ?: $pj['gaji_bulanan'];
 
         $this->pengeluaranModel->save([
-            'keterangan' => "Gaji penanggung jawab: {$pj['nama']} ({$bulan}/{$tahun})",
-            'kategori'   => 'gaji',
-            'jumlah'     => $jumlah,
-            'bulan'      => $bulan,
-            'tahun'      => $tahun,
-            'pj_id'      => $id,
-            'created_at' => date('Y-m-d H:i:s'),
+            'keterangan'              => "Gaji penanggung jawab: {$pj['nama']} ({$bulan}/{$tahun})",
+            'kategori_pengeluaran_id' => 2,
+            'jumlah'                  => $jumlah,
+            'bulan'                   => $bulan,
+            'tahun'                   => $tahun,
+            'pj_id'                   => $id,
+            'created_at'              => date('Y-m-d H:i:s'),
         ]);
 
         return redirect()->to('/admin/pj')
@@ -241,13 +241,115 @@ class PenanggungJawabController extends BaseController
         $data['pj']      = $pj;
         $data['riwayat'] = $this->pengeluaranModel
             ->where('pj_id', $id)
-            ->where('kategori', 'gaji')
+            ->where('kategori_pengeluaran_id', 2)
             ->orderBy('tahun', 'DESC')
             ->orderBy('bulan', 'DESC')
             ->findAll();
 
         return view('admin/pj/riwayat_gaji', $data);
     }
+
+    // Export riwayat gaji ke file Excel (.xlsx)
+    public function exportGaji($id)
+    {
+        $pj = $this->pjModel->getPjLengkap($id);
+
+        if (!$pj) {
+            return redirect()->back()->with('error', 'Data tidak ditemukan.');
+        }
+
+        $riwayat = $this->pengeluaranModel
+            ->where('pj_id', $id)
+            ->where('kategori_pengeluaran_id', 2)
+            ->orderBy('tahun', 'DESC')
+            ->orderBy('bulan', 'DESC')
+            ->findAll();
+
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet       = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Riwayat Gaji PJ');
+
+        // Header judul
+        $sheet->setCellValue('A1', 'LAPORAN RIWAYAT GAJI PENANGGUNG JAWAB');
+        $sheet->setCellValue('A2', 'Nama: ' . $pj['nama']);
+        $sheet->setCellValue('A3', 'Spesialisasi: ' . ($pj['spesialisasi'] ?: 'Umum'));
+        $sheet->setCellValue('A4', 'Gaji Pokok / Bulan: Rp ' . number_format($pj['gaji_bulanan'], 0, ',', '.'));
+        $sheet->setCellValue('A5', 'Digenerate: ' . date('d/m/Y H:i:s'));
+
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+        $sheet->getStyle('A2:A4')->getFont()->setBold(true);
+
+        // Header tabel
+        $headers = ['No', 'Bulan & Tahun', 'Keterangan', 'Nominal Gaji (Rp)', 'Tanggal Pembayaran'];
+        foreach ($headers as $i => $header) {
+            $col = chr(65 + $i);
+            $sheet->setCellValue($col . '7', $header);
+            $sheet->getStyle($col . '7')->getFont()->setBold(true);
+            $sheet->getStyle($col . '7')->getFill()
+                ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                ->getStartColor()->setRGB('7F77DD');
+            $sheet->getStyle($col . '7')->getFont()->getColor()->setRGB('FFFFFF');
+        }
+
+        // Isi data
+        $row = 8;
+        $no  = 1;
+        $total = 0;
+        $listBulan = $this->getListBulan();
+        foreach ($riwayat as $r) {
+            $namaBulan = $listBulan[$r['bulan']] ?? $r['bulan'];
+            $periode = $namaBulan . ' ' . $r['tahun'];
+
+            $sheet->setCellValue('A' . $row, $no++);
+            $sheet->setCellValue('B' . $row, $periode);
+            $sheet->setCellValue('C' . $row, $r['keterangan']);
+            $sheet->setCellValue('D' . $row, (int) $r['jumlah']);
+            $sheet->setCellValue('E' . $row, date('d/m/Y', strtotime($r['created_at'])));
+
+            // Format rupiah kolom D
+            $sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('#,##0');
+
+            // Warna baris selang-seling
+            if ($no % 2 == 0) {
+                $sheet->getStyle('A' . $row . ':E' . $row)->getFill()
+                    ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                    ->getStartColor()->setRGB('F3F2FF');
+            }
+
+            $total += $r['jumlah'];
+            $row++;
+        }
+
+        // Baris total
+        $sheet->setCellValue('C' . $row, 'TOTAL GAJI DITERIMA');
+        $sheet->setCellValue('D' . $row, (int) $total);
+        $sheet->getStyle('C' . $row . ':D' . $row)->getFont()->setBold(true);
+        $sheet->getStyle('D' . $row)->getNumberFormat()->setFormatCode('#,##0');
+        $sheet->getStyle('C' . $row . ':D' . $row)->getFill()
+            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+            ->getStartColor()->setRGB('EEEDFE');
+
+        // Auto size kolom
+        foreach (['A', 'B', 'C', 'D', 'E'] as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        // Border tabel
+        $sheet->getStyle('A7:E' . ($row))->getBorders()->getAllBorders()
+            ->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
+
+        // Output
+        $writer   = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $filename = 'riwayat-gaji-' . urlencode(strtolower(str_replace(' ', '-', $pj['nama']))) . '.xlsx';
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+
+        $writer->save('php://output');
+        exit;
+    }
+
 
     // Reset password PJ kembali ke nomor HP
     // must_change_password = 1 agar PJ wajib ganti password lagi saat login
@@ -268,30 +370,16 @@ class PenanggungJawabController extends BaseController
             ->with('success', 'Password berhasil direset ke nomor HP penanggung jawab.');
     }
 
-    // Dashboard PJ: tampilkan statistik tugas dan riwayat gaji milik PJ yang login
-    // MaintenanceModel diinisialisasi di sini karena hanya dipakai di method ini saja
-    public function dashboardPj()
+    // Export riwayat gaji untuk PJ yang sedang login
+    public function exportGajiSelf()
     {
         $userId = session()->get('user_id');
         $pj     = $this->pjModel->getPjByUserId($userId);
 
         if (!$pj) {
-            return redirect()->to('/login')->with('error', 'Data tidak ditemukan.');
+            return redirect()->back()->with('error', 'Data tidak ditemukan.');
         }
 
-        $maintenanceModel = new MaintenanceModel();
-
-        $data['pj']            = $pj;
-        $data['total_tugas']   = $maintenanceModel->where('pj_id', $pj['id'])->countAllResults();
-        $data['tugas_proses']  = $maintenanceModel->where('pj_id', $pj['id'])->where('status', 'proses')->countAllResults();
-        $data['tugas_selesai'] = $maintenanceModel->where('pj_id', $pj['id'])->where('status', 'selesai')->countAllResults();
-        $data['riwayat_gaji']  = $this->pengeluaranModel
-            ->where('pj_id', $pj['id'])
-            ->where('kategori', 'gaji')
-            ->orderBy('tahun', 'DESC')
-            ->orderBy('bulan', 'DESC')
-            ->findAll();
-
-        return view('pj/dashboard', $data);
+        return $this->exportGaji($pj['id']);
     }
 }

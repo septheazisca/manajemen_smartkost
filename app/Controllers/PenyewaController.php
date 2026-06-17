@@ -27,6 +27,14 @@ class PenyewaController extends BaseController
     {
         $data['penyewa']      = $this->penyewaModel->getPenyewaLengkap();
         $data['kamar_kosong'] = $this->kamarModel->getKamarKosong();
+        
+        // Ambil semua ulasan & rating kost untuk dipantau admin
+        $data['all_ratings']  = $this->penyewaModel->select('penyewa.*, users.name, users.phone, kamar.nomor_kamar')
+            ->join('users', 'users.id = penyewa.user_id')
+            ->join('kamar', 'kamar.id = penyewa.kamar_id', 'left')
+            ->where('penyewa.rating !=', null)
+            ->orderBy('penyewa.id', 'DESC')
+            ->findAll();
 
         return view('admin/penyewa', $data);
     }
@@ -71,19 +79,19 @@ class PenyewaController extends BaseController
 
         // 2. Simpan data sewa penyewa, dihubungkan ke akun user lewat user_id
         $this->penyewaModel->save([
-            'user_id'          => $userId,
-            'kamar_id'         => $this->request->getPost('kamar_id'),
-            'tanggal_masuk'    => $this->request->getPost('tanggal_masuk'),
-            'alamat'           => $this->request->getPost('alamat'),
-            'asal_kota'        => $this->request->getPost('asal_kota'),
-            'status_pekerjaan' => $this->request->getPost('status_pekerjaan') ?: null,
-            'status_pernikahan' => $this->request->getPost('status_pernikahan') ?: null,
-            'nomor_darurat'    => $this->request->getPost('nomor_darurat'),
+            'user_id'              => $userId,
+            'kamar_id'             => $this->request->getPost('kamar_id'),
+            'tanggal_masuk'        => $this->request->getPost('tanggal_masuk'),
+            'alamat'               => $this->request->getPost('alamat'),
+            'asal_kota'            => $this->request->getPost('asal_kota'),
+            'status_pekerjaan_id'  => $this->request->getPost('status_pekerjaan_id') ?: null,
+            'status_pernikahan_id' => $this->request->getPost('status_pernikahan_id') ?: null,
+            'nomor_darurat'        => $this->request->getPost('nomor_darurat'),
         ]);
 
         // 3. Update status kamar jadi terisi agar tidak bisa dipilih penyewa lain
         $this->kamarModel->update($this->request->getPost('kamar_id'), [
-            'status' => 'terisi',
+            'status_kamar_id' => 2, // 2 is terisi
         ]);
 
         $db->transComplete();
@@ -127,36 +135,30 @@ class PenyewaController extends BaseController
         }
 
         $db = \Config\Database::connect();
-        $db->transBegin();
+        $db->transStart();
 
         // Update data login di tabel users
-        $updateUser = $this->userModel->update($penyewa['user_id'], [
+        $this->userModel->update($penyewa['user_id'], [
             'name'  => $this->request->getPost('name'),
             'email' => $this->request->getPost('email'),
             'phone' => $this->request->getPost('phone'),
         ]);
 
-        if (!$updateUser) {
-            $db->transRollback();
-            return redirect()->back()->withInput()->with('error', 'Gagal update user.');
-        }
-
         // Update data sewa di tabel penyewa
-        $updatePenyewa = $this->penyewaModel->update($id, [
-            'tanggal_masuk'    => $this->request->getPost('tanggal_masuk'),
-            'alamat'           => $this->request->getPost('alamat'),
-            'asal_kota'        => $this->request->getPost('asal_kota'),
-            'status_pekerjaan' => $this->request->getPost('status_pekerjaan') ?: null,
-            'status_pernikahan' => $this->request->getPost('status_pernikahan') ?: null,
-            'nomor_darurat'    => $this->request->getPost('nomor_darurat'),
+        $this->penyewaModel->update($id, [
+            'tanggal_masuk'        => $this->request->getPost('tanggal_masuk'),
+            'alamat'               => $this->request->getPost('alamat'),
+            'asal_kota'            => $this->request->getPost('asal_kota'),
+            'status_pekerjaan_id'  => $this->request->getPost('status_pekerjaan_id') ?: null,
+            'status_pernikahan_id' => $this->request->getPost('status_pernikahan_id') ?: null,
+            'nomor_darurat'        => $this->request->getPost('nomor_darurat'),
         ]);
 
-        if (!$updatePenyewa) {
-            $db->transRollback();
-            return redirect()->back()->withInput()->with('error', 'Gagal update data penyewa.');
-        }
+        $db->transComplete();
 
-        $db->transCommit();
+        if ($db->transStatus() === false) {
+            return redirect()->back()->withInput()->with('error', 'Gagal mengupdate data penyewa.');
+        }
 
         return redirect()->to('/admin/penyewa')
             ->with('success', 'Data penyewa berhasil diupdate.');
@@ -214,7 +216,7 @@ class PenyewaController extends BaseController
 
         // Kembalikan status kamar ke kosong agar bisa ditempati penyewa baru
         $this->kamarModel->update($penyewa['kamar_id'], [
-            'status' => 'kosong',
+            'status_kamar_id' => 1, // 1 is kosong
         ]);
 
         $db->transComplete();
@@ -293,11 +295,11 @@ class PenyewaController extends BaseController
 
         // Update data tambahan di tabel penyewa
         $this->penyewaModel->update($penyewa['id'], [
-            'alamat'            => $this->request->getPost('alamat'),
-            'asal_kota'         => $this->request->getPost('asal_kota'),
-            'status_pekerjaan'  => $this->request->getPost('status_pekerjaan') ?: null,
-            'status_pernikahan' => $this->request->getPost('status_pernikahan') ?: null,
-            'nomor_darurat'     => $this->request->getPost('nomor_darurat'),
+            'alamat'               => $this->request->getPost('alamat'),
+            'asal_kota'            => $this->request->getPost('asal_kota'),
+            'status_pekerjaan_id'  => $this->request->getPost('status_pekerjaan_id') ?: null,
+            'status_pernikahan_id' => $this->request->getPost('status_pernikahan_id') ?: null,
+            'nomor_darurat'        => $this->request->getPost('nomor_darurat'),
         ]);
 
         $db->transComplete();
@@ -308,5 +310,56 @@ class PenyewaController extends BaseController
 
         return redirect()->to('/tenant/profile')
             ->with('success', 'Profil berhasil diupdate.');
+    }
+
+    // Simpan atau edit rating & testimoni penyewa
+    public function saveRating()
+    {
+        $userId  = session()->get('user_id');
+        $penyewa = $this->penyewaModel->getPenyewaByUserId($userId);
+
+        if (!$penyewa) {
+            return redirect()->back()->with('error', 'Data penyewa tidak ditemukan.');
+        }
+
+        $rules = [
+            'rating'    => 'required|integer|greater_than_equal_to[1]|less_than_equal_to[5]',
+            'testimoni' => 'required|min_length[5]'
+        ];
+
+        if (!$this->validate($rules)) {
+            return redirect()->back()
+                ->withInput()
+                ->with('errors_rating', $this->validator->getErrors());
+        }
+
+        $this->penyewaModel->update($penyewa['id'], [
+            'rating'              => $this->request->getPost('rating'),
+            'testimoni'           => $this->request->getPost('testimoni'),
+            'tampilkan_testimoni' => 1 // Selalu tampilkan secara default saat dikirim/diedit
+        ]);
+
+        return redirect()->back()->with('success_rating', 'Penilaian Anda berhasil disimpan.');
+    }
+
+    // Toggle sembunyikan/tampilkan testimoni
+    public function toggleRatingVisibility()
+    {
+        $userId  = session()->get('user_id');
+        $penyewa = $this->penyewaModel->getPenyewaByUserId($userId);
+
+        if (!$penyewa) {
+            return redirect()->back()->with('error', 'Data penyewa tidak ditemukan.');
+        }
+
+        $newStatus = ($penyewa['tampilkan_testimoni'] == 1) ? 0 : 1;
+
+        $this->penyewaModel->update($penyewa['id'], [
+            'tampilkan_testimoni' => $newStatus
+        ]);
+
+        $message = ($newStatus == 1) ? 'Ulasan Anda kembali ditampilkan di halaman utama.' : 'Ulasan Anda berhasil disembunyikan dari halaman utama.';
+
+        return redirect()->back()->with('success_rating', $message);
     }
 }

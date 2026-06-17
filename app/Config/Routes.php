@@ -5,9 +5,14 @@ use CodeIgniter\Router\RouteCollection;
 /** @var RouteCollection $routes */
 
 // =====================
+// FRONT PAGE & DETAIL
+// =====================
+$routes->get('/', 'HomeController::index');
+$routes->get('/kamar/(:num)', 'HomeController::detail/$1');
+
+// =====================
 // AUTH
 // =====================
-$routes->get('/', 'AuthController::login');
 $routes->get('/login', 'AuthController::login');
 $routes->post('/login', 'AuthController::attemptLogin');
 $routes->get('/logout', 'AuthController::logout');
@@ -27,6 +32,11 @@ $routes->group('admin', ['filter' => 'role:admin'], function ($routes) {
     $routes->post('fasilitas/store', 'FasilitasController::store');
     $routes->post('fasilitas/update/(:num)', 'FasilitasController::update/$1');
     $routes->get('fasilitas/delete/(:num)', 'FasilitasController::delete/$1');
+    
+    // fasilitas bersama (shared)
+    $routes->post('fasilitas-bersama/store', 'FasilitasController::storeShared');
+    $routes->post('fasilitas-bersama/update/(:num)', 'FasilitasController::updateShared/$1');
+    $routes->get('fasilitas-bersama/delete/(:num)', 'FasilitasController::deleteShared/$1');
 
     // kamar
     $routes->get('kamar', 'KamarController::index');
@@ -65,6 +75,8 @@ $routes->group('admin', ['filter' => 'role:admin'], function ($routes) {
     $routes->get('pj/reset-password/(:num)', 'PenanggungJawabController::resetPassword/$1');
     $routes->post('pj/bayar-gaji/(:num)', 'PenanggungJawabController::bayarGaji/$1');
     $routes->get('pj/riwayat-gaji/(:num)', 'PenanggungJawabController::riwayatGaji/$1');
+    $routes->get('pj/export-gaji/(:num)', 'PenanggungJawabController::exportGaji/$1');
+
 
     // pengeluaran
     $routes->get('pengeluaran', 'PengeluaranController::index');
@@ -88,6 +100,14 @@ $routes->group('admin', ['filter' => 'role:admin'], function ($routes) {
     $routes->post('notifikasi/kirim-reminder-tagihan', 'NotifikasiController::kirimReminderTagihan');
     $routes->post('notifikasi/kirim-reminder-tunggakan', 'NotifikasiController::kirimReminderTunggakan');
     $routes->post('notifikasi/kirim-info', 'NotifikasiController::kirimInfo');
+
+    // detail kost
+    $routes->get('detail-kost', 'DetailKostController::index');
+    $routes->post('detail-kost/update', 'DetailKostController::update');
+
+    // profil admin
+    $routes->get('profile', 'AdminProfileController::index');
+    $routes->post('profile/update', 'AdminProfileController::update');
 });
 
 // =====================
@@ -96,6 +116,7 @@ $routes->group('admin', ['filter' => 'role:admin'], function ($routes) {
 $routes->group('pj', ['filter' => 'role:pj'], function ($routes) {
 
     $routes->get('dashboard', 'DashboardController::index');
+    $routes->get('export-gaji', 'PenanggungJawabController::exportGajiSelf');
 
     // maintenance - spesifik dulu, dynamic di bawah
     $routes->get('maintenance', 'MaintenanceController::indexPj');
@@ -117,12 +138,16 @@ $routes->group('tenant', ['filter' => 'role:penyewa'], function ($routes) {
 
     // tagihan - spesifik dulu, dynamic di bawah
     $routes->get('tagihan', 'TagihanController::tagihanSaya');
+    $routes->get('tagihan/export', 'TagihanController::exportExcelSaya');
     $routes->get('tagihan/detail/(:num)', 'TagihanController::detailTagihan/$1');
-    $routes->post('tagihan/bayar/(:num)', 'TagihanController::uploadBukti/$1');
     $routes->post('tagihan/upload-bukti/(:num)', 'TagihanController::uploadBukti/$1');
 
     // maintenance - spesifik dulu, dynamic di bawah
     $routes->get('maintenance', 'MaintenanceController::laporanSaya');
     $routes->post('maintenance/lapor', 'MaintenanceController::lapor');
     $routes->get('maintenance/(:num)', 'MaintenanceController::detailTenant/$1');
+
+    // rating & testimoni
+    $routes->post('rating/save', 'PenyewaController::saveRating');
+    $routes->get('rating/toggle', 'PenyewaController::toggleRatingVisibility');
 });

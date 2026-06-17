@@ -19,9 +19,12 @@ class PenyewaModel extends Model
         'tanggal_keluar',
         'alamat',
         'asal_kota',
-        'status_pekerjaan',
-        'status_pernikahan',
+        'status_pekerjaan_id',
+        'status_pernikahan_id',
         'nomor_darurat',
+        'rating',
+        'testimoni',
+        'tampilkan_testimoni',
         'created_at',
         'updated_at'
     ];
@@ -61,6 +64,8 @@ class PenyewaModel extends Model
     {
         return $this->select('
                 penyewa.*,
+                status_pekerjaan.nama_status AS status_pekerjaan,
+                status_pernikahan.nama_status AS status_pernikahan,
                 users.name,
                 users.email,
                 users.phone,
@@ -70,29 +75,12 @@ class PenyewaModel extends Model
                 kamar.harga,
                 kamar.lantai
             ')
+            ->join('status_pekerjaan', 'status_pekerjaan.id = penyewa.status_pekerjaan_id', 'left')
+            ->join('status_pernikahan', 'status_pernikahan.id = penyewa.status_pernikahan_id', 'left')
             ->join('users', 'users.id = penyewa.user_id')
             ->join('kamar', 'kamar.id = penyewa.kamar_id')
             ->where('penyewa.tanggal_keluar', null)
             ->findAll();
-    }
-
-    // ambil satu penyewa lengkap by penyewa.id
-    public function getPenyewaById($id)
-    {
-        return $this->select('
-                penyewa.*,
-                users.name,
-                users.email,
-                users.phone,
-                users.is_active,
-                kamar.nomor_kamar,
-                kamar.harga,
-                kamar.lantai
-            ')
-            ->join('users', 'users.id = penyewa.user_id')
-            ->join('kamar', 'kamar.id = penyewa.kamar_id')
-            ->where('penyewa.id', $id)
-            ->first();
     }
 
     // ambil penyewa by user_id (untuk dashboard penyewa)
@@ -100,6 +88,8 @@ class PenyewaModel extends Model
     {
         return $this->select('
                 penyewa.*,
+                status_pekerjaan.nama_status AS status_pekerjaan,
+                status_pernikahan.nama_status AS status_pernikahan,
                 users.name,
                 users.email,
                 users.phone,
@@ -108,6 +98,8 @@ class PenyewaModel extends Model
                 kamar.lantai,
                 kamar.luas
             ')
+            ->join('status_pekerjaan', 'status_pekerjaan.id = penyewa.status_pekerjaan_id', 'left')
+            ->join('status_pernikahan', 'status_pernikahan.id = penyewa.status_pernikahan_id', 'left')
             ->join('users', 'users.id = penyewa.user_id')
             ->join('kamar', 'kamar.id = penyewa.kamar_id')
             ->where('penyewa.user_id', $userId)

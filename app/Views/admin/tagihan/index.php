@@ -227,17 +227,8 @@
                                 </div>
                             </td>
                             <td class="text-center">
-                                <?php
-                                $statusConfig = [
-                                    'pending'              => ['class' => 'bg-warning text-dark', 'label' => 'Pending'],
-                                    'menunggu_konfirmasi'  => ['class' => 'bg-info text-dark',    'label' => 'Konfirmasi'],
-                                    'lunas'                => ['class' => 'bg-success',           'label' => 'Lunas'],
-                                    'menunggak'            => ['class' => 'bg-danger',            'label' => 'Menunggak'],
-                                ];
-                                $cfg = $statusConfig[$t['status']] ?? ['class' => 'bg-secondary', 'label' => $t['status']];
-                                ?>
-                                <span class="badge <?= $cfg['class'] ?> shadow-sm">
-                                    <?= $cfg['label'] ?>
+                                <span class="badge <?= esc($t['badge_class']) ?> shadow-sm">
+                                    <i class="bi <?= esc($t['icon']) ?> me-1"></i><?= esc(ucwords(str_replace('_', ' ', $t['status']))) ?>
                                 </span>
                             </td>
                             <td>
@@ -247,12 +238,12 @@
                                     </a>
 
                                     <?php if ($t['status'] === 'menunggu_konfirmasi') : ?>
-                                        <button class="action-btn edit bg-success text-white border-0" title="Approve" data-bs-toggle="modal" data-bs-target="#approveModal<?= $t['id'] ?>">
+                                        <!-- <button class="action-btn edit bg-success text-white border-0" title="Approve" data-bs-toggle="modal" data-bs-target="#approveModal<?= $t['id'] ?>">
                                             <i class="bi bi-check-lg"></i>
-                                        </button>
-                                        <button class="action-btn del" title="Tolak" data-bs-toggle="modal" data-bs-target="#tolakModal<?= $t['id'] ?>">
+                                        </button> -->
+                                        <!-- <button class="action-btn del" title="Tolak" data-bs-toggle="modal" data-bs-target="#tolakModal<?= $t['id'] ?>">
                                             <i class="bi bi-x-lg"></i>
-                                        </button>
+                                        </button> -->
                                     <?php endif; ?>
 
                                     <?php if ($t['status'] === 'pending') : ?>

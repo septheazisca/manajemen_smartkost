@@ -180,6 +180,7 @@
     </div>
 
     <!-- Tabel Penyewa Sering Menunggak -->
+    <!-- Tabel Penyewa Sering Menunggak -->
     <div class="col-md-10">
         <div class="table-card">
             <div class="table-card-header">
@@ -215,7 +216,11 @@
                                     <td class="fw-bold"><?= esc($p['name']) ?></td>
                                     <td>Kamar <?= esc($p['nomor_kamar']) ?></td>
                                     <td>
-                                        <span class="badge bg-danger"><?= $p['jumlah_tunggakan'] ?> kali</span>
+                                        <!-- PERBAIKAN FORMAT DI SINI -->
+                                        <span class="badge bg-danger">
+                                            Rp <?= number_format($p['jumlah_tunggakan'], 0, ',', '.') ?>
+                                        </span>
+                                        <small class="text-muted fw-bold ms-1">(<?= $p['bulan_menunggak'] ?> Bulan)</small>
                                     </td>
                                 </tr>
                             <?php endforeach; ?>

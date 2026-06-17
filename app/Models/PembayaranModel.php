@@ -16,7 +16,7 @@ class PembayaranModel extends Model
         'tagihan_id',
         'jumlah_bayar',
         'bukti_transfer',
-        'status',
+        'status_pembayaran_id',
         'catatan_admin',
         'approved_at',
         'approved_by',
@@ -59,6 +59,9 @@ class PembayaranModel extends Model
     {
         return $this->select('
                 pembayaran.*,
+                status_pembayaran.nama_status AS status,
+                status_pembayaran.badge_class,
+                status_pembayaran.icon,
                 tagihan.bulan,
                 tagihan.tahun,
                 tagihan.jumlah,
@@ -67,6 +70,7 @@ class PembayaranModel extends Model
                 users.phone,
                 kamar.nomor_kamar
             ')
+            ->join('status_pembayaran', 'status_pembayaran.id = pembayaran.status_pembayaran_id')
             ->join('tagihan', 'tagihan.id = pembayaran.tagihan_id')
             ->join('penyewa', 'penyewa.id = tagihan.penyewa_id')
             ->join('users', 'users.id = penyewa.user_id')
@@ -80,6 +84,9 @@ class PembayaranModel extends Model
     {
         return $this->select('
                 pembayaran.*,
+                status_pembayaran.nama_status AS status,
+                status_pembayaran.badge_class,
+                status_pembayaran.icon,
                 tagihan.bulan,
                 tagihan.tahun,
                 tagihan.jumlah,
@@ -88,11 +95,12 @@ class PembayaranModel extends Model
                 users.phone,
                 kamar.nomor_kamar
             ')
+            ->join('status_pembayaran', 'status_pembayaran.id = pembayaran.status_pembayaran_id')
             ->join('tagihan', 'tagihan.id = pembayaran.tagihan_id')
             ->join('penyewa', 'penyewa.id = tagihan.penyewa_id')
             ->join('users', 'users.id = penyewa.user_id')
             ->join('kamar', 'kamar.id = penyewa.kamar_id')
-            ->where('pembayaran.status', 'pending')
+            ->where('status_pembayaran.nama_status', 'pending')
             ->orderBy('pembayaran.created_at', 'ASC')
             ->findAll();
     }

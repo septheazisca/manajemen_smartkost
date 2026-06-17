@@ -3,9 +3,9 @@
 
 <!-- Breadcrumb -->
 <div class="breadcrumb-custom mb-3">
-    <a href="/admin/dashboard"><i class="bi bi-house"></i> Dashboard</a>
+    <a href="/tenant/dashboard"><i class="bi bi-house"></i> Dashboard</a>
     <i class="bi bi-chevron-right"></i>
-    <a href="/admin/tagihan">Tagihan</a>
+    <a href="/tenant/tagihan">Tagihan Saya</a>
     <i class="bi bi-chevron-right"></i>
     <span>Detail Tagihan</span>
 </div>
@@ -25,16 +25,20 @@
             <!-- Status Visual Besar -->
             <div class="p-4 text-center border-bottom bg-light-subtle">
                 <?php
-                $statusConfig = [
-                    'pending'             => ['class' => 'bg-warning', 'text' => 'text-warning', 'label' => 'Menunggu Pembayaran', 'icon' => 'bi-clock'],
-                    'menunggu_konfirmasi' => ['class' => 'bg-info',    'text' => 'text-info',    'label' => 'Perlu Konfirmasi',   'icon' => 'bi-shield-exclamation'],
-                    'lunas'               => ['class' => 'bg-success', 'text' => 'text-success', 'label' => 'Sudah Lunas',        'icon' => 'bi-check-circle-fill'],
-                    'menunggak'           => ['class' => 'bg-danger',  'text' => 'text-danger',  'label' => 'Terlambat/Menunggak', 'icon' => 'bi-exclamation-octagon-fill'],
-                ];
-                $cfg = $statusConfig[$tagihan['status']] ?? ['class' => 'bg-secondary', 'text' => 'text-secondary', 'label' => $tagihan['status'], 'icon' => 'bi-info-circle'];
+                $textClass = 'text-secondary';
+                if (strpos($tagihan['badge_class'], 'text-warning') !== false) $textClass = 'text-warning';
+                elseif (strpos($tagihan['badge_class'], 'text-info') !== false) $textClass = 'text-info';
+                elseif (strpos($tagihan['badge_class'], 'text-success') !== false) $textClass = 'text-success';
+                elseif (strpos($tagihan['badge_class'], 'text-danger') !== false) $textClass = 'text-danger';
+                
+                $label = ucwords(str_replace('_', ' ', $tagihan['status']));
+                if ($tagihan['status'] === 'pending') $label = 'Menunggu Pembayaran';
+                elseif ($tagihan['status'] === 'menunggu_konfirmasi') $label = 'Perlu Konfirmasi';
+                elseif ($tagihan['status'] === 'lunas') $label = 'Sudah Lunas';
+                elseif ($tagihan['status'] === 'menunggak') $label = 'Terlambat/Menunggak';
                 ?>
-                <div class="display-6 <?= $cfg['text'] ?> mb-2"><i class="bi <?= $cfg['icon'] ?>"></i></div>
-                <h5 class="fw-bold mb-1"><?= $cfg['label'] ?></h5>
+                <div class="display-6 <?= $textClass ?> mb-2"><i class="bi <?= esc($tagihan['icon']) ?>"></i></div>
+                <h5 class="fw-bold mb-1"><?= esc($label) ?></h5>
                 <p class="text-muted small mb-0">Periode <?= esc($tagihan['bulan']) ?>/<?= esc($tagihan['tahun']) ?></p>
             </div>
 
@@ -107,16 +111,16 @@
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th>Waktu Bayar</th>
-                            <th>Periode</th>
+                            <th>Waktu Diajukan</th>
+                            <th>Waktu Konfirmasi</th>
                             <th>Nominal</th>
                             <th class="text-center">Bukti</th>
                             <th class="text-center">Status</th>
-                            <th>Keterangan</th>
+                            <th>Keterangan Admin</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php if (!empty($pembayaran)) : ?>
+                        <?php if (!empty($pembayaran) && isset($pembayaran[0]['pembayaran_id'])) : ?>
                             <?php foreach ($pembayaran as $p) : ?>
                                 <tr>
                                     <td>
@@ -127,11 +131,18 @@
                                             <span class="text-muted small">-</span>
                                         <?php endif; ?>
                                     </td>
+
                                     <td>
-                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 fw-normal">
-                                            <?= str_pad($p['bulan'], 2, '0', STR_PAD_LEFT) ?>/<?= $p['tahun'] ?>
-                                        </span>
+                                        <?php if ($p['status_pembayaran'] !== 'pending' && $p['updated_at'] && $p['updated_at'] !== $p['created_at']) : ?>
+                                            <div class="fw-semibold small text-success"><?= date('d M Y', strtotime($p['updated_at'])) ?></div>
+                                            <div class="text-muted" style="font-size: 11px;"><?= date('H:i', strtotime($p['updated_at'])) ?> WIB</div>
+                                        <?php elseif ($p['status_pembayaran'] === 'pending') : ?>
+                                            <span class="badge bg-light text-dark border small fw-normal">Menunggu diperiksa</span>
+                                        <?php else : ?>
+                                            <span class="text-muted small">-</span>
+                                        <?php endif; ?>
                                     </td>
+
                                     <td>
                                         <?php if ($p['jumlah_bayar']) : ?>
                                             <span class="text-primary fw-bold">Rp <?= number_format($p['jumlah_bayar'], 0, ',', '.') ?></span>
@@ -139,6 +150,7 @@
                                             <span class="text-muted small">-</span>
                                         <?php endif; ?>
                                     </td>
+
                                     <td class="text-center">
                                         <?php if ($p['bukti_transfer']) : ?>
                                             <a href="/uploads/bukti_transfer/<?= $p['bukti_transfer'] ?>"
@@ -149,28 +161,22 @@
                                             <span class="text-muted small">-</span>
                                         <?php endif; ?>
                                     </td>
+
                                     <td class="text-center">
-                                        <?php
-                                        // Tentukan status berdasarkan status_tagihan dan status_pembayaran
-                                        if ($p['status_tagihan'] === 'lunas') {
-                                            $sc = ['class' => 'bg-success-subtle text-success border-success', 'label' => 'Lunas'];
-                                        } elseif ($p['status_tagihan'] === 'menunggu_konfirmasi') {
-                                            $sc = ['class' => 'bg-info-subtle text-info border-info', 'label' => 'Menunggu Konfirmasi'];
-                                        } elseif ($p['status_pembayaran'] === 'ditolak') {
-                                            $sc = ['class' => 'bg-danger-subtle text-danger border-danger', 'label' => 'Ditolak'];
-                                        } elseif ($p['status_tagihan'] === 'menunggak') {
-                                            $sc = ['class' => 'bg-danger-subtle text-danger border-danger', 'label' => 'Menunggak'];
-                                        } else {
-                                            $sc = ['class' => 'bg-warning-subtle text-warning border-warning', 'label' => 'Belum Bayar'];
-                                        }
-                                        ?>
-                                        <span class="badge <?= $sc['class'] ?> border px-2 fw-normal">
-                                            <?= $sc['label'] ?>
+                                        <span class="badge <?= esc($p['badge_class']) ?> border px-2 fw-normal">
+                                            <i class="bi <?= esc($p['icon']) ?> me-1"></i><?= esc(ucwords(str_replace('_', ' ', $p['status_pembayaran']))) ?>
                                         </span>
                                     </td>
+
                                     <td>
-                                        <div class="text-muted small" style="max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                                            <?= $p['catatan_admin'] ? esc($p['catatan_admin']) : '<span class="opacity-50">Tidak ada catatan</span>' ?>
+                                        <div class="small fw-medium">
+                                            <?php if ($p['status_pembayaran'] === 'ditolak') : ?>
+                                                <span class="text-danger"><?= $p['catatan_admin'] ? esc($p['catatan_admin']) : 'Tidak sesuai' ?></span>
+                                            <?php elseif ($p['status_pembayaran'] === 'approved') : ?>
+                                                <span class="text-success"><?= $p['catatan_admin'] ? esc($p['catatan_admin']) : 'Terverifikasi (oke)' ?></span>
+                                            <?php else : ?>
+                                                <span class="text-muted opacity-50">Tidak ada catatan</span>
+                                            <?php endif; ?>
                                         </div>
                                     </td>
                                 </tr>

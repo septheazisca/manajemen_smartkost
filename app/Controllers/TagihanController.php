@@ -6,6 +6,8 @@ use App\Controllers\BaseController;
 use App\Models\PembayaranModel;
 use App\Models\PenyewaModel;
 use App\Models\TagihanModel;
+use App\Models\UserModel;
+use App\Libraries\FonnteService;
 use CodeIgniter\HTTP\ResponseInterface;
 
 class TagihanController extends BaseController
@@ -14,12 +16,16 @@ class TagihanController extends BaseController
     protected $tagihanModel;
     protected $pembayaranModel;
     protected $penyewaModel;
+    protected $userModel;
+    protected $fonnteService;
 
     public function __construct()
     {
         $this->tagihanModel    = new TagihanModel();
         $this->pembayaranModel = new PembayaranModel();
         $this->penyewaModel    = new PenyewaModel();
+        $this->userModel       = new UserModel();
+        $this->fonnteService   = new FonnteService();
     }
 
     // Tampilkan semua tagihan berdasarkan filter bulan & tahun
@@ -56,50 +62,15 @@ class TagihanController extends BaseController
             return redirect()->back()->with('error', 'Belum ada penyewa aktif.');
         }
 
-        $db = \Config\Database::connect();
-        $db->transStart();
+        $result = $this->tagihanModel->generateBulk($semuaPenyewa, $bulan, $tahun);
 
-        $berhasil = 0;
-        $skip     = 0;
-
-        foreach ($semuaPenyewa as $penyewa) {
-            // Skip penyewa yang sudah punya tagihan di bulan & tahun yang sama
-            $sudahAda = $this->tagihanModel->isTagihanExist($penyewa['id'], $bulan, $tahun);
-
-            if ($sudahAda) {
-                $skip++;
-                continue;
-            }
-
-            // Nominal unik berbeda tiap penyewa, dihitung dari penyewa_id
-            // Tujuannya agar admin bisa identifikasi siapa yang bayar dari nominal transfer
-            $nominalUnik = $this->tagihanModel->generateNominalUnik($penyewa['id']);
-
-            // Jatuh tempo selalu tanggal 10 bulan tersebut
-            $jatuhTempo = $tahun . '-' . str_pad($bulan, 2, '0', STR_PAD_LEFT) . '-10';
-
-            $this->tagihanModel->save([
-                'penyewa_id'   => $penyewa['id'],
-                'bulan'        => $bulan,
-                'tahun'        => $tahun,
-                'jumlah'       => $penyewa['harga'],
-                'nominal_unik' => $nominalUnik,
-                'status'       => 'pending',
-                'jatuh_tempo'  => $jatuhTempo,
-            ]);
-
-            $berhasil++;
-        }
-
-        $db->transComplete();
-
-        if ($db->transStatus() === false) {
+        if ($result === false) {
             return redirect()->back()->with('error', 'Gagal generate tagihan.');
         }
 
-        $pesan = "Tagihan berhasil digenerate untuk {$berhasil} penyewa.";
-        if ($skip > 0) {
-            $pesan .= " {$skip} penyewa dilewati karena tagihan sudah ada.";
+        $pesan = "Tagihan berhasil digenerate untuk {$result['berhasil']} penyewa.";
+        if ($result['skip'] > 0) {
+            $pesan .= " {$result['skip']} penyewa dilewati karena tagihan sudah ada.";
         }
 
         return redirect()->to('/admin/tagihan')->with('success', $pesan);
@@ -110,21 +81,18 @@ class TagihanController extends BaseController
     // yang dibutuhkan untuk tampil di view (nama penyewa, nomor kamar, dll)
     public function show($id)
     {
-        $tagihan = $this->tagihanModel->getTagihanLengkap();
-
-        // Filter array untuk cari tagihan dengan id yang sesuai
-        $tagihan = array_filter($tagihan, function ($t) use ($id) {
-            return $t['id'] == $id;
-        });
-
-        $tagihan = reset($tagihan);
+        $tagihan = $this->tagihanModel->getTagihanLengkapById($id);
 
         if (!$tagihan) {
             return redirect()->to('/tagihan')->with('error', 'Tagihan tidak ditemukan');
         }
 
         $data['tagihan']    = $tagihan;
-        $data['pembayaran'] = $this->pembayaranModel->where('tagihan_id', $id)->findAll();
+        $data['pembayaran'] = $this->pembayaranModel
+            ->select('pembayaran.*, status_pembayaran.nama_status AS status, status_pembayaran.badge_class, status_pembayaran.icon')
+            ->join('status_pembayaran', 'status_pembayaran.id = pembayaran.status_pembayaran_id')
+            ->where('tagihan_id', $id)
+            ->findAll();
 
         return view('admin/tagihan/detail', $data);
     }
@@ -144,21 +112,41 @@ class TagihanController extends BaseController
 
         // 1. Tandai pembayaran sebagai approved, catat siapa dan kapan yang approve
         $this->pembayaranModel->update($pembayaranId, [
-            'status'        => 'approved',
-            'catatan_admin' => $this->request->getPost('catatan_admin'),
-            'approved_at'   => date('Y-m-d H:i:s'),
-            'approved_by'   => session()->get('user_id'),
+            'status_pembayaran_id' => 2, // 2 is approved
+            'catatan_admin'        => $this->request->getPost('catatan_admin'),
+            'approved_at'          => date('Y-m-d H:i:s'),
+            'approved_by'          => session()->get('user_id'),
         ]);
 
         // 2. Update status tagihan jadi lunas
         $this->tagihanModel->update($pembayaran['tagihan_id'], [
-            'status' => 'lunas',
+            'status_tagihan_id' => 3, // 3 is lunas
         ]);
 
         $db->transComplete();
 
         if ($db->transStatus() === false) {
             return redirect()->back()->with('error', 'Gagal approve pembayaran.');
+        }
+
+        // Kirim WhatsApp trigger ke penyewa
+        $tagihanLengkap = $this->tagihanModel->getTagihanLengkapById($pembayaran['tagihan_id']);
+        if ($tagihanLengkap && !empty($tagihanLengkap['phone'])) {
+            // PERBAIKAN: Ambil user_id manual dari PenyewaModel jika tidak ada di tagihanLengkap
+            $penyewa = $this->penyewaModel->find($tagihanLengkap['penyewa_id']);
+            $userId = $tagihanLengkap['user_id'] ?? ($penyewa['user_id'] ?? null);
+
+            $totalBayar = $tagihanLengkap['jumlah'] + $tagihanLengkap['nominal_unik'];
+            $namaBulan = $this->getListBulan()[$tagihanLengkap['bulan']] ?? $tagihanLengkap['bulan'];
+            $pesan = "Halo *{$tagihanLengkap['nama']}*,\n\n";
+            $pesan .= "🎉 Pembayaran sewa kost kamu telah *DISETUJUI* oleh Admin.\n\n";
+            $pesan .= "📋 *Detail Kamar & Periode*\n";
+            $pesan .= "Kamar  : {$tagihanLengkap['nama_kamar']}\n";
+            $pesan .= "Periode: {$namaBulan} {$tagihanLengkap['tahun']}\n";
+            $pesan .= "Jumlah : Rp " . number_format($totalBayar, 0, ',', '.') . "\n\n";
+            $pesan .= "Status tagihan kamu saat ini sudah *LUNAS*. Terima kasih atas pembayarannya! 🙏";
+
+            $this->fonnteService->sendAndLog($userId, $tagihanLengkap['phone'], $pesan, 'approved');
         }
 
         return redirect()->to('/admin/tagihan')
@@ -186,19 +174,41 @@ class TagihanController extends BaseController
 
         // 1. Tandai pembayaran sebagai ditolak beserta alasannya
         $this->pembayaranModel->update($pembayaranId, [
-            'status'        => 'ditolak',
-            'catatan_admin' => $catatanAdmin,
+            'status_pembayaran_id' => 3, // 3 is ditolak
+            'catatan_admin'        => $catatanAdmin,
         ]);
 
         // 2. Kembalikan tagihan ke pending agar penyewa bisa upload ulang bukti
         $this->tagihanModel->update($pembayaran['tagihan_id'], [
-            'status' => 'pending',
+            'status_tagihan_id' => 1, // 1 is pending
         ]);
 
         $db->transComplete();
 
         if ($db->transStatus() === false) {
             return redirect()->back()->with('error', 'Gagal menolak pembayaran.');
+        }
+
+        // Kirim WhatsApp trigger ke penyewa
+        $tagihanLengkap = $this->tagihanModel->getTagihanLengkapById($pembayaran['tagihan_id']);
+        if ($tagihanLengkap && !empty($tagihanLengkap['phone'])) {
+            
+            // 🔍 AMBIL USER_ID SECARA MANUAL DARI PENYEWA MODEL
+            $penyewa = $this->penyewaModel->find($tagihanLengkap['penyewa_id']);
+            $userId = $tagihanLengkap['user_id'] ?? ($penyewa['user_id'] ?? null);
+
+            $totalBayar = $tagihanLengkap['jumlah'] + $tagihanLengkap['nominal_unik'];
+            $namaBulan = $this->getListBulan()[$tagihanLengkap['bulan']] ?? $tagihanLengkap['bulan'];
+            $pesan = "Halo *{$tagihanLengkap['nama']}*,\n\n";
+            $pesan .= "⚠️ Pembayaran sewa kost kamu *DITOLAK* oleh Admin.\n\n";
+            $pesan .= "📋 *Detail Penolakan*\n";
+            $pesan .= "Kamar            : {$tagihanLengkap['nama_kamar']}\n";
+            $pesan .= "Periode          : {$namaBulan} {$tagihanLengkap['tahun']}\n";
+            $pesan .= "Alasan Penolakan : *{$catatanAdmin}*\n\n";
+            $pesan .= "Mohon lakukan upload ulang bukti transfer yang valid melalui aplikasi SmartKost. Terima kasih. 🙏";
+
+            // Gunakan variabel $userId yang baru diambil
+            $this->fonnteService->sendAndLog($userId, $tagihanLengkap['phone'], $pesan, 'ditolak');
         }
 
         return redirect()->to('/admin/tagihan')
@@ -215,11 +225,27 @@ class TagihanController extends BaseController
             return redirect()->back()->with('error', 'Tagihan tidak ditemukan.');
         }
 
-        if ($tagihan['status'] === 'lunas') {
+        if ((int)$tagihan['status_tagihan_id'] === 3) { // 3 is lunas
             return redirect()->back()->with('error', 'Tagihan sudah lunas, tidak bisa ditandai menunggak.');
         }
 
-        $this->tagihanModel->update($tagihanId, ['status' => 'menunggak']);
+        $this->tagihanModel->update($tagihanId, ['status_tagihan_id' => 4]); // 4 is menunggak
+
+        // Kirim WhatsApp trigger ke penyewa
+        $tagihanLengkap = $this->tagihanModel->getTagihanLengkapById($tagihanId);
+        if ($tagihanLengkap && !empty($tagihanLengkap['phone'])) {
+            // PERBAIKAN: Ambil user_id manual dari PenyewaModel jika tidak ada di tagihanLengkap
+            $penyewa = $this->penyewaModel->find($tagihanLengkap['penyewa_id']);
+            $userId = $tagihanLengkap['user_id'] ?? ($penyewa['user_id'] ?? null);
+
+            $totalBayar = $tagihanLengkap['jumlah'] + $tagihanLengkap['nominal_unik'];
+            $namaBulan = $this->getListBulan()[$tagihanLengkap['bulan']] ?? $tagihanLengkap['bulan'];
+            $pesan = "Halo *{$tagihanLengkap['nama']}*,\n\n";
+            $pesan .= "⚠️ Status tagihan sewa kost kamu untuk periode *{$namaBulan} {$tagihanLengkap['tahun']}* telah diubah menjadi *MENUNGGAK*.\n\n";
+            $pesan .= "Mohon segera lakukan pembayaran sebesar *Rp " . number_format($totalBayar, 0, ',', '.') . "* dan upload bukti transfer melalui aplikasi SmartKost. Jika ada kendala, hubungi admin. Terima kasih. 🙏";
+
+            $this->fonnteService->sendAndLog($userId, $tagihanLengkap['phone'], $pesan, 'tunggakan');
+        }
 
         return redirect()->to('/admin/tagihan')
             ->with('success', 'Tagihan berhasil ditandai sebagai menunggak.');
@@ -244,7 +270,7 @@ class TagihanController extends BaseController
             return redirect()->back()->with('error', 'Tagihan tidak ditemukan.');
         }
 
-        if ($tagihan['status'] === 'lunas') {
+        if ((int)$tagihan['status_tagihan_id'] === 3) { // 3 is lunas
             return redirect()->back()->with('error', 'Tagihan ini sudah lunas.');
         }
 
@@ -273,21 +299,43 @@ class TagihanController extends BaseController
 
         // Simpan record pembayaran dengan status pending, menunggu konfirmasi admin
         $this->pembayaranModel->save([
-            'tagihan_id'     => $tagihanId,
-            'jumlah_bayar'   => $tagihan['jumlah'] + $tagihan['nominal_unik'],
-            'bukti_transfer' => $newName,
-            'status'         => 'pending',
+            'tagihan_id'           => $tagihanId,
+            'jumlah_bayar'         => $tagihan['jumlah'] + $tagihan['nominal_unik'],
+            'bukti_transfer'       => $newName,
+            'status_pembayaran_id' => 1, // 1 is pending
         ]);
 
         // Update status tagihan agar admin tahu ada pembayaran yang perlu dikonfirmasi
         $this->tagihanModel->update($tagihanId, [
-            'status' => 'menunggu_konfirmasi',
+            'status_tagihan_id' => 2, // 2 is menunggu_konfirmasi
         ]);
 
         $db->transComplete();
 
         if ($db->transStatus() === false) {
             return redirect()->back()->with('error', 'Gagal upload bukti transfer.');
+        }
+
+        // Kirim WhatsApp trigger ke admin
+        $admins = $this->userModel->where('role', 'admin')->where('is_active', 1)->findAll();
+        $tagihanLengkap = $this->tagihanModel->getTagihanLengkapById($tagihanId);
+        if ($tagihanLengkap && !empty($admins)) {
+            $totalBayar = $tagihanLengkap['jumlah'] + $tagihanLengkap['nominal_unik'];
+            $namaBulan = $this->getListBulan()[$tagihanLengkap['bulan']] ?? $tagihanLengkap['bulan'];
+
+            foreach ($admins as $adm) {
+                if (!empty($adm['phone'])) {
+                    $pesan = "Halo Admin *{$adm['name']}*,\n\n";
+                    $pesan .= "📥 Ada bukti pembayaran baru yang diupload oleh penyewa:\n\n";
+                    $pesan .= "*   Penyewa : {$tagihanLengkap['nama']}\n";
+                    $pesan .= "*   Kamar   : {$tagihanLengkap['nama_kamar']}\n";
+                    $pesan .= "*   Periode : {$namaBulan} {$tagihanLengkap['tahun']}\n";
+                    $pesan .= "*   Jumlah  : Rp " . number_format($totalBayar, 0, ',', '.') . "\n\n";
+                    $pesan .= "Mohon segera login ke aplikasi SmartKost untuk melakukan verifikasi. Terima kasih.";
+
+                    $this->fonnteService->sendAndLog($adm['id'], $adm['phone'], $pesan, 'upload_bukti');
+                }
+            }
         }
 
         return redirect()->to('/tenant/tagihan')
@@ -312,6 +360,7 @@ class TagihanController extends BaseController
 
     // Detail satu tagihan beserta semua riwayat pembayaran penyewa tersebut
     // Riwayat diambil lintas tagihan agar penyewa bisa lihat semua histori pembayaran
+    // detail satu tagihan beserta semua riwayat pembayaran penyewa tersebut
     public function detailTagihan($id)
     {
         $userId  = session()->get('user_id');
@@ -321,42 +370,32 @@ class TagihanController extends BaseController
             return redirect()->to('/tenant/tagihan')->with('error', 'Data penyewa tidak ditemukan.');
         }
 
-        // Cari tagihan di array hasil getTagihanLengkap agar dapat data join-nya
-        $semua   = $this->tagihanModel->getTagihanLengkap();
-        $tagihan = null;
-        foreach ($semua as $t) {
-            if ($t['id'] == $id) {
-                $tagihan = $t;
-                break;
-            }
-        }
+        $tagihan = $this->tagihanModel->getTagihanLengkapById($id);
 
-        // Keamanan: pastikan tagihan ini memang milik penyewa yang login
         if (!$tagihan || $tagihan['penyewa_id'] !== $penyewa['id']) {
             return redirect()->to('/tenant/tagihan')->with('error', 'Tagihan tidak ditemukan.');
         }
 
-        // Ambil semua riwayat pembayaran penyewa ini dengan join ke tagihan
-        // Menggunakan right join agar tagihan tanpa pembayaran pun tetap muncul
+        // PERBAIKAN QUERY: Ambil murni dari pembayaran yang join ke tagihan
         $data['pembayaran'] = $this->pembayaranModel
             ->select('
-                tagihan.id as tagihan_id,
-                tagihan.bulan,
-                tagihan.tahun,
-                tagihan.status as status_tagihan,
-                tagihan.jumlah,
-                tagihan.nominal_unik,
                 pembayaran.id as pembayaran_id,
                 pembayaran.jumlah_bayar,
                 pembayaran.bukti_transfer,
-                pembayaran.status as status_pembayaran,
+                status_pembayaran.nama_status as status_pembayaran,
+                status_pembayaran.badge_class,
+                status_pembayaran.icon,
                 pembayaran.catatan_admin,
-                pembayaran.created_at
+                pembayaran.created_at,
+                pembayaran.updated_at,
+                tagihan.id as tagihan_id,
+                status_tagihan.nama_status as status_tagihan
             ')
-            ->join('tagihan', 'tagihan.id = pembayaran.tagihan_id', 'right')
-            ->where('tagihan.penyewa_id', $penyewa['id'])
-            ->orderBy('tagihan.tahun', 'DESC')
-            ->orderBy('tagihan.bulan', 'DESC')
+            ->join('status_pembayaran', 'status_pembayaran.id = pembayaran.status_pembayaran_id', 'left')
+            ->join('tagihan', 'tagihan.id = pembayaran.tagihan_id', 'left')
+            ->join('status_tagihan', 'status_tagihan.id = tagihan.status_tagihan_id', 'left')
+            ->where('pembayaran.tagihan_id', $id)
+            ->orderBy('pembayaran.created_at', 'DESC')
             ->findAll();
 
         $data['tagihan'] = $tagihan;
@@ -365,24 +404,7 @@ class TagihanController extends BaseController
         return view('tenant/detail_tagihan', $data);
     }
 
-    // Helper private: mapping nomor bulan ke nama bulan Bahasa Indonesia
-    private function getListBulan()
-    {
-        return [
-            '01' => 'Januari',
-            '02' => 'Februari',
-            '03' => 'Maret',
-            '04' => 'April',
-            '05' => 'Mei',
-            '06' => 'Juni',
-            '07' => 'Juli',
-            '08' => 'Agustus',
-            '09' => 'September',
-            '10' => 'Oktober',
-            '11' => 'November',
-            '12' => 'Desember',
-        ];
-    }
+
 
 
     public function exportExcel()
@@ -609,6 +631,176 @@ class TagihanController extends BaseController
             '-' .
             $tahun .
             '.xlsx';
+
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Cache-Control: max-age=0');
+
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+        $writer->save('php://output');
+        exit;
+    }
+
+    // Export tagihan saya (tenant) ke Excel
+    public function exportExcelSaya()
+    {
+        $userId  = session()->get('user_id');
+        $penyewa = $this->penyewaModel->getPenyewaByUserId($userId);
+
+        if (!$penyewa) {
+            return redirect()->to('/tenant/dashboard')->with('error', 'Data penyewa tidak ditemukan.');
+        }
+
+        $tagihan = $this->tagihanModel->getTagihanByPenyewa($penyewa['id']);
+
+        // HITUNG RINGKASAN
+        $totalTagihan = 0;
+        $totalLunas = 0;
+        $totalMenunggak = 0;
+
+        foreach ($tagihan as $t) {
+            $jumlah = (int)$t['jumlah'];
+            $totalTagihan += $jumlah;
+
+            if (strtolower($t['status']) == 'lunas') {
+                $totalLunas += $jumlah;
+            } else {
+                $totalMenunggak += $jumlah;
+            }
+        }
+
+        // EXCEL
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Tagihan Saya');
+
+        // JUDUL
+        $sheet->mergeCells('A1:E1');
+        $sheet->setCellValue('A1', 'LAPORAN HISTORI TAGIHAN SAYA');
+
+        $sheet->mergeCells('A2:E2');
+        $sheet->setCellValue('A2', 'Nama Penyewa: ' . $penyewa['name']);
+
+        $sheet->mergeCells('A3:E3');
+        $sheet->setCellValue('A3', 'Kamar: Kamar ' . ($penyewa['nomor_kamar'] ?? '-'));
+
+        $sheet->mergeCells('A4:E4');
+        $sheet->setCellValue('A4', 'Dicetak pada: ' . date('d F Y H:i'));
+
+        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
+        $sheet->getStyle('A2:A3')->getFont()->setBold(true);
+        $sheet->getStyle('A4')->getFont()->setItalic(true);
+
+        $sheet->getStyle('A1:E4')->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+
+        // RINGKASAN
+        $sheet->setCellValue('A6', 'Total Tagihan');
+        $sheet->setCellValue('B6', $totalTagihan);
+
+        $sheet->setCellValue('A7', 'Total Lunas');
+        $sheet->setCellValue('B7', $totalLunas);
+
+        $sheet->setCellValue('A8', 'Total Menunggak/Pending');
+        $sheet->setCellValue('B8', $totalMenunggak);
+
+        // Format Rupiah Ringkasan
+        foreach (['B6', 'B7', 'B8'] as $cell) {
+            $sheet->getStyle($cell)->getNumberFormat()->setFormatCode('#,##0');
+        }
+
+        $sheet->getStyle('A6:B8')->getFont()->setBold(true);
+
+        // HEADER TABEL
+        $headers = [
+            'No',
+            'Bulan & Tahun',
+            'Jumlah Tagihan',
+            'Jatuh Tempo',
+            'Status'
+        ];
+
+        $col = 'A';
+        foreach ($headers as $header) {
+            $sheet->setCellValue($col . '10', $header);
+            $col++;
+        }
+
+        $sheet->getStyle('A10:E10')->applyFromArray([
+            'font' => [
+                'bold' => true,
+                'color' => ['rgb' => 'FFFFFF']
+            ],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '7F77DD']
+            ]
+        ]);
+
+        // DATA TABEL
+        $row = 11;
+        $no = 1;
+        $listBulan = $this->getListBulan();
+
+        foreach ($tagihan as $t) {
+            $namaBulan = $listBulan[str_pad($t['bulan'], 2, '0', STR_PAD_LEFT)] ?? $t['bulan'];
+            $periode = $namaBulan . ' ' . $t['tahun'];
+
+            $sheet->setCellValue('A' . $row, $no++);
+            $sheet->setCellValue('B' . $row, $periode);
+            $sheet->setCellValue('C' . $row, (int)$t['jumlah']);
+            $sheet->setCellValue('D' . $row, date('d/m/Y', strtotime($t['jatuh_tempo'])));
+            $sheet->setCellValue('E' . $row, ucfirst($t['status']));
+
+            // Format Rupiah
+            $sheet->getStyle('C' . $row)->getNumberFormat()->setFormatCode('#,##0');
+
+            // Warna Status
+            if (strtolower($t['status']) == 'lunas') {
+                $sheet->getStyle('E' . $row)->getFont()->getColor()->setRGB('198754');
+            } else {
+                $sheet->getStyle('E' . $row)->getFont()->getColor()->setRGB('DC3545');
+            }
+
+            // Zebra Table
+            if ($row % 2 == 0) {
+                $sheet->getStyle('A' . $row . ':E' . $row)->getFill()
+                    ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
+                    ->getStartColor()->setRGB('F8F9FA');
+            }
+
+            $row++;
+        }
+
+        // TOTAL AKHIR
+        $sheet->mergeCells('A' . $row . ':B' . $row);
+        $sheet->setCellValue('A' . $row, 'TOTAL TAGIHAN');
+        $sheet->setCellValue('C' . $row, $totalTagihan);
+
+        $sheet->getStyle('A' . $row . ':C' . $row)->applyFromArray([
+            'font' => [
+                'bold' => true
+            ],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => 'E9ECEF']
+            ]
+        ]);
+
+        $sheet->getStyle('C' . $row)->getNumberFormat()->setFormatCode('#,##0');
+
+        // BORDER
+        $sheet->getStyle('A10:E' . $row)->getBorders()->getAllBorders()
+            ->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
+
+        $sheet->getStyle('A6:B8')->getBorders()->getAllBorders()
+            ->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
+
+        // AUTO SIZE
+        foreach (range('A', 'E') as $column) {
+            $sheet->getColumnDimension($column)->setAutoSize(true);
+        }
+
+        $filename = 'histori-tagihan-' . urlencode(strtolower(str_replace(' ', '-', $penyewa['name']))) . '.xlsx';
 
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         header('Content-Disposition: attachment; filename="' . $filename . '"');

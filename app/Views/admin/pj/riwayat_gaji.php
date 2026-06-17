@@ -52,11 +52,14 @@
             <div class="table-card-title">Log Pembayaran Gaji</div>
             <div class="table-card-sub">Menampilkan histori pengiriman gaji per bulan</div>
         </div>
-        <!-- <div class="toolbar">
-            <a href="/admin/pj" class="btn-cancel text-decoration-none border shadow-sm">
-                <i class="bi bi-arrow-left"></i> Kembali ke Daftar
+        <div class="toolbar d-flex gap-2">
+            <a href="/admin/pj/export-gaji/<?= $pj['id'] ?>" class="btn btn-success text-white text-nowrap d-flex align-items-center gap-1" style="background: #198754; border: none; font-size: .83rem; font-weight: 600; padding: .5rem 1.1rem; border-radius: var(--radius-sm); transition: all .2s; box-shadow: 0 4px 14px rgba(25, 135, 84, 0.25);">
+                <i class="bi bi-file-earmark-excel"></i> Export Excel
             </a>
-        </div> -->
+            <a href="/admin/pj" class="btn btn-light border text-nowrap d-flex align-items-center gap-1" style="font-size: .83rem; font-weight: 600; padding: .5rem 1.1rem; border-radius: var(--radius-sm); transition: all .2s;">
+                <i class="bi bi-arrow-left"></i> Kembali
+            </a>
+        </div>
     </div>
 
     <div class="tbl-wrap">

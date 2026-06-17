@@ -14,6 +14,8 @@ class FasilitasModel extends Model
     protected $protectFields    = true;
     protected $allowedFields    = [
         'nama_fasilitas',
+        'tipe',
+        'icon',
         'created_at',
         'updated_at'
     ];

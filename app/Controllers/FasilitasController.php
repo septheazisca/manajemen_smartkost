@@ -20,7 +20,8 @@ class FasilitasController extends BaseController
     // Tampilkan semua data fasilitas ke halaman admin
     public function index()
     {
-        $data['facilities'] = $this->facilityModel->findAll();
+        $data['facilities'] = $this->facilityModel->where('tipe', 'kamar')->findAll();
+        $data['shared_facilities'] = $this->facilityModel->where('tipe', 'bersama')->findAll();
         return view('admin/fasilitas', $data);
     }
 
@@ -34,6 +35,7 @@ class FasilitasController extends BaseController
 
         $this->facilityModel->save([
             'nama_fasilitas' => $this->request->getPost('nama_fasilitas'),
+            'tipe'           => 'kamar',
         ]);
 
         return redirect()->back()->with('success', 'Fasilitas berhasil ditambahkan.');
@@ -59,5 +61,53 @@ class FasilitasController extends BaseController
     {
         $this->facilityModel->delete($id);
         return redirect()->back()->with('success', 'Fasilitas berhasil dihapus.');
+    }
+
+    // ============================================
+    // FASILITAS BERSAMA (JSON File CRUD)
+    // ============================================
+
+    // Simpan fasilitas bersama baru
+    public function storeShared()
+    {
+        $nama = $this->request->getPost('nama_fasilitas');
+        $icon = $this->request->getPost('icon') ?: 'fa-circle-check';
+
+        if (!$nama) {
+            return redirect()->back()->with('error_bersama', 'Nama fasilitas bersama wajib diisi.');
+        }
+
+        $this->facilityModel->save([
+            'nama_fasilitas' => $nama,
+            'tipe'           => 'bersama',
+            'icon'           => $icon,
+        ]);
+
+        return redirect()->back()->with('success_bersama', 'Fasilitas bersama berhasil ditambahkan.');
+    }
+
+    // Update fasilitas bersama
+    public function updateShared($id)
+    {
+        $nama = $this->request->getPost('nama_fasilitas');
+        $icon = $this->request->getPost('icon') ?: 'fa-circle-check';
+
+        if (!$nama) {
+            return redirect()->back()->with('error_bersama', 'Nama fasilitas bersama wajib diisi.');
+        }
+
+        $this->facilityModel->update($id, [
+            'nama_fasilitas' => $nama,
+            'icon'           => $icon,
+        ]);
+
+        return redirect()->back()->with('success_bersama', 'Fasilitas bersama berhasil diperbarui.');
+    }
+
+    // Hapus fasilitas bersama
+    public function deleteShared($id)
+    {
+        $this->facilityModel->delete($id);
+        return redirect()->back()->with('success_bersama', 'Fasilitas bersama berhasil dihapus.');
     }
 }

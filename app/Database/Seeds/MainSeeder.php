@@ -18,6 +18,7 @@ class MainSeeder extends Seeder
         $this->call('PembayaranSeeder');
         $this->call('MaintenanceSeeder');
         $this->call('PengeluaranSeeder');
+        $this->call('KostDetailsSeeder');
         // $this->call('NotifikasiLogSeeder');
     }
 }

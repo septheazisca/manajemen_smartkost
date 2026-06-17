@@ -22,15 +22,6 @@
     </div>
 <?php endif; ?>
 
-<?php
-$badgeCfg = match ($maintenance['status']) {
-    'menunggu' => ['bg' => 'warning', 'label' => 'Menunggu'],
-    'proses'   => ['bg' => 'info',    'label' => 'Diproses'],
-    'selesai'  => ['bg' => 'success', 'label' => 'Selesai'],
-    default    => ['bg' => 'secondary', 'label' => ucfirst($maintenance['status'])],
-};
-?>
-
 <div class="row g-4">
 
     <!-- Kiri: Info + Foto -->
@@ -53,7 +44,9 @@ $badgeCfg = match ($maintenance['status']) {
                 </div>
                 <div class="d-flex justify-content-between align-items-center py-2" style="border-bottom: 1px solid var(--border);">
                     <span class="text-muted small">Status</span>
-                    <span class="badge bg-<?= $badgeCfg['bg'] ?>"><?= $badgeCfg['label'] ?></span>
+                    <span class="badge bg-<?= esc($maintenance['badge_class']) ?>">
+                        <i class="bi <?= esc($maintenance['icon']) ?> me-1"></i><?= esc(ucwords($maintenance['status'])) ?>
+                    </span>
                 </div>
                 <div class="d-flex justify-content-between align-items-center py-2" style="border-bottom: 1px solid var(--border);">
                     <span class="text-muted small">Tanggal Lapor</span>

@@ -77,6 +77,11 @@
             <div class="table-card-title">Riwayat Gaji</div>
             <div class="table-card-sub">Rekap pembayaran gaji kamu</div>
         </div>
+        <div class="toolbar">
+            <a href="/pj/export-gaji" class="btn btn-success text-white text-nowrap d-flex align-items-center gap-1" style="background: #198754; border: none; font-size: .83rem; font-weight: 600; padding: .5rem 1.1rem; border-radius: var(--radius-sm); transition: all .2s; box-shadow: 0 4px 14px rgba(25, 135, 84, 0.25);">
+                <i class="bi bi-file-earmark-excel"></i> Export Excel
+            </a>
+        </div>
     </div>
 
     <div class="tbl-wrap">

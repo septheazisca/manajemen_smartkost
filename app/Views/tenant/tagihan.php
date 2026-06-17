@@ -75,6 +75,11 @@ foreach ($tagihan as $t) {
             <div class="table-card-title">Riwayat Tagihan</div>
             <div class="table-card-sub">Daftar semua tagihan sewa kamu</div>
         </div>
+        <div class="toolbar">
+            <a href="/tenant/tagihan/export" class="btn btn-success text-white text-nowrap d-flex align-items-center gap-1" style="background: #198754; border: none; font-size: .83rem; font-weight: 600; padding: .5rem 1.1rem; border-radius: var(--radius-sm); transition: all .2s; box-shadow: 0 4px 14px rgba(25, 135, 84, 0.25);">
+                <i class="bi bi-file-earmark-excel"></i> Export Excel
+            </a>
+        </div>
     </div>
 
     <div class="tbl-wrap">
@@ -105,13 +110,6 @@ foreach ($tagihan as $t) {
                     foreach ($tagihan as $i => $t):
                         $periode    = ($bulanList[str_pad($t['bulan'], 2, '0', STR_PAD_LEFT)] ?? $t['bulan']) . ' ' . $t['tahun'];
                         $totalBayar = $t['jumlah'] + $t['nominal_unik'];
-                        $badgeCfg   = match ($t['status']) {
-                            'lunas'               => ['bg' => 'success',   'label' => 'Lunas'],
-                            'pending'             => ['bg' => 'warning',   'label' => 'Pending'],
-                            'menunggu_konfirmasi' => ['bg' => 'info',      'label' => 'Menunggu Konfirmasi'],
-                            'menunggak'           => ['bg' => 'danger',    'label' => 'Menunggak'],
-                            default               => ['bg' => 'secondary', 'label' => ucfirst($t['status'])],
-                        };
                     ?>
                         <tr>
                             <td><?= $i + 1 ?></td>
@@ -123,7 +121,9 @@ foreach ($tagihan as $t) {
                                 <small><?= date('d/m/Y', strtotime($t['jatuh_tempo'])) ?></small>
                             </td>
                             <td>
-                                <span class="badge bg-<?= $badgeCfg['bg'] ?>"><?= $badgeCfg['label'] ?></span>
+                                <span class="badge <?= esc($t['badge_class']) ?>">
+                                    <i class="bi <?= esc($t['icon']) ?> me-1"></i><?= esc(ucwords(str_replace('_', ' ', $t['status']))) ?>
+                                </span>
                             </td>
                             <td>
                                 <?php if ($t['status'] === 'pending' || $t['status'] === 'menunggak'): ?>
@@ -135,7 +135,7 @@ foreach ($tagihan as $t) {
                                 <?php else: ?>
                                     <span class="text-success small"><i class="bi bi-check-circle"></i> Lunas</span>
                                 <?php endif; ?>
-                                <a href="/tenant/detail_tagihan/<?= $t['id'] ?>" class="action-btn edit" title="Detail">
+                                <a href="/tenant/tagihan/detail/<?= $t['id'] ?>" class="action-btn edit" title="Detail">
                                         <i class="bi bi-eye"></i>
                                 </a>
                             </td>

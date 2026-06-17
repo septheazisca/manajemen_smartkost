@@ -108,17 +108,8 @@
                             <div class="small"><i class="bi bi-calendar-event me-1 text-muted"></i><?= date('d M Y', strtotime($t['jatuh_tempo'])) ?></div>
                         </td>
                         <td>
-                            <?php
-                            $badge = match ($t['status']) {
-                                'lunas'               => 'bg-success',
-                                'pending'             => 'bg-warning text-dark',
-                                'menunggak'           => 'bg-danger',
-                                'menunggu_konfirmasi' => 'bg-info',
-                                default               => 'bg-secondary',
-                            };
-                            ?>
-                            <span class="badge <?= $badge ?> rounded-pill px-3" style="font-size: 0.75rem;">
-                                <?= ucfirst(str_replace('_', ' ', $t['status'])) ?>
+                            <span class="badge <?= esc($t['badge_class']) ?>">
+                                <i class="bi <?= esc($t['icon']) ?> me-1"></i><?= esc(ucwords(str_replace('_', ' ', $t['status']))) ?>
                             </span>
                         </td>
                     </tr>

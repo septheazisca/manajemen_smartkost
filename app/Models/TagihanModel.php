@@ -18,7 +18,7 @@ class TagihanModel extends Model
         'tahun',
         'jumlah',
         'nominal_unik',
-        'status',
+        'status_tagihan_id',
         'jatuh_tempo',
         'created_at',
         'updated_at'
@@ -65,10 +65,14 @@ class TagihanModel extends Model
     {
         $builder = $this->select('
             tagihan.*,
+            status_tagihan.nama_status AS status,
+            status_tagihan.badge_class,
+            status_tagihan.icon,
             users.name AS nama,
             users.phone,
             kamar.nomor_kamar AS nama_kamar
         ')
+            ->join('status_tagihan', 'status_tagihan.id = tagihan.status_tagihan_id')
             ->join('penyewa', 'penyewa.id = tagihan.penyewa_id')
             ->join('users', 'users.id = penyewa.user_id')
             ->join('kamar', 'kamar.id = penyewa.kamar_id');
@@ -78,12 +82,78 @@ class TagihanModel extends Model
 
         return $builder->orderBy('tagihan.created_at', 'DESC')->findAll();
     }
+
+    // Ambil detail satu tagihan berdasarkan ID
+    public function getTagihanLengkapById($id)
+    {
+        return $this->select('
+            tagihan.*,
+            status_tagihan.nama_status AS status,
+            status_tagihan.badge_class,
+            status_tagihan.icon,
+            users.name AS nama,
+            users.phone,
+            kamar.nomor_kamar AS nama_kamar
+        ')
+            ->join('status_tagihan', 'status_tagihan.id = tagihan.status_tagihan_id')
+            ->join('penyewa', 'penyewa.id = tagihan.penyewa_id')
+            ->join('users', 'users.id = penyewa.user_id')
+            ->join('kamar', 'kamar.id = penyewa.kamar_id')
+            ->where('tagihan.id', $id)
+            ->first();
+    }
+
+    // Generate tagihan massal untuk semua penyewa aktif
+    public function generateBulk($semuaPenyewa, $bulan, $tahun)
+    {
+        $db = \Config\Database::connect();
+        $db->transStart();
+
+        $berhasil = 0;
+        $skip     = 0;
+
+        foreach ($semuaPenyewa as $penyewa) {
+            // Skip penyewa yang sudah punya tagihan di bulan & tahun yang sama
+            $sudahAda = $this->isTagihanExist($penyewa['id'], $bulan, $tahun);
+
+            if ($sudahAda) {
+                $skip++;
+                continue;
+            }
+
+            // Nominal unik berbeda tiap penyewa
+            $nominalUnik = $this->generateNominalUnik($penyewa['id']);
+            $jatuhTempo = $tahun . '-' . str_pad($bulan, 2, '0', STR_PAD_LEFT) . '-10';
+
+            $this->save([
+                'penyewa_id'   => $penyewa['id'],
+                'bulan'        => $bulan,
+                'tahun'        => $tahun,
+                'jumlah'       => $penyewa['harga'],
+                'nominal_unik' => $nominalUnik,
+                'status_tagihan_id' => 1, // 1 is pending
+                'jatuh_tempo'  => $jatuhTempo,
+            ]);
+
+            $berhasil++;
+        }
+
+        $db->transComplete();
+
+        if ($db->transStatus() === false) {
+            return false;
+        }
+
+        return ['berhasil' => $berhasil, 'skip' => $skip];
+    }
     
 
     // ambil tagihan by penyewa_id (untuk dashboard penyewa)
     public function getTagihanByPenyewa($penyewaId)
     {
-        return $this->where('penyewa_id', $penyewaId)
+        return $this->select('tagihan.*, status_tagihan.nama_status AS status, status_tagihan.badge_class, status_tagihan.icon')
+            ->join('status_tagihan', 'status_tagihan.id = tagihan.status_tagihan_id')
+            ->where('penyewa_id', $penyewaId)
             ->orderBy('tahun', 'DESC')
             ->orderBy('bulan', 'DESC')
             ->findAll();
@@ -103,14 +173,19 @@ class TagihanModel extends Model
     {
         return $this->select('
                 tagihan.*,
+                status_tagihan.nama_status AS status,
+                status_tagihan.badge_class,
+                status_tagihan.icon,
                 users.name,
                 users.phone,
-                kamar.nomor_kamar
+                kamar.nomor_kamar,
+                penyewa.user_id
             ')
+            ->join('status_tagihan', 'status_tagihan.id = tagihan.status_tagihan_id')
             ->join('penyewa', 'penyewa.id = tagihan.penyewa_id')
             ->join('users', 'users.id = penyewa.user_id')
             ->join('kamar', 'kamar.id = penyewa.kamar_id')
-            ->where('tagihan.status', 'menunggak')
+            ->where('status_tagihan.nama_status', 'menunggak')
             ->findAll();
     }
 }

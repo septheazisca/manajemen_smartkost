@@ -14,11 +14,13 @@ class KamarModel extends Model
     protected $protectFields    = true;
     protected $allowedFields    = [
         'nomor_kamar',
+        'tipe',
         'lantai',
         'luas',
         'harga',
-        'status',
+        'status_kamar_id',
         'deskripsi',
+        'foto',
         'created_at',
         'updated_at'
     ];
@@ -55,12 +57,24 @@ class KamarModel extends Model
 
     public function getKamarKosong()
     {
-        return $this->where('status', 'kosong')->findAll();
+        return $this->select('kamar.*, status_kamar.nama_status as status, status_kamar.badge_class, status_kamar.icon')
+                    ->join('status_kamar', 'status_kamar.id = kamar.status_kamar_id')
+                    ->where('status_kamar.nama_status', 'kosong')
+                    ->findAll();
+    }
+
+    public function getKamarLengkap()
+    {
+        return $this->select('kamar.*, status_kamar.nama_status as status, status_kamar.badge_class, status_kamar.icon')
+                    ->join('status_kamar', 'status_kamar.id = kamar.status_kamar_id')
+                    ->findAll();
     }
 
     public function getKamarWithFasilitas($id)
     {
-        $kamar = $this->find($id);
+        $kamar = $this->select('kamar.*, status_kamar.nama_status as status, status_kamar.badge_class, status_kamar.icon')
+                      ->join('status_kamar', 'status_kamar.id = kamar.status_kamar_id')
+                      ->find($id);
         if (!$kamar) return null;
 
         $fasilitasModel      = new FasilitasModel();
@@ -76,20 +90,5 @@ class KamarModel extends Model
         return $kamar;
     }
 
-    public function getAllWithFasilitas()
-    {
-        $kamarList           = $this->findAll();
-        $kamarFasilitasModel = new KamarFasilitasModel();
-        $fasilitasModel      = new FasilitasModel();
 
-        foreach ($kamarList as &$kamar) {
-            $pivotRows       = $kamarFasilitasModel->where('kamar_id', $kamar['id'])->findAll();
-            $fasilitasIds    = array_column($pivotRows, 'fasilitas_id');
-            $kamar['fasilitas'] = !empty($fasilitasIds)
-                ? $fasilitasModel->whereIn('id', $fasilitasIds)->findAll()
-                : [];
-        }
-
-        return $kamarList;
-    }
 }

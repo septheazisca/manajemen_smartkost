@@ -134,15 +134,7 @@
                         <td><?= $i + 1 ?></td>
                         <td class="fw-bold"><?= esc($p['keterangan']) ?></td>
                         <td>
-                            <?php
-                            $badge = match ($p['kategori']) {
-                                'maintenance' => 'info',
-                                'gaji'        => 'warning',
-                                'lainnya'     => 'secondary',
-                                default       => 'secondary',
-                            };
-                            ?>
-                            <span class="badge bg-<?= $badge ?>"><?= ucfirst($p['kategori']) ?></span>
+                            <span class="badge bg-<?= esc($p['badge_class'] ?? 'secondary') ?>"><i class="<?= esc($p['icon'] ?? 'bi-box') ?> me-1"></i><?= esc(ucfirst($p['kategori'])) ?></span>
                         </td>
                         <td><?= esc($p['nama_pj'] ?? '-') ?></td>
                         <td class="fw-bold text-danger">Rp <?= number_format($p['jumlah'], 0, ',', '.') ?></td>

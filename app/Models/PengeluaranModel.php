@@ -14,7 +14,7 @@ class PengeluaranModel extends Model
     protected $protectFields    = true;
     protected $allowedFields    = [
         'keterangan',
-        'kategori',
+        'kategori_pengeluaran_id',
         'jumlah',
         'bulan',
         'tahun',
@@ -69,8 +69,12 @@ class PengeluaranModel extends Model
     {
         $builder = $this->select('
                 pengeluaran.*,
+                kategori_pengeluaran.nama_kategori AS kategori,
+                kategori_pengeluaran.badge_class,
+                kategori_pengeluaran.icon,
                 penanggung_jawab.nama as nama_pj
             ')
+            ->join('kategori_pengeluaran', 'kategori_pengeluaran.id = pengeluaran.kategori_pengeluaran_id')
             ->join('penanggung_jawab', 'penanggung_jawab.id = pengeluaran.pj_id', 'left');
 
         if ($bulan) $builder->where('pengeluaran.bulan', $bulan);
