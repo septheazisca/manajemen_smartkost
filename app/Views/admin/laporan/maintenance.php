@@ -107,16 +107,8 @@
                             <?= $m['biaya'] ? 'Rp ' . number_format($m['biaya'], 0, ',', '.') : '<span class="text-muted fw-normal">-</span>' ?>
                         </td>
                         <td>
-                            <?php
-                            $badge = match ($m['status']) {
-                                'menunggu' => 'bg-warning',
-                                'proses'   => 'bg-info',
-                                'selesai'  => 'bg-success',
-                                default    => 'bg-secondary',
-                            };
-                            ?>
-                            <span class="badge <?= $badge ?> text-uppercase" style="font-size: 0.7rem; letter-spacing: 0.5px;">
-                                <?= ucfirst($m['status']) ?>
+                            <span class="badge bg-<?= esc($m['badge_class']) ?>">
+                                <i class="bi <?= esc($m['icon']) ?> me-1"></i><?= esc(ucwords($m['status'])) ?>
                             </span>
                         </td>
                         <td class="small">

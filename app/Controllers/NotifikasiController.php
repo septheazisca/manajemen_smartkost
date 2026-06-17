@@ -15,10 +15,7 @@ class NotifikasiController extends BaseController
     protected $penyewaModel;
     protected $tagihanModel;
     protected $userModel;
-
-    // Token Fonnte diambil dari file .env agar tidak hardcode di kode
-    // Lebih aman karena file .env tidak ikut ke git repository
-    protected $fonnteToken;
+    protected $fonnteService;
 
     public function __construct()
     {
@@ -26,7 +23,7 @@ class NotifikasiController extends BaseController
         $this->penyewaModel       = new PenyewaModel();
         $this->tagihanModel       = new TagihanModel();
         $this->userModel          = new UserModel();
-        $this->fonnteToken        = env('FONNTE_TOKEN');
+        $this->fonnteService      = new \App\Libraries\FonnteService();
     }
 
     // Tampilkan halaman notifikasi beserta log 
@@ -80,7 +77,7 @@ class NotifikasiController extends BaseController
         $gagal    = 0;
 
         foreach ($penyewaList as $penyewa) {
-            $success = $this->kirimDanCatat($penyewa['user_id'], $penyewa['phone'], $pesan, 'custom');
+            $success = $this->fonnteService->sendAndLog($penyewa['user_id'], $penyewa['phone'], $pesan, 'custom');
             $success ? $berhasil++ : $gagal++;
         }
 
@@ -107,7 +104,12 @@ class NotifikasiController extends BaseController
             ->join('kamar', 'kamar.id = penyewa.kamar_id')
             ->where('tagihan.bulan', $bulan)
             ->where('tagihan.tahun', $tahun)
-            ->whereIn('tagihan.status', ['pending', 'menunggak'])
+            ->whereIn('tagihan.status_tagihan_id', [1, 2]) // pending or waiting confirmation (or menunggak status lookup ID)
+            // Wait, we need to check the IDs of pending/menunggak from status_tagihan.
+            // In the previous migration: 1 is pending, 2 is menunggu_konfirmasi, 3 is lunas, 4 is menunggak.
+            // Let's make sure we retrieve status_tagihan.nama_status In ('pending', 'menunggak') or use the new foreign key IDs: 1 (pending) and 4 (menunggak)
+            ->join('status_tagihan', 'status_tagihan.id = tagihan.status_tagihan_id')
+            ->whereIn('status_tagihan.nama_status', ['pending', 'menunggak'])
             ->findAll();
 
         if (empty($tagihanBelumLunas)) {
@@ -135,7 +137,7 @@ class NotifikasiController extends BaseController
             $pesan .= "Mohon segera lakukan pembayaran dan upload bukti transfer di aplikasi SmarKost.\n\n";
             $pesan .= "Terima kasih 🙏";
 
-            $success = $this->kirimDanCatat($tagihan['user_id'], $tagihan['phone'], $pesan, 'tagihan');
+            $success = $this->fonnteService->sendAndLog($tagihan['user_id'], $tagihan['phone'], $pesan, 'tagihan');
             $success ? $berhasil++ : $gagal++;
         }
 
@@ -174,7 +176,7 @@ class NotifikasiController extends BaseController
             $pesan .= "Mohon segera hubungi admin atau lakukan pembayaran secepatnya.\n\n";
             $pesan .= "Terima kasih 🙏";
 
-            $success = $this->kirimDanCatat($tagihan['user_id'], $tagihan['phone'], $pesan, 'tunggakan');
+            $success = $this->fonnteService->sendAndLog($tagihan['user_id'], $tagihan['phone'], $pesan, 'tunggakan');
             $success ? $berhasil++ : $gagal++;
         }
 
@@ -197,88 +199,6 @@ class NotifikasiController extends BaseController
             ->findAll();
 
         return view('admin/notifikasi/log', $data);
-    }
-
-    // Helper private: Kirim WhatsApp lalu otomatis simpan ke tabel log
-    private function kirimDanCatat($userId, $noHp, $pesan, $jenis): bool
-    {
-        $hasil = $this->kirimWA($noHp, $pesan);
-
-        $this->notifikasiLogModel->save([
-            'user_id'         => $userId,
-            'no_hp'           => $noHp,
-            'pesan'           => $pesan,
-            'jenis'           => $jenis,
-            'status_kirim'    => $hasil['success'] ? 'terkirim' : 'gagal',
-            'response_fonnte' => json_encode($hasil),
-            'sent_at'         => date('Y-m-d H:i:s'),
-        ]);
-
-        return $hasil['success'];
-    }
-
-    // Helper private: kirim pesan WhatsApp via Fonnte API menggunakan cURL
-    // Return array berisi status berhasil/gagal dan response dari Fonnte
-    private function kirimWA(string $noHp, string $pesan): array
-    {
-        // Format nomor HP ke format internasional 62xxx sebelum dikirim
-        $noHp = $this->formatNoHp($noHp);
-
-        $curl = curl_init();
-
-        curl_setopt_array($curl, [
-            CURLOPT_URL            => 'https://api.fonnte.com/send',
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST           => true,
-            CURLOPT_TIMEOUT        => 30,         // batas waktu tunggu response
-            CURLOPT_CONNECTTIMEOUT => 10,         // batas waktu koneksi
-            CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_SSL_VERIFYHOST => false,
-            CURLOPT_POSTFIELDS     => [
-                'target'  => $noHp,
-                'message' => $pesan,
-            ],
-            CURLOPT_HTTPHEADER     => [
-                'Authorization: ' . $this->fonnteToken,
-            ],
-        ]);
-
-        $response = curl_exec($curl);
-        $error    = curl_error($curl);
-        curl_close($curl);
-
-        // Log response untuk memudahkan debugging jika ada masalah pengiriman
-        // log_message('debug', 'Fonnte raw response: ' . $response);
-        // log_message('debug', 'Fonnte curl error: ' . $error);
-
-        if ($error) {
-            return ['success' => false, 'message' => $error];
-        }
-
-        $result = json_decode($response, true);
-
-        return [
-            // Fonnte kadang return status true atau string 'true', keduanya ditangani
-            'success'  => isset($result['status']) && ($result['status'] === true || $result['status'] === 'true'),
-            'message'  => $result['reason'] ?? $result['message'] ?? 'OK',
-            'response' => $result,
-        ];
-    }
-
-    // Helper private: ubah nomor HP ke format internasional 62xxx
-    // Contoh: 08123456789 → 628123456789
-    private function formatNoHp(string $noHp): string
-    {
-        // Hapus semua karakter selain angka (strip spasi, strip, dll)
-        $noHp = preg_replace('/\D/', '', $noHp);
-
-        if (str_starts_with($noHp, '0')) {
-            $noHp = '62' . substr($noHp, 1);
-        } elseif (!str_starts_with($noHp, '62')) {
-            $noHp = '62' . $noHp;
-        }
-
-        return $noHp;
     }
 
 

@@ -116,31 +116,25 @@
                             <?php
                             $bulanList = ['01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => 'April', '05' => 'Mei', '06' => 'Juni', '07' => 'Juli', '08' => 'Agustus', '09' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Desember'];
                             foreach ($tagihan_aktif as $t):
-                                $statusData = match ($t['status']) {
-                                    'pending'             => ['class' => 'bg-warning-subtle text-warning border-warning', 'label' => 'Pending'],
-                                    'menunggu_konfirmasi' => ['class' => 'bg-info-subtle text-info border-info',       'label' => 'Menunggu Konfirmasi'],
-                                    'menunggak'           => ['class' => 'bg-danger-subtle text-danger border-danger',   'label' => 'Menunggak'],
-                                    default               => ['class' => 'bg-secondary-subtle text-secondary border-secondary', 'label' => $t['status']],
-                                };
                             ?>
                                 <tr class="align-middle">
-                                    <td class="fw-bold">
-                                        <?= $bulanList[str_pad($t['bulan'], 2, '0', STR_PAD_LEFT)] ?? $t['bulan'] ?> <?= $t['tahun'] ?>
-                                    </td>
-                                    <td>
-                                        <span class="text-primary fw-bold">Rp <?= number_format($t['jumlah'] + $t['nominal_unik'], 0, ',', '.') ?></span>
-                                        <div class="text-muted" style="font-size: 10px;">Inc. Kode Unik</div>
-                                    </td>
-                                    <td>
-                                        <span class="<?= (strtotime($t['jatuh_tempo']) < time()) ? 'text-danger fw-bold' : '' ?>">
-                                            <?= date('d M Y', strtotime($t['jatuh_tempo'])) ?>
-                                        </span>
-                                    </td>
-                                    <td class="text-center">
-                                        <span class="badge <?= $statusData['class'] ?> border px-3 py-2 fw-normal">
-                                            <?= $statusData['label'] ?>
-                                        </span>
-                                    </td>
+                                     <td class="fw-bold">
+                                         <?= $bulanList[str_pad($t['bulan'], 2, '0', STR_PAD_LEFT)] ?? $t['bulan'] ?> <?= $t['tahun'] ?>
+                                     </td>
+                                     <td>
+                                         <span class="text-primary fw-bold">Rp <?= number_format($t['jumlah'] + $t['nominal_unik'], 0, ',', '.') ?></span>
+                                         <div class="text-muted" style="font-size: 10px;">Inc. Kode Unik</div>
+                                     </td>
+                                     <td>
+                                         <span class="<?= (strtotime($t['jatuh_tempo']) < time()) ? 'text-danger fw-bold' : '' ?>">
+                                             <?= date('d M Y', strtotime($t['jatuh_tempo'])) ?>
+                                         </span>
+                                     </td>
+                                     <td class="text-center">
+                                         <span class="badge <?= esc($t['badge_class']) ?>">
+                                             <i class="bi <?= esc($t['icon']) ?> me-1"></i><?= esc(ucwords(str_replace('_', ' ', $t['status']))) ?>
+                                         </span>
+                                     </td>
                                     <td class="text-center">
                                         <?php if ($t['status'] === 'pending' || $t['status'] === 'menunggak'): ?>
                                             <a href="/tenant/tagihan" class="btn btn-primary-custom btn-sm shadow-sm" style="font-size: 11px; padding: 4px 10px;">

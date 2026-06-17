@@ -48,7 +48,7 @@ class DashboardController extends BaseController
             $total = $pembayaranModel
                 ->select('SUM(jumlah_bayar) as total')
                 ->join('tagihan', 'tagihan.id = pembayaran.tagihan_id')
-                ->where('pembayaran.status', 'approved')
+                ->where('pembayaran.status_pembayaran_id', 2)
                 ->where('tagihan.bulan', $b)
                 ->where('tagihan.tahun', $y)
                 ->first()['total'] ?? 0;
@@ -71,12 +71,12 @@ class DashboardController extends BaseController
 
         // Penyewa yang paling sering menunggak
         $seringMenunggak = $tagihanModel
-            ->select('tagihan.penyewa_id, users.name as nama_penyewa, kamar.nomor_kamar, SUM(tagihan.total_tagihan) as jumlah_tunggakan, COUNT(tagihan.id) as bulan_menunggak')
+            ->select('tagihan.penyewa_id, users.name as name, kamar.nomor_kamar, SUM(tagihan.jumlah + tagihan.nominal_unik) as jumlah_tunggakan, COUNT(tagihan.id) as bulan_menunggak')
             ->join('penyewa', 'penyewa.id = tagihan.penyewa_id')
             ->join('users', 'users.id = penyewa.user_id')
             ->join('kamar', 'kamar.id = penyewa.kamar_id')
             ->where('tagihan.status_tagihan_id', 4)
-            ->groupBy('tagihan.penyewa_id')
+            ->groupBy('tagihan.penyewa_id, users.name, kamar.nomor_kamar')
             ->orderBy('jumlah_tunggakan', 'DESC')
             ->findAll(5);
 
@@ -169,9 +169,11 @@ class DashboardController extends BaseController
 
         // Tagihan yang masih perlu dibayar atau menunggu konfirmasi
         $data['tagihan_aktif']   = $tagihanModel
+            ->select('tagihan.*, status_tagihan.nama_status AS status, status_tagihan.badge_class, status_tagihan.icon')
+            ->join('status_tagihan', 'status_tagihan.id = tagihan.status_tagihan_id')
             ->where('penyewa_id', $penyewa['id'])
             ->whereIn('status_tagihan_id', [1, 2, 4])
-            ->orderBy('created_at', 'DESC')
+            ->orderBy('tagihan.created_at', 'DESC')
             ->findAll();
 
         // Hitung berapa tagihan yang sudah lunas (untuk info di dashboard)

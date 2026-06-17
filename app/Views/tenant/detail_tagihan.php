@@ -3,9 +3,9 @@
 
 <!-- Breadcrumb -->
 <div class="breadcrumb-custom mb-3">
-    <a href="/admin/dashboard"><i class="bi bi-house"></i> Dashboard</a>
+    <a href="/tenant/dashboard"><i class="bi bi-house"></i> Dashboard</a>
     <i class="bi bi-chevron-right"></i>
-    <a href="/admin/tagihan">Tagihan</a>
+    <a href="/tenant/tagihan">Tagihan Saya</a>
     <i class="bi bi-chevron-right"></i>
     <span>Detail Tagihan</span>
 </div>

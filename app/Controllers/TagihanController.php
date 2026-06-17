@@ -6,6 +6,8 @@ use App\Controllers\BaseController;
 use App\Models\PembayaranModel;
 use App\Models\PenyewaModel;
 use App\Models\TagihanModel;
+use App\Models\UserModel;
+use App\Libraries\FonnteService;
 use CodeIgniter\HTTP\ResponseInterface;
 
 class TagihanController extends BaseController
@@ -14,12 +16,16 @@ class TagihanController extends BaseController
     protected $tagihanModel;
     protected $pembayaranModel;
     protected $penyewaModel;
+    protected $userModel;
+    protected $fonnteService;
 
     public function __construct()
     {
         $this->tagihanModel    = new TagihanModel();
         $this->pembayaranModel = new PembayaranModel();
         $this->penyewaModel    = new PenyewaModel();
+        $this->userModel       = new UserModel();
+        $this->fonnteService   = new FonnteService();
     }
 
     // Tampilkan semua tagihan berdasarkan filter bulan & tahun
@@ -123,6 +129,22 @@ class TagihanController extends BaseController
             return redirect()->back()->with('error', 'Gagal approve pembayaran.');
         }
 
+        // Kirim WhatsApp trigger ke penyewa
+        $tagihanLengkap = $this->tagihanModel->getTagihanLengkapById($pembayaran['tagihan_id']);
+        if ($tagihanLengkap && !empty($tagihanLengkap['phone'])) {
+            $totalBayar = $tagihanLengkap['jumlah'] + $tagihanLengkap['nominal_unik'];
+            $namaBulan = $this->getListBulan()[$tagihanLengkap['bulan']] ?? $tagihanLengkap['bulan'];
+            $pesan = "Halo *{$tagihanLengkap['nama']}*,\n\n";
+            $pesan .= "🎉 Pembayaran sewa kost kamu telah *DISETUJUI* oleh Admin.\n\n";
+            $pesan .= "📋 *Detail Kamar & Periode*\n";
+            $pesan .= "Kamar  : {$tagihanLengkap['nama_kamar']}\n";
+            $pesan .= "Periode: {$namaBulan} {$tagihanLengkap['tahun']}\n";
+            $pesan .= "Jumlah : Rp " . number_format($totalBayar, 0, ',', '.') . "\n\n";
+            $pesan .= "Status tagihan kamu saat ini sudah *LUNAS*. Terima kasih atas pembayarannya! 🙏";
+
+            $this->fonnteService->sendAndLog($tagihanLengkap['user_id'], $tagihanLengkap['phone'], $pesan, 'approved');
+        }
+
         return redirect()->to('/admin/tagihan')
             ->with('success', 'Pembayaran berhasil dikonfirmasi. Tagihan lunas.');
     }
@@ -163,6 +185,22 @@ class TagihanController extends BaseController
             return redirect()->back()->with('error', 'Gagal menolak pembayaran.');
         }
 
+        // Kirim WhatsApp trigger ke penyewa
+        $tagihanLengkap = $this->tagihanModel->getTagihanLengkapById($pembayaran['tagihan_id']);
+        if ($tagihanLengkap && !empty($tagihanLengkap['phone'])) {
+            $totalBayar = $tagihanLengkap['jumlah'] + $tagihanLengkap['nominal_unik'];
+            $namaBulan = $this->getListBulan()[$tagihanLengkap['bulan']] ?? $tagihanLengkap['bulan'];
+            $pesan = "Halo *{$tagihanLengkap['nama']}*,\n\n";
+            $pesan .= "⚠️ Pembayaran sewa kost kamu *DITOLAK* oleh Admin.\n\n";
+            $pesan .= "📋 *Detail Penolakan*\n";
+            $pesan .= "Kamar            : {$tagihanLengkap['nama_kamar']}\n";
+            $pesan .= "Periode          : {$namaBulan} {$tagihanLengkap['tahun']}\n";
+            $pesan .= "Alasan Penolakan : *{$catatanAdmin}*\n\n";
+            $pesan .= "Mohon lakukan upload ulang bukti transfer yang valid melalui aplikasi SmartKost. Terima kasih. 🙏";
+
+            $this->fonnteService->sendAndLog($tagihanLengkap['user_id'], $tagihanLengkap['phone'], $pesan, 'ditolak');
+        }
+
         return redirect()->to('/admin/tagihan')
             ->with('success', 'Pembayaran ditolak. Penyewa perlu upload ulang bukti transfer.');
     }
@@ -182,6 +220,23 @@ class TagihanController extends BaseController
         }
 
         $this->tagihanModel->update($tagihanId, ['status_tagihan_id' => 4]); // 4 is menunggak
+
+        // Kirim WhatsApp trigger ke penyewa
+        $tagihanLengkap = $this->tagihanModel->getTagihanLengkapById($tagihanId);
+        
+        if ($tagihanLengkap && !empty($tagihanLengkap['phone'])) {
+            
+            $penyewa = $this->penyewaModel->find($tagihan['penyewa_id']);
+            $userId = $penyewa['user_id'] ?? null; 
+
+            $totalBayar = $tagihanLengkap['jumlah'] + $tagihanLengkap['nominal_unik'];
+            $namaBulan = $this->getListBulan()[$tagihanLengkap['bulan']] ?? $tagihanLengkap['bulan'];
+            $pesan = "Halo *{$tagihanLengkap['nama']}*,\n\n";
+            $pesan .= "⚠️ Status tagihan sewa kost kamu untuk periode *{$namaBulan} {$tagihanLengkap['tahun']}* telah diubah menjadi *MENUNGGAK*.\n\n";
+            $pesan .= "Mohon segera lakukan pembayaran sebesar *Rp " . number_format($totalBayar, 0, ',', '.') . "* dan upload bukti transfer melalui aplikasi SmartKost. Jika ada kendala, hubungi admin. Terima kasih. 🙏";
+
+            $this->fonnteService->sendAndLog($userId, $tagihanLengkap['phone'], $pesan, 'tunggakan');
+        }
 
         return redirect()->to('/admin/tagihan')
             ->with('success', 'Tagihan berhasil ditandai sebagai menunggak.');
@@ -250,6 +305,28 @@ class TagihanController extends BaseController
 
         if ($db->transStatus() === false) {
             return redirect()->back()->with('error', 'Gagal upload bukti transfer.');
+        }
+
+        // Kirim WhatsApp trigger ke admin
+        $admins = $this->userModel->where('role', 'admin')->where('is_active', 1)->findAll();
+        $tagihanLengkap = $this->tagihanModel->getTagihanLengkapById($tagihanId);
+        if ($tagihanLengkap && !empty($admins)) {
+            $totalBayar = $tagihanLengkap['jumlah'] + $tagihanLengkap['nominal_unik'];
+            $namaBulan = $this->getListBulan()[$tagihanLengkap['bulan']] ?? $tagihanLengkap['bulan'];
+
+            foreach ($admins as $adm) {
+                if (!empty($adm['phone'])) {
+                    $pesan = "Halo Admin *{$adm['name']}*,\n\n";
+                    $pesan .= "📥 Ada bukti pembayaran baru yang diupload oleh penyewa:\n\n";
+                    $pesan .= "*   Penyewa : {$tagihanLengkap['nama']}\n";
+                    $pesan .= "*   Kamar   : {$tagihanLengkap['nama_kamar']}\n";
+                    $pesan .= "*   Periode : {$namaBulan} {$tagihanLengkap['tahun']}\n";
+                    $pesan .= "*   Jumlah  : Rp " . number_format($totalBayar, 0, ',', '.') . "\n\n";
+                    $pesan .= "Mohon segera login ke aplikasi SmartKost untuk melakukan verifikasi. Terima kasih.";
+
+                    $this->fonnteService->sendAndLog($adm['id'], $adm['phone'], $pesan, 'upload_bukti');
+                }
+            }
         }
 
         return redirect()->to('/tenant/tagihan')
