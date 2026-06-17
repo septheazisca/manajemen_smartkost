@@ -4,193 +4,18 @@ namespace App\Controllers;
 
 use App\Controllers\BaseController;
 use App\Models\NotifikasiLogModel;
-use App\Models\PenyewaModel;
-use App\Models\TagihanModel;
-use App\Models\UserModel;
 
 class NotifikasiController extends BaseController
 {
-    // Semua model dideklarasikan sebagai property agar bisa dipakai di semua method
     protected $notifikasiLogModel;
-    protected $penyewaModel;
-    protected $tagihanModel;
-    protected $userModel;
-    protected $fonnteService;
 
     public function __construct()
     {
         $this->notifikasiLogModel = new NotifikasiLogModel();
-        $this->penyewaModel       = new PenyewaModel();
-        $this->tagihanModel       = new TagihanModel();
-        $this->userModel          = new UserModel();
-        $this->fonnteService      = new \App\Libraries\FonnteService();
     }
 
-    // Tampilkan halaman notifikasi beserta log 
-    // terbaru untuk referensi admin
+    // Tampilkan halaman log notifikasi WA
     public function index()
-    {
-        $data['penyewa'] = $this->penyewaModel->getPenyewaLengkap();
-        $data['log']     = $this->notifikasiLogModel
-            ->orderBy('created_at', 'DESC')
-            ->findAll();
-
-        return view('admin/notifikasi/index', $data);
-    }
-
-    // Admin kirim pesan bebas ke semua penyewa atau satu penyewa tertentu
-    public function kirimCustom()
-    {
-        $rules = [
-            'pesan'  => 'required|min_length[5]',
-            'target' => 'required|in_list[semua,individu]',
-        ];
-
-        if (!$this->validate($rules)) {
-            return redirect()->back()
-                ->withInput()
-                ->with('errors', $this->validator->getErrors());
-        }
-
-        $pesan  = $this->request->getPost('pesan');
-        $target = $this->request->getPost('target');
-
-        // Tentukan penerima berdasarkan target yang dipilih admin
-        if ($target === 'semua') {
-            $penyewaList = $this->penyewaModel->getPenyewaLengkap();
-        } else {
-            $userId = $this->request->getPost('user_id');
-            if (!$userId) {
-                return redirect()->back()
-                    ->withInput()
-                    ->with('error', 'Pilih penyewa yang dituju.');
-            }
-            $penyewa     = $this->penyewaModel->getPenyewaByUserId($userId);
-            $penyewaList = $penyewa ? [$penyewa] : [];
-        }
-
-        if (empty($penyewaList)) {
-            return redirect()->back()->with('error', 'Tidak ada penyewa yang ditemukan.');
-        }
-
-        $berhasil = 0;
-        $gagal    = 0;
-
-        foreach ($penyewaList as $penyewa) {
-            $success = $this->fonnteService->sendAndLog($penyewa['user_id'], $penyewa['phone'], $pesan, 'custom');
-            $success ? $berhasil++ : $gagal++;
-        }
-
-        $msg = "Notifikasi terkirim ke {$berhasil} penyewa.";
-        if ($gagal > 0) {
-            $msg .= " {$gagal} gagal terkirim.";
-        }
-
-        return redirect()->to('/admin/notifikasi')->with('success', $msg);
-    }
-
-    // Kirim reminder otomatis ke penyewa yang belum bayar tagihan di bulan tertentu
-    // Pesan berisi detail tagihan lengkap termasuk nominal unik untuk memudahkan transfer
-    public function kirimReminderTagihan()
-    {
-        $bulan = $this->request->getPost('bulan') ?? date('m');
-        $tahun = $this->request->getPost('tahun') ?? date('Y');
-
-        // Ambil tagihan yang statusnya masih pending atau menunggak
-        $tagihanBelumLunas = $this->tagihanModel
-            ->select('tagihan.*, users.name, users.phone, kamar.nomor_kamar, penyewa.user_id')
-            ->join('penyewa', 'penyewa.id = tagihan.penyewa_id')
-            ->join('users', 'users.id = penyewa.user_id')
-            ->join('kamar', 'kamar.id = penyewa.kamar_id')
-            ->where('tagihan.bulan', $bulan)
-            ->where('tagihan.tahun', $tahun)
-            ->whereIn('tagihan.status_tagihan_id', [1, 2]) // pending or waiting confirmation (or menunggak status lookup ID)
-            // Wait, we need to check the IDs of pending/menunggak from status_tagihan.
-            // In the previous migration: 1 is pending, 2 is menunggu_konfirmasi, 3 is lunas, 4 is menunggak.
-            // Let's make sure we retrieve status_tagihan.nama_status In ('pending', 'menunggak') or use the new foreign key IDs: 1 (pending) and 4 (menunggak)
-            ->join('status_tagihan', 'status_tagihan.id = tagihan.status_tagihan_id')
-            ->whereIn('status_tagihan.nama_status', ['pending', 'menunggak'])
-            ->findAll();
-
-        if (empty($tagihanBelumLunas)) {
-            return redirect()->back()
-                ->with('info', 'Semua penyewa sudah membayar tagihan bulan ini.');
-        }
-
-        $namaBulan = $this->getListBulan()[$bulan] ?? $bulan;
-        $berhasil  = 0;
-        $gagal     = 0;
-
-        foreach ($tagihanBelumLunas as $tagihan) {
-            $totalBayar = $tagihan['jumlah'] + $tagihan['nominal_unik'];
-
-            // Susun pesan dengan format yang mudah dibaca di WhatsApp
-            $pesan  = "Halo *{$tagihan['name']}*,\n\n";
-            $pesan .= "Ini adalah pengingat tagihan sewa kost kamu.\n\n";
-            $pesan .= "📋 *Detail Tagihan*\n";
-            $pesan .= "Kamar      : {$tagihan['nomor_kamar']}\n";
-            $pesan .= "Periode    : {$namaBulan} {$tahun}\n";
-            $pesan .= "Jumlah     : Rp " . number_format($tagihan['jumlah'], 0, ',', '.') . "\n";
-            $pesan .= "Kode unik  : Rp " . number_format($tagihan['nominal_unik'], 0, ',', '.') . "\n";
-            $pesan .= "Total      : Rp " . number_format($totalBayar, 0, ',', '.') . "\n";
-            $pesan .= "Jatuh tempo: " . date('d/m/Y', strtotime($tagihan['jatuh_tempo'])) . "\n\n";
-            $pesan .= "Mohon segera lakukan pembayaran dan upload bukti transfer di aplikasi SmarKost.\n\n";
-            $pesan .= "Terima kasih 🙏";
-
-            $success = $this->fonnteService->sendAndLog($tagihan['user_id'], $tagihan['phone'], $pesan, 'tagihan');
-            $success ? $berhasil++ : $gagal++;
-        }
-
-        $msg = "Reminder tagihan terkirim ke {$berhasil} penyewa.";
-        if ($gagal > 0) {
-            $msg .= " {$gagal} gagal terkirim.";
-        }
-
-        return redirect()->to('/admin/notifikasi')->with('success', $msg);
-    }
-
-    // Kirim peringatan khusus ke penyewa yang statusnya menunggak
-    // Berbeda dengan reminder tagihan yang bisa untuk semua yang belum bayar
-    public function kirimReminderTunggakan()
-    {
-        $menunggak = $this->tagihanModel->getMenunggak();
-
-        if (empty($menunggak)) {
-            return redirect()->back()
-                ->with('info', 'Tidak ada penyewa yang menunggak saat ini.');
-        }
-
-        $berhasil = 0;
-        $gagal    = 0;
-
-        foreach ($menunggak as $tagihan) {
-            $namaBulan  = $this->getListBulan()[$tagihan['bulan']] ?? $tagihan['bulan'];
-            $totalBayar = $tagihan['jumlah'] + $tagihan['nominal_unik'];
-
-            $pesan  = "Halo *{$tagihan['name']}*,\n\n";
-            $pesan .= "⚠️ *Pemberitahuan Tunggakan*\n\n";
-            $pesan .= "Kamu memiliki tagihan yang belum dibayar:\n\n";
-            $pesan .= "Kamar   : {$tagihan['nomor_kamar']}\n";
-            $pesan .= "Periode : {$namaBulan} {$tagihan['tahun']}\n";
-            $pesan .= "Total   : Rp " . number_format($totalBayar, 0, ',', '.') . "\n\n";
-            $pesan .= "Mohon segera hubungi admin atau lakukan pembayaran secepatnya.\n\n";
-            $pesan .= "Terima kasih 🙏";
-
-            $success = $this->fonnteService->sendAndLog($tagihan['user_id'], $tagihan['phone'], $pesan, 'tunggakan');
-            $success ? $berhasil++ : $gagal++;
-        }
-
-        $msg = "Notifikasi tunggakan terkirim ke {$berhasil} penyewa.";
-        if ($gagal > 0) {
-            $msg .= " {$gagal} gagal terkirim.";
-        }
-
-        return redirect()->to('/admin/notifikasi')->with('success', $msg);
-    }
-
-    // Tampilkan semua riwayat pengiriman notifikasi
-    // Join ke tabel users untuk dapat nama penyewa
-    public function log()
     {
         $data['log'] = $this->notifikasiLogModel
             ->select('notifikasi_log.*, users.name')
@@ -198,8 +23,6 @@ class NotifikasiController extends BaseController
             ->orderBy('notifikasi_log.created_at', 'DESC')
             ->findAll();
 
-        return view('admin/notifikasi/log', $data);
+        return view('admin/notifikasi/index', $data);
     }
-
-
 }

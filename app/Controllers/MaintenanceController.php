@@ -18,6 +18,8 @@ class MaintenanceController extends BaseController
     protected $pjModel;
     protected $pengeluaranModel;
     protected $kamarModel;
+    protected $userModel;
+    protected $fonnteService;
 
     public function __construct()
     {
@@ -26,6 +28,20 @@ class MaintenanceController extends BaseController
         $this->pjModel          = new PenanggungJawabModel();
         $this->pengeluaranModel = new PengeluaranModel();
         $this->kamarModel       = new KamarModel();
+        $this->userModel        = new \App\Models\UserModel();
+        $this->fonnteService    = new \App\Libraries\FonnteService();
+    }
+
+    // Helper untuk mengambil detail maintenance buat keperluan notifikasi
+    private function getMaintenanceDetailForNotif($id)
+    {
+        return $this->maintenanceModel
+            ->select('maintenance.*, penyewa.user_id as penyewa_user_id, users.name as nama_penyewa, users.phone as phone_penyewa, kamar.nomor_kamar')
+            ->join('penyewa', 'penyewa.id = maintenance.penyewa_id', 'left')
+            ->join('users', 'users.id = penyewa.user_id', 'left')
+            ->join('kamar', 'kamar.id = maintenance.kamar_id', 'left')
+            ->where('maintenance.id', $id)
+            ->first();
     }
 
     // Tampilkan semua laporan maintenance ke admin beserta daftar PJ aktif untuk form assign
@@ -57,6 +73,28 @@ class MaintenanceController extends BaseController
             'status_maintenance_id' => 2, // 2 is proses
             'assigned_at'           => date('Y-m-d H:i:s'),
         ]);
+
+        // Notifikasi ke PJ yang ditugaskan dan Penyewa
+        $pj = $this->pjModel->select('penanggung_jawab.*, users.id as user_id')->join('users', 'users.id = penanggung_jawab.user_id', 'left')->where('penanggung_jawab.id', $pjId)->first();
+        $detail = $this->getMaintenanceDetailForNotif($id);
+
+        if ($pj && !empty($pj['phone']) && $detail) {
+            $pesanPj = "🛠️ *Tugas Maintenance Baru*\n\n";
+            $pesanPj .= "Admin telah menugaskan kamu untuk laporan kerusakan berikut:\n";
+            $pesanPj .= "Kamar: {$detail['nomor_kamar']}\n";
+            $pesanPj .= "Keluhan: {$detail['deskripsi']}\n\n";
+            $pesanPj .= "Harap segera dikerjakan dan update status di aplikasi SmartKost jika sudah selesai.";
+
+            $this->fonnteService->sendAndLog($pj['user_id'], $pj['phone'], $pesanPj, 'maintenance');
+        }
+
+        if ($detail && !empty($detail['phone_penyewa'])) {
+            $pjNama = $pj['nama'] ?? 'Penanggung Jawab';
+            $pesanPenyewa = "Halo *{$detail['nama_penyewa']}*,\n\n";
+            $pesanPenyewa .= "Laporan kerusakan kamu untuk Kamar *{$detail['nomor_kamar']}* sedang ditugaskan ke teknisi (*{$pjNama}*) dan akan segera dikerjakan.\n\n";
+            $pesanPenyewa .= "Terima kasih atas kesabarannya 🙏";
+            $this->fonnteService->sendAndLog($detail['penyewa_user_id'], $detail['phone_penyewa'], $pesanPenyewa, 'maintenance');
+        }
 
         return redirect()->to('/admin/maintenance')
             ->with('success', 'Laporan berhasil di-assign ke penanggung jawab.');
@@ -92,6 +130,7 @@ class MaintenanceController extends BaseController
         }
 
         $biaya = $this->request->getPost('biaya');
+        $catatanPj = $this->request->getPost('catatan_pj');
 
         $db = \Config\Database::connect();
         $db->transStart();
@@ -99,7 +138,7 @@ class MaintenanceController extends BaseController
         // 1. Update status maintenance jadi selesai
         $this->maintenanceModel->update($id, [
             'status_maintenance_id' => 3, // 3 is selesai
-            'catatan_pj'            => $this->request->getPost('catatan_pj'),
+            'catatan_pj'            => $catatanPj,
             'biaya'                 => $biaya,
             'selesai_at'            => date('Y-m-d H:i:s'),
         ]);
@@ -122,6 +161,30 @@ class MaintenanceController extends BaseController
 
         if ($db->transStatus() === false) {
             return redirect()->back()->with('error', 'Gagal update status maintenance.');
+        }
+
+        // Notifikasi ke Admin & Penyewa
+        $detail = $this->getMaintenanceDetailForNotif($id);
+        $pjNama = $pj['nama'] ?? 'Penanggung Jawab';
+
+        $admins = $this->userModel->where('role', 'admin')->where('is_active', 1)->findAll();
+        $pesanAdmin = "✅ *Perbaikan Selesai*\n\n";
+        $pesanAdmin .= "Laporan kerusakan Kamar *{$detail['nomor_kamar']}* telah diselesaikan oleh *{$pjNama}*.\n";
+        $pesanAdmin .= "Catatan PJ: {$catatanPj}\n";
+        $pesanAdmin .= "Biaya: Rp " . number_format($biaya, 0, ',', '.');
+        
+        foreach ($admins as $admin) {
+            if (!empty($admin['phone'])) {
+                $this->fonnteService->sendAndLog($admin['id'], $admin['phone'], $pesanAdmin, 'maintenance');
+            }
+        }
+
+        if ($detail && !empty($detail['phone_penyewa'])) {
+            $pesanPenyewa = "Halo *{$detail['nama_penyewa']}*,\n\n";
+            $pesanPenyewa .= "Kabar gembira! Laporan kerusakan kamu untuk Kamar *{$detail['nomor_kamar']}* telah selesai diperbaiki oleh tim kami (*{$pjNama}*).\n\n";
+            $pesanPenyewa .= "Catatan Perbaikan: {$catatanPj}\n\n";
+            $pesanPenyewa .= "Terima kasih atas kesabarannya 🙏";
+            $this->fonnteService->sendAndLog($detail['penyewa_user_id'], $detail['phone_penyewa'], $pesanPenyewa, 'maintenance');
         }
 
         return redirect()->to('/pj/maintenance')
@@ -172,14 +235,42 @@ class MaintenanceController extends BaseController
             $foto->move(FCPATH . 'uploads/maintenance', $fotoName);
         }
 
+        $deskripsi = $this->request->getPost('deskripsi');
+
         // Status awal selalu 'menunggu', menunggu admin assign ke PJ
         $this->maintenanceModel->save([
             'penyewa_id'            => $penyewa['id'],
             'kamar_id'              => $penyewa['kamar_id'],
-            'deskripsi'             => $this->request->getPost('deskripsi'),
+            'deskripsi'             => $deskripsi,
             'foto'                  => $fotoName,
             'status_maintenance_id' => 1, // 1 is menunggu
         ]);
+
+        // Notifikasi ke Admin & PJ
+        $admins = $this->userModel->where('role', 'admin')->where('is_active', 1)->findAll();
+        $pjs = $this->pjModel->select('penanggung_jawab.id, penanggung_jawab.phone, users.id as user_id')
+                    ->join('users', 'users.id = penanggung_jawab.user_id', 'left')
+                    ->where('penanggung_jawab.is_active', 1)->findAll();
+        
+        $kamar = $this->kamarModel->find($penyewa['kamar_id']);
+        $nomorKamar = $kamar ? $kamar['nomor_kamar'] : '-';
+
+        $pesanAdminPj = "🚨 *Laporan Kerusakan Baru*\n\n";
+        $pesanAdminPj .= "Penyewa: {$penyewa['nama']}\n";
+        $pesanAdminPj .= "Kamar: {$nomorKamar}\n";
+        $pesanAdminPj .= "Keluhan: {$deskripsi}\n\n";
+        $pesanAdminPj .= "Mohon segera ditindaklanjuti. Cek aplikasi SmartKost untuk detailnya.";
+
+        foreach ($admins as $admin) {
+            if (!empty($admin['phone'])) {
+                $this->fonnteService->sendAndLog($admin['id'], $admin['phone'], $pesanAdminPj, 'maintenance');
+            }
+        }
+        foreach ($pjs as $pjData) {
+            if (!empty($pjData['phone'])) {
+                $this->fonnteService->sendAndLog($pjData['user_id'], $pjData['phone'], $pesanAdminPj, 'maintenance');
+            }
+        }
 
         return redirect()->to('/tenant/maintenance')
             ->with('success', 'Laporan kerusakan berhasil dikirim. Menunggu tindakan admin.');
@@ -292,6 +383,27 @@ class MaintenanceController extends BaseController
             'status_maintenance_id' => 2, // 2 is proses
             'assigned_at'           => date('Y-m-d H:i:s'),
         ]);
+
+        // Notifikasi ke Admin & Penyewa
+        $detail = $this->getMaintenanceDetailForNotif($id);
+        $pjNama = $pj['nama'] ?? 'Penanggung Jawab';
+
+        $admins = $this->userModel->where('role', 'admin')->where('is_active', 1)->findAll();
+        $pesanAdmin = "🔧 *Laporan Diambil PJ*\n\n";
+        $pesanAdmin .= "Laporan kerusakan Kamar *{$detail['nomor_kamar']}* saat ini sedang ditangani oleh *{$pjNama}*.";
+        
+        foreach ($admins as $admin) {
+            if (!empty($admin['phone'])) {
+                $this->fonnteService->sendAndLog($admin['id'], $admin['phone'], $pesanAdmin, 'maintenance');
+            }
+        }
+
+        if ($detail && !empty($detail['phone_penyewa'])) {
+            $pesanPenyewa = "Halo *{$detail['nama_penyewa']}*,\n\n";
+            $pesanPenyewa .= "Laporan kerusakan kamu untuk Kamar *{$detail['nomor_kamar']}* saat ini sedang dikerjakan oleh teknisi kami (*{$pjNama}*).\n\n";
+            $pesanPenyewa .= "Mohon ditunggu sampai proses perbaikan selesai. Terima kasih 🙏";
+            $this->fonnteService->sendAndLog($detail['penyewa_user_id'], $detail['phone_penyewa'], $pesanPenyewa, 'maintenance');
+        }
 
         return redirect()->to('/pj/maintenance')
             ->with('success', 'Laporan berhasil diambil, segera kerjakan.');

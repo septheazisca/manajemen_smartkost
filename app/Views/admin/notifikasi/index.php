@@ -5,12 +5,9 @@
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
-            <h4 class="fw-bold mb-0">WhatsApp Center</h4>
-            <p class="text-muted small mb-0">Kelola pengiriman notifikasi dan pengingat otomatis</p>
+            <h4 class="fw-bold mb-0">Riwayat Notifikasi WhatsApp</h4>
+            <p class="text-muted small mb-0">Pantau semua aktivitas pengiriman pesan WhatsApp oleh sistem</p>
         </div>
-        <a href="/admin/notifikasi/log" class="btn btn-light border p-2 px-3">
-            <i class="bi bi-clock-history me-1"></i> Riwayat Pengiriman
-        </a>
     </div>
 
     <!-- Alert Messages -->
@@ -21,123 +18,138 @@
         <div class="alert alert-danger border-0 shadow-sm mb-4"><?= session()->getFlashdata('error') ?></div>
     <?php endif; ?>
 
-    <div class="row">
-        <!-- Kolom Kiri: Pesan Custom & Info Umum -->
-        <div class="col-lg-7">
-            <!-- Kirim Pesan Custom -->
-            <div class="table-card mb-4">
-                <div class="table-card-header bg-white border-bottom p-3">
-                    <div class="fw-bold"><i class="bi bi-chat-dots-fill text-primary me-2"></i>Kirim Pesan Custom</div>
-                </div>
-                <div class="p-4">
-                    <form action="/admin/notifikasi/kirim-custom" method="post">
-                        <?= csrf_field() ?>
-                        <div class="row g-3">
-                            <div class="col-md-12">
-                                <label class="form-label small fw-bold">Target Penerima</label>
-                                <select name="target" class="form-select border-0 bg-light" id="selectTarget">
-                                    <option value="semua">Semua Penyewa</option>
-                                    <option value="individu">Individu Spesifik</option>
-                                </select>
-                            </div>
-                            <div class="col-md-12" id="selectPenyewaWrap" style="display:none;">
-                                <label class="form-label small fw-bold">Pilih Penyewa</label>
-                                <select name="user_id" class="form-select border-0 bg-light">
-                                    <option value="">-- Cari Nama/Kamar --</option>
-                                    <?php foreach ($penyewa as $p): ?>
-                                        <option value="<?= $p['user_id'] ?>">
-                                            <?= esc($p['nama'] ?? $p['name'] ?? '-') ?> (Kamar <?= esc($p['nomor_kamar'] ?? '-') ?>)
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label small fw-bold">Isi Pesan WhatsApp</label>
-                                <textarea name="pesan" class="form-control border-0 bg-light" rows="5" required placeholder="Tulis pesan Anda di sini..."><?= old('pesan') ?></textarea>
-                            </div>
-                            <div class="col-12">
-                                <button type="submit" class="btn-primary-custom w-100 py-2">
-                                    <i class="bi bi-send me-1"></i> Kirim Sekarang
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <!-- Kolom Kanan: Pengingat (Reminder) -->
-        <div class="col-lg-5">
-            <!-- Reminder Tagihan -->
-            <div class="table-card mb-4 border-start border-warning border-2">
-                <div class="p-4">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="bg-warning bg-opacity-10 p-2 rounded me-3">
-                            <i class="bi bi-bell-fill text-warning fs-4"></i>
-                        </div>
-                        <div>
-                            <h6 class="fw-bold mb-0">Reminder Pembayaran</h6>
-                            <small class="text-muted">Tagihan bulan berjalan</small>
-                        </div>
-                    </div>
-                    <form action="/admin/notifikasi/kirim-reminder-tagihan" method="post">
-                        <?= csrf_field() ?>
-                        <div class="row g-2 mb-3">
-                            <div class="col-7">
-                                <select name="bulan" class="form-select border-0 bg-light">
+    <div class="table-card shadow-sm">
+        <div class="p-4">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle" id="tableLog" style="width:100%">
+                    <thead>
+                        <tr>
+                            <th class="text-muted small" style="width: 50px;">#</th>
+                            <th class="text-muted small">PENERIMA</th>
+                            <th class="text-muted small">JENIS</th>
+                            <th class="text-muted small">ISI PESAN</th>
+                            <th class="text-muted small text-center">STATUS</th>
+                            <th class="text-muted small">WAKTU KIRIM</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($log as $i => $l): ?>
+                            <tr>
+                                <td class="text-muted"><?= $i + 1 ?></td>
+                                <td>
+                                    <div class="fw-bold text-dark"><?= esc($l['name'] ?? 'Guest/Unknown') ?></div>
+                                    <div class="text-muted" style="font-size: 0.75rem;"><i class="bi bi-whatsapp me-1"></i><?= esc($l['no_hp']) ?></div>
+                                </td>
+                                <td>
                                     <?php
-                                    $listBulan = ['01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => 'April', '05' => 'Mei', '06' => 'Juni', '07' => 'Juli', '08' => 'Agustus', '09' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Desember'];
-                                    foreach ($listBulan as $val => $label):
+                                    switch ($l['jenis']) {
+                                        case 'approved':
+                                            $badgeClass = 'bg-success bg-opacity-10 text-success border border-success border-opacity-25';
+                                            $badgeLabel = 'PEMBAYARAN DISETUJUI';
+                                            break;
+                                        case 'ditolak':
+                                            $badgeClass = 'bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25';
+                                            $badgeLabel = 'PEMBAYARAN DITOLAK';
+                                            break;
+                                        case 'tunggakan':
+                                            $badgeClass = 'bg-warning bg-opacity-10 text-warning border border-warning-subtle';
+                                            $badgeLabel = 'REMINDER TUNGGAKAN';
+                                            break;
+                                        case 'upload_bukti':
+                                            $badgeClass = 'bg-info bg-opacity-10 text-info border border-info border-opacity-25';
+                                            $badgeLabel = 'BUKTI PEMBAYARAN MASUK';
+                                            break;
+                                        case 'tagihan':
+                                            $badgeClass = 'bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25';
+                                            $badgeLabel = 'REMINDER TAGIHAN';
+                                            break;
+                                        case 'custom':
+                                            $badgeClass = 'bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25';
+                                            $badgeLabel = 'PESAN CUSTOM';
+                                            break;
+                                        case 'maintenance':
+                                            $badgeClass = 'bg-dark bg-opacity-10 text-dark border border-dark border-opacity-25';
+                                            $badgeLabel = 'INFO MAINTENANCE';
+                                            break;
+                                        default:
+                                            $badgeClass = 'bg-light text-dark border border-secondary border-opacity-10';
+                                            $badgeLabel = strtoupper($l['jenis'] ?: 'LAINNYA');
+                                            break;
+                                    }
                                     ?>
-                                        <option value="<?= $val ?>" <?= date('m') == $val ? 'selected' : '' ?>><?= $label ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="col-5">
-                                <input type="number" name="tahun" class="form-control border-0 bg-light" value="<?= date('Y') ?>">
-                            </div>
-                        </div>
-                        <button type="submit" class="btn btn-warning w-100 fw-bold py-2" onclick="return confirm('Kirim reminder tagihan?')">
-                            Kirim Reminder
-                        </button>
-                    </form>
-                </div>
-            </div>
-
-            <!-- Reminder Tunggakan -->
-            <div class="table-card mb-4 border-start border-danger border-2">
-                <div class="p-4">
-                    <div class="d-flex align-items-center mb-3">
-                        <div class="bg-danger bg-opacity-10 p-2 rounded me-3">
-                            <i class="bi bi-exclamation-triangle-fill text-danger fs-4"></i>
-                        </div>
-                        <div>
-                            <h6 class="fw-bold mb-0">Peringatan Tunggakan</h6>
-                            <small class="text-muted">Untuk status 'Menunggak'</small>
-                        </div>
-                    </div>
-                    <p class="small text-muted mb-3">Kirim peringatan keras untuk penyewa yang melewati batas waktu pembayaran.</p>
-                    <form action="/admin/notifikasi/kirim-reminder-tunggakan" method="post">
-                        <?= csrf_field() ?>
-                        <button type="submit" class="btn btn-danger w-100 fw-bold py-2 shadow-sm" onclick="return confirm('Kirim peringatan tunggakan?')">
-                            Tagih Sekarang
-                        </button>
-                    </form>
-                </div>
+                                    <span class="badge <?= $badgeClass ?> p-2 px-3 rounded-pill" style="font-size: 0.7rem; font-weight: 600; letter-spacing: 0.5px;">
+                                        <?= esc($badgeLabel) ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="text-truncate text-muted" style="max-width: 250px; font-size: 0.85rem;" title="<?= esc($l['pesan']) ?>">
+                                        <?= esc($l['pesan']) ?>
+                                    </div>
+                                </td>
+                                <td class="text-center">
+                                    <?php if ($l['status_kirim'] === 'terkirim'): ?>
+                                        <span class="text-success small fw-bold">
+                                            <i class="bi bi-check2-all me-1"></i> Terkirim
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="text-danger small fw-bold">
+                                            <i class="bi bi-exclamation-circle me-1"></i> Gagal
+                                        </span>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <div class="text-dark small fw-medium"><?= date('d M Y', strtotime($l['sent_at'])) ?></div>
+                                    <div class="text-muted small" style="font-size: 0.7rem;"><?= date('H:i', strtotime($l['sent_at'])) ?> WIB</div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
 </div>
 
+<style>
+    /* Styling khusus agar DataTable terlihat modern */
+    .dataTables_wrapper .dataTables_paginate .paginate_button.current {
+        background: #0d6efd !important;
+        color: white !important;
+        border-radius: 5px;
+        border: none;
+    }
+
+    .dataTables_wrapper .dataTables_filter input {
+        border-radius: 8px;
+        padding: 5px 15px;
+        border: 1px solid #dee2e6;
+        background-color: #f8f9fa;
+    }
+
+    .table thead th {
+        letter-spacing: 0.5px;
+        border-bottom: 2px solid #f8f9fa;
+    }
+</style>
+
 <script>
-    document.getElementById('selectTarget').addEventListener('change', function() {
-        const wrap = document.getElementById('selectPenyewaWrap');
-        if (this.value === 'individu') {
-            wrap.style.display = 'block';
-            this.parentElement.classList.replace('col-md-5', 'col-md-5'); // Reset grid jika perlu
-        } else {
-            wrap.style.display = 'none';
-        }
+    $(document).ready(function() {
+        $('#tableLog').DataTable({
+            order: [
+                [5, 'desc']
+            ], // Berdasarkan Waktu Kirim (kolom index ke-5)
+            pageLength: 10,
+            language: {
+                search: "_INPUT_",
+                searchPlaceholder: "Cari riwayat...",
+                lengthMenu: "_MENU_ data per halaman",
+                info: "Menampilkan _START_ sampai _END_ dari _TOTAL_ log",
+                paginate: {
+                    previous: "<i class='bi bi-chevron-left'></i>",
+                    next: "<i class='bi bi-chevron-right'></i>"
+                }
+            }
+        });
     });
 </script>
 

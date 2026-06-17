@@ -72,6 +72,9 @@
             </a>
 
             <div class="nav-section-label">Akun</div>
+            <a href="/pj/profile" class="nav-link-custom <?= uri_string() === 'pj/profile' ? 'active' : '' ?>">
+                <i class="bi bi-person-circle"></i> Profil Saya
+            </a>
             <a href="/change-password" class="nav-link-custom <?= uri_string() === 'change-password' ? 'active' : '' ?>">
                 <i class="bi bi-key"></i> Ganti Password
             </a>
