@@ -83,22 +83,22 @@ class CreateLookupTablesAndRefactorEnums extends Migration
         // ==========================================
 
         $this->db->table('status_kamar')->insertBatch([
-            ['id' => 1, 'nama_status' => 'kosong', 'badge_class' => 'danger', 'icon' => 'bi-door-closed'],
-            ['id' => 2, 'nama_status' => 'terisi', 'badge_class' => 'success', 'icon' => 'bi-door-open'],
-            ['id' => 3, 'nama_status' => 'nonaktif', 'badge_class' => 'secondary', 'icon' => 'bi-dash-circle'],
+            ['id' => 1, 'nama_status' => 'kosong', 'badge_class' => 'bg-danger-subtle text-danger border-danger px-2 small', 'icon' => 'bi-door-closed'],
+            ['id' => 2, 'nama_status' => 'terisi', 'badge_class' => 'bg-success-subtle text-success border-success px-2 small', 'icon' => 'bi-door-open'],
+            ['id' => 3, 'nama_status' => 'nonaktif', 'badge_class' => 'bg-secondary-subtle text-secondary border-secondary px-2 small', 'icon' => 'bi-dash-circle'],
         ]);
 
         $this->db->table('status_tagihan')->insertBatch([
-            ['id' => 1, 'nama_status' => 'pending', 'badge_class' => 'warning-subtle text-warning border border-warning px-2 small', 'icon' => 'bi-hourglass-split'],
-            ['id' => 2, 'nama_status' => 'menunggu_konfirmasi', 'badge_class' => 'info-subtle text-info border border-info px-2 small', 'icon' => 'bi-clock-history'],
-            ['id' => 3, 'nama_status' => 'lunas', 'badge_class' => 'success-subtle text-success border border-success px-2 small', 'icon' => 'bi-check-circle-fill'],
-            ['id' => 4, 'nama_status' => 'menunggak', 'badge_class' => 'danger-subtle text-danger border border-danger px-2 small', 'icon' => 'bi-exclamation-triangle-fill'],
+            ['id' => 1, 'nama_status' => 'pending', 'badge_class' => 'bg-warning-subtle text-warning border border-warning px-2 small', 'icon' => 'bi-hourglass-split'],
+            ['id' => 2, 'nama_status' => 'menunggu_konfirmasi', 'badge_class' => 'bg-info-subtle text-info border border-info px-2 small', 'icon' => 'bi-clock-history'],
+            ['id' => 3, 'nama_status' => 'lunas', 'badge_class' => 'bg-success-subtle text-success border border-success px-2 small', 'icon' => 'bi-check-circle-fill'],
+            ['id' => 4, 'nama_status' => 'menunggak', 'badge_class' => 'bg-danger-subtle text-danger border border-danger px-2 small', 'icon' => 'bi-exclamation-triangle-fill'],
         ]);
 
         $this->db->table('status_pembayaran')->insertBatch([
-            ['id' => 1, 'nama_status' => 'pending', 'badge_class' => 'warning', 'icon' => 'bi-hourglass-split'],
-            ['id' => 2, 'nama_status' => 'approved', 'badge_class' => 'success', 'icon' => 'bi-check-circle-fill'],
-            ['id' => 3, 'nama_status' => 'ditolak', 'badge_class' => 'danger', 'icon' => 'bi-x-circle-fill'],
+            ['id' => 1, 'nama_status' => 'pending', 'badge_class' => 'bg-warning-subtle text-warning border-warning', 'icon' => 'bi-hourglass-split'],
+            ['id' => 2, 'nama_status' => 'approved', 'badge_class' => 'bg-success-subtle text-success border-success', 'icon' => 'bi-check-circle-fill'],
+            ['id' => 3, 'nama_status' => 'ditolak', 'badge_class' => 'bg-danger-subtle text-danger border-danger', 'icon' => 'bi-x-circle-fill'],
         ]);
 
         $this->db->table('status_maintenance')->insertBatch([

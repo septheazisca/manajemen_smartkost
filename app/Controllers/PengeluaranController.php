@@ -185,84 +185,201 @@ class PengeluaranController extends BaseController
         $tahun = $this->request->getGet('tahun') ?? date('Y');
 
         $pengeluaran = $this->pengeluaranModel->getPengeluaranLengkap($bulan, $tahun);
-        $total       = $this->pengeluaranModel->getTotalPengeluaran($bulan, $tahun);
         $namaBulan   = $this->getListBulan()[$bulan] ?? $bulan;
 
+        // HITUNG RINGKASAN
+        $total_maintenance = $this->pengeluaranModel
+            ->where('kategori_pengeluaran_id', 1)
+            ->where('bulan', $bulan)
+            ->where('tahun', $tahun)
+            ->selectSum('jumlah', 'total')
+            ->first()['total'] ?? 0;
+
+        $total_gaji = $this->pengeluaranModel
+            ->where('kategori_pengeluaran_id', 2)
+            ->where('bulan', $bulan)
+            ->where('tahun', $tahun)
+            ->selectSum('jumlah', 'total')
+            ->first()['total'] ?? 0;
+
+        $total_lainnya = $this->pengeluaranModel
+            ->where('kategori_pengeluaran_id', 3)
+            ->where('bulan', $bulan)
+            ->where('tahun', $tahun)
+            ->selectSum('jumlah', 'total')
+            ->first()['total'] ?? 0;
+
+        $total_semua = (int)$total_maintenance + (int)$total_gaji + (int)$total_lainnya;
+        $jumlah_transaksi = count($pengeluaran);
+
+        // EXCEL
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
-        $sheet       = $spreadsheet->getActiveSheet();
-        $sheet->setTitle('Pengeluaran');
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Laporan Pengeluaran');
 
-        // Header judul
-        $sheet->setCellValue('A1', 'LAPORAN PENGELUARAN SMARTKOST');
-        $sheet->setCellValue('A2', 'Periode: ' . $namaBulan . ' ' . $tahun);
-        $sheet->setCellValue('A3', 'Digenerate: ' . date('d/m/Y H:i:s'));
+        // JUDUL
+        $sheet->mergeCells('A1:G1');
+        $sheet->setCellValue('A1', 'LAPORAN REKAP PENGELUARAN SMARTKOST');
 
-        $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
-        $sheet->getStyle('A2')->getFont()->setItalic(true);
+        $sheet->mergeCells('A2:G2');
+        $sheet->setCellValue('A2', 'Periode : ' . $namaBulan . ' ' . $tahun);
 
-        // Header tabel
-        $headers = ['No', 'Keterangan', 'Kategori', 'PJ Terkait', 'Jumlah (Rp)', 'Sumber', 'Tanggal'];
-        foreach ($headers as $i => $header) {
-            $col = chr(65 + $i);
-            $sheet->setCellValue($col . '5', $header);
-            $sheet->getStyle($col . '5')->getFont()->setBold(true);
-            $sheet->getStyle($col . '5')->getFill()
-                ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-                ->getStartColor()->setRGB('7F77DD');
-            $sheet->getStyle($col . '5')->getFont()->getColor()->setRGB('FFFFFF');
+        $sheet->mergeCells('A3:G3');
+        $sheet->setCellValue('A3', 'Dicetak pada : ' . date('d F Y H:i'));
+
+        $sheet->getStyle('A1')->getFont()
+            ->setBold(true)
+            ->setSize(16);
+
+        $sheet->getStyle('A2:A3')->getFont()
+            ->setItalic(true);
+
+        $sheet->getStyle('A1:G3')->getAlignment()
+            ->setHorizontal(
+                \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER
+            );
+
+        // RINGKASAN
+        $sheet->setCellValue('A5', 'Total Pengeluaran');
+        $sheet->setCellValue('B5', $total_semua);
+
+        $sheet->setCellValue('A6', 'Total Maintenance');
+        $sheet->setCellValue('B6', (int)$total_maintenance);
+
+        $sheet->setCellValue('A7', 'Total Gaji');
+        $sheet->setCellValue('B7', (int)$total_gaji);
+
+        $sheet->setCellValue('D5', 'Total Lainnya');
+        $sheet->setCellValue('E5', (int)$total_lainnya);
+
+        $sheet->setCellValue('D6', 'Jumlah Transaksi');
+        $sheet->setCellValue('E6', $jumlah_transaksi . ' Transaksi');
+
+        // Format Rupiah Ringkasan
+        foreach (['B5', 'B6', 'B7', 'E5'] as $cell) {
+            $sheet->getStyle($cell)
+                ->getNumberFormat()
+                ->setFormatCode('#,##0');
         }
 
-        // Isi data
-        $row = 6;
-        $no  = 1;
+        $sheet->getStyle('A5:E7')->getFont()->setBold(true);
+
+        // Border Ringkasan
+        $sheet->getStyle('A5:E7')
+            ->getBorders()
+            ->getAllBorders()
+            ->setBorderStyle(
+                \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN
+            );
+
+        // HEADER TABEL
+        $headers = [
+            'No',
+            'Keterangan',
+            'Kategori',
+            'PJ Terkait',
+            'Jumlah',
+            'Sumber',
+            'Tanggal'
+        ];
+
+        $col = 'A';
+        foreach ($headers as $header) {
+            $sheet->setCellValue($col . '9', $header);
+            $col++;
+        }
+
+        $sheet->getStyle('A9:G9')->applyFromArray([
+            'font' => [
+                'bold' => true,
+                'color' => ['rgb' => 'FFFFFF']
+            ],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '7F77DD']
+            ]
+        ]);
+
+        // DATA TABEL
+        $row = 10;
+        $no = 1;
+
         foreach ($pengeluaran as $p) {
             $sheet->setCellValue('A' . $row, $no++);
             $sheet->setCellValue('B' . $row, $p['keterangan']);
             $sheet->setCellValue('C' . $row, ucfirst($p['kategori']));
             $sheet->setCellValue('D' . $row, $p['nama_pj'] ?? '-');
-            $sheet->setCellValue('E' . $row, (int) $p['jumlah']);
+            $sheet->setCellValue('E' . $row, (int)$p['jumlah']);
             $sheet->setCellValue('F' . $row, $p['maintenance_id'] ? 'Otomatis' : 'Manual');
             $sheet->setCellValue('G' . $row, date('d/m/Y', strtotime($p['created_at'])));
 
-            // Format rupiah kolom E
-            $sheet->getStyle('E' . $row)->getNumberFormat()->setFormatCode('#,##0');
+            // Format Rupiah
+            $sheet->getStyle('E' . $row)
+                ->getNumberFormat()
+                ->setFormatCode('#,##0');
 
-            // Warna baris selang-seling
-            if ($no % 2 == 0) {
-                $sheet->getStyle('A' . $row . ':G' . $row)->getFill()
-                    ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-                    ->getStartColor()->setRGB('F3F2FF');
+            // Zebra Table
+            if ($row % 2 == 0) {
+                $sheet->getStyle('A' . $row . ':G' . $row)
+                    ->getFill()
+                    ->setFillType(
+                        \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID
+                    )
+                    ->getStartColor()
+                    ->setRGB('F8F9FA');
             }
 
             $row++;
         }
 
-        // Baris total
-        $sheet->setCellValue('D' . $row, 'TOTAL');
-        $sheet->setCellValue('E' . $row, (int) $total);
-        $sheet->getStyle('D' . $row . ':E' . $row)->getFont()->setBold(true);
-        $sheet->getStyle('E' . $row)->getNumberFormat()->setFormatCode('#,##0');
-        $sheet->getStyle('D' . $row . ':E' . $row)->getFill()
-            ->setFillType(\PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID)
-            ->getStartColor()->setRGB('EEEDFE');
+        // TOTAL AKHIR
+        $sheet->mergeCells('A' . $row . ':D' . $row);
+        $sheet->setCellValue('A' . $row, 'TOTAL PENGELUARAN');
+        $sheet->setCellValue('E' . $row, $total_semua);
 
-        // Auto size kolom
-        foreach (['A', 'B', 'C', 'D', 'E', 'F', 'G'] as $col) {
-            $sheet->getColumnDimension($col)->setAutoSize(true);
+        $sheet->getStyle('A' . $row . ':E' . $row)->applyFromArray([
+            'font' => [
+                'bold' => true
+            ],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => 'E9ECEF']
+            ]
+        ]);
+
+        $sheet->getStyle('E' . $row)
+            ->getNumberFormat()
+            ->setFormatCode('#,##0');
+
+        // BORDER TABEL
+        $sheet->getStyle('A9:G' . $row)
+            ->getBorders()
+            ->getAllBorders()
+            ->setBorderStyle(
+                \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN
+            );
+
+        // AUTO SIZE
+        foreach (range('A', 'G') as $column) {
+            $sheet->getColumnDimension($column)
+                ->setAutoSize(true);
         }
 
-        // Border tabel
-        $sheet->getStyle('A5:G' . ($row))->getBorders()->getAllBorders()
-            ->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN);
+        // Freeze Header
+        $sheet->freezePane('A10');
 
-        // Output
-        $writer   = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
-        $filename = 'pengeluaran-' . $bulan . '-' . $tahun . '.xlsx';
+        // DOWNLOAD
+        $filename = 'laporan-pengeluaran-' .
+            strtolower($namaBulan) .
+            '-' .
+            $tahun .
+            '.xlsx';
 
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
         header('Cache-Control: max-age=0');
 
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
         $writer->save('php://output');
         exit;
     }

@@ -96,42 +96,148 @@ class LaporanController extends BaseController
         $sheet1 = $spreadsheet->getActiveSheet();
         $sheet1->setTitle('Ringkasan');
 
-        $sheet1->setCellValue('A1', 'LAPORAN KEUANGAN SMARKOST');
-        $sheet1->setCellValue('A2', 'Periode: ' . $namaBulan . ' ' . $tahun);
-        $sheet1->setCellValue('A3', 'Digenerate: ' . date('d/m/Y H:i:s'));
+        // JUDUL
+        $sheet1->mergeCells('A1:B1');
+        $sheet1->setCellValue('A1', 'LAPORAN REKAP KEUANGAN SMARTKOST');
 
+        $sheet1->mergeCells('A2:B2');
+        $sheet1->setCellValue('A2', 'Periode : ' . $namaBulan . ' ' . $tahun);
+
+        $sheet1->mergeCells('A3:B3');
+        $sheet1->setCellValue('A3', 'Dicetak pada : ' . date('d F Y H:i'));
+
+        $sheet1->getStyle('A1')->getFont()
+            ->setBold(true)
+            ->setSize(14);
+
+        $sheet1->getStyle('A2:A3')->getFont()
+            ->setItalic(true);
+
+        $sheet1->getStyle('A1:B3')->getAlignment()
+            ->setHorizontal(
+                \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER
+            );
+
+        // SECTION PEMASUKAN
+        $sheet1->mergeCells('A5:B5');
         $sheet1->setCellValue('A5', 'PEMASUKAN');
+        $sheet1->getStyle('A5:B5')->applyFromArray([
+            'font' => [
+                'bold' => true,
+                'color' => ['rgb' => 'FFFFFF']
+            ],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '7F77DD']
+            ],
+            'alignment' => [
+                'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER
+            ]
+        ]);
+
         $sheet1->setCellValue('A6', 'Total Tagihan Lunas');
         $sheet1->setCellValue('B6', $ringkasan['total_pemasukan']);
+        $sheet1->getStyle('A6:B6')->getFont()->setBold(true);
 
+        // BORDER PEMASUKAN
+        $sheet1->getStyle('A5:B6')
+            ->getBorders()
+            ->getAllBorders()
+            ->setBorderStyle(
+                \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN
+            );
+
+        // SECTION PENGELUARAN
+        $sheet1->mergeCells('A8:B8');
         $sheet1->setCellValue('A8', 'PENGELUARAN');
+        $sheet1->getStyle('A8:B8')->applyFromArray([
+            'font' => [
+                'bold' => true,
+                'color' => ['rgb' => 'FFFFFF']
+            ],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '7F77DD']
+            ],
+            'alignment' => [
+                'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER
+            ]
+        ]);
+
         $sheet1->setCellValue('A9', 'Biaya Maintenance');
         $sheet1->setCellValue('B9', $ringkasan['total_maintenance']);
+
         $sheet1->setCellValue('A10', 'Gaji Penanggung Jawab');
         $sheet1->setCellValue('B10', $ringkasan['total_gaji']);
+
         $sheet1->setCellValue('A11', 'Lainnya');
         $sheet1->setCellValue('B11', $ringkasan['total_lainnya']);
+
         $sheet1->setCellValue('A12', 'Total Pengeluaran');
         $sheet1->setCellValue('B12', $ringkasan['total_pengeluaran']);
 
+        $sheet1->getStyle('A12:B12')->applyFromArray([
+            'font' => [
+                'bold' => true
+            ],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => 'E9ECEF']
+            ]
+        ]);
+
+        // BORDER PENGELUARAN
+        $sheet1->getStyle('A8:B12')
+            ->getBorders()
+            ->getAllBorders()
+            ->setBorderStyle(
+                \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN
+            );
+
+        // SECTION SALDO BERSIH
         $sheet1->setCellValue('A14', 'SALDO BERSIH');
         $sheet1->setCellValue('B14', $ringkasan['saldo_bersih']);
 
-        // Styling: bold untuk judul dan baris penting
-        $sheet1->getStyle('A1')->getFont()->setBold(true)->setSize(14);
-        $sheet1->getStyle('A5')->getFont()->setBold(true);
-        $sheet1->getStyle('A8')->getFont()->setBold(true);
-        $sheet1->getStyle('A14')->getFont()->setBold(true);
-        $sheet1->getStyle('B14')->getFont()->setBold(true);
+        $sheet1->getStyle('A14:B14')->applyFromArray([
+            'font' => [
+                'bold' => true
+            ],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => 'E9ECEF']
+            ]
+        ]);
 
-        // Format angka sebagai Rupiah tanpa simbol (contoh: 1.500.000)
+        if ($ringkasan['saldo_bersih'] >= 0) {
+            $sheet1->getStyle('B14')
+                ->getFont()
+                ->getColor()
+                ->setRGB('198754');
+        } else {
+            $sheet1->getStyle('B14')
+                ->getFont()
+                ->getColor()
+                ->setRGB('DC3545');
+        }
+
+        $sheet1->getStyle('A14:B14')
+            ->getBorders()
+            ->getAllBorders()
+            ->setBorderStyle(
+                \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN
+            );
+
+        // Format Rupiah Sheet 1
         $rupiahFormat = '#,##0';
         foreach (['B6', 'B9', 'B10', 'B11', 'B12', 'B14'] as $cell) {
-            $sheet1->getStyle($cell)->getNumberFormat()->setFormatCode($rupiahFormat);
+            $sheet1->getStyle($cell)
+                ->getNumberFormat()
+                ->setFormatCode($rupiahFormat);
         }
 
         $sheet1->getColumnDimension('A')->setWidth(30);
-        $sheet1->getColumnDimension('B')->setWidth(20);
+        $sheet1->getColumnDimension('B')->setWidth(25);
+
 
         // =====================
         // SHEET 2 - Detail setiap pembayaran yang sudah approved
@@ -139,30 +245,141 @@ class LaporanController extends BaseController
         $sheet2 = $spreadsheet->createSheet();
         $sheet2->setTitle('Pemasukan');
 
-        $sheet2->setCellValue('A1', 'No');
-        $sheet2->setCellValue('B1', 'Nama Penyewa');
-        $sheet2->setCellValue('C1', 'Nomor Kamar');
-        $sheet2->setCellValue('D1', 'Bulan');
-        $sheet2->setCellValue('E1', 'Jumlah');
-        $sheet2->setCellValue('F1', 'Tanggal Bayar');
-        $sheet2->getStyle('A1:F1')->getFont()->setBold(true);
+        // JUDUL
+        $sheet2->mergeCells('A1:F1');
+        $sheet2->setCellValue('A1', 'LAPORAN DETAIL PEMASUKAN KAMAR KOST');
 
-        $row = 2;
+        $sheet2->mergeCells('A2:F2');
+        $sheet2->setCellValue('A2', 'Periode : ' . $namaBulan . ' ' . $tahun);
+
+        $sheet2->mergeCells('A3:F3');
+        $sheet2->setCellValue('A3', 'Dicetak pada : ' . date('d F Y H:i'));
+
+        $sheet2->getStyle('A1')->getFont()
+            ->setBold(true)
+            ->setSize(16);
+
+        $sheet2->getStyle('A2:A3')->getFont()
+            ->setItalic(true);
+
+        $sheet2->getStyle('A1:F3')->getAlignment()
+            ->setHorizontal(
+                \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER
+            );
+
+        // RINGKASAN PEMASUKAN
+        $sheet2->setCellValue('A5', 'Total Pemasukan');
+        $sheet2->setCellValue('B5', $ringkasan['total_pemasukan']);
+        $sheet2->getStyle('A5:B5')->getFont()->setBold(true);
+        $sheet2->getStyle('B5')
+            ->getNumberFormat()
+            ->setFormatCode($rupiahFormat);
+
+        $sheet2->getStyle('A5:B5')
+            ->getBorders()
+            ->getAllBorders()
+            ->setBorderStyle(
+                \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN
+            );
+
+        // HEADER TABEL
+        $headersPemasukan = [
+            'No',
+            'Nama Penyewa',
+            'Nomor Kamar',
+            'Bulan',
+            'Jumlah',
+            'Tanggal Bayar'
+        ];
+
+        $col = 'A';
+        foreach ($headersPemasukan as $header) {
+            $sheet2->setCellValue($col . '7', $header);
+            $col++;
+        }
+
+        $sheet2->getStyle('A7:F7')->applyFromArray([
+            'font' => [
+                'bold' => true,
+                'color' => ['rgb' => 'FFFFFF']
+            ],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '7F77DD']
+            ]
+        ]);
+
+        // DATA TABEL
+        $row = 8;
         $no  = 1;
         foreach ($ringkasan['detail_pemasukan'] as $item) {
             $sheet2->setCellValue('A' . $row, $no++);
             $sheet2->setCellValue('B' . $row, $item['name']);
             $sheet2->setCellValue('C' . $row, $item['nomor_kamar']);
             $sheet2->setCellValue('D' . $row, $item['bulan'] . '/' . $item['tahun']);
-            $sheet2->setCellValue('E' . $row, $item['jumlah']);
-            $sheet2->setCellValue('F' . $row, $item['approved_at'] ?? '-');
+            $sheet2->setCellValue('E' . $row, (int)$item['jumlah']);
+
+            $tglBayar = '-';
+            if ($item['approved_at']) {
+                $tglBayar = date('d/m/Y H:i', strtotime($item['approved_at']));
+            }
+            $sheet2->setCellValue('F' . $row, $tglBayar);
+
+            // Format Rupiah
+            $sheet2->getStyle('E' . $row)
+                ->getNumberFormat()
+                ->setFormatCode($rupiahFormat);
+
+            // Zebra Table
+            if ($row % 2 == 1) {
+                $sheet2->getStyle('A' . $row . ':F' . $row)
+                    ->getFill()
+                    ->setFillType(
+                        \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID
+                    )
+                    ->getStartColor()
+                    ->setRGB('F8F9FA');
+            }
+
             $row++;
         }
 
-        // Auto-size semua kolom agar rapi
-        foreach (['A', 'B', 'C', 'D', 'E', 'F'] as $col) {
-            $sheet2->getColumnDimension($col)->setAutoSize(true);
+        // TOTAL AKHIR
+        $sheet2->mergeCells('A' . $row . ':D' . $row);
+        $sheet2->setCellValue('A' . $row, 'TOTAL PEMASUKAN');
+        $sheet2->setCellValue('E' . $row, $ringkasan['total_pemasukan']);
+
+        $sheet2->getStyle('A' . $row . ':E' . $row)->applyFromArray([
+            'font' => [
+                'bold' => true
+            ],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => 'E9ECEF']
+            ]
+        ]);
+
+        $sheet2->getStyle('E' . $row)
+            ->getNumberFormat()
+            ->setFormatCode($rupiahFormat);
+
+        // BORDER TABEL
+        $sheet2->getStyle('A7:F' . $row)
+            ->getBorders()
+            ->getAllBorders()
+            ->setBorderStyle(
+                \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN
+            );
+
+        // AUTO SIZE
+        foreach (range('A', 'F') as $column) {
+            $sheet2->getColumnDimension($column)
+                ->setAutoSize(true);
         }
+
+        // Freeze Pane
+        $sheet2->freezePane('A8');
+
 
         // =====================
         // SHEET 3 - Detail setiap pengeluaran bulan ini
@@ -170,27 +387,134 @@ class LaporanController extends BaseController
         $sheet3 = $spreadsheet->createSheet();
         $sheet3->setTitle('Pengeluaran');
 
-        $sheet3->setCellValue('A1', 'No');
-        $sheet3->setCellValue('B1', 'Keterangan');
-        $sheet3->setCellValue('C1', 'Kategori');
-        $sheet3->setCellValue('D1', 'Jumlah');
-        $sheet3->setCellValue('E1', 'Tanggal');
-        $sheet3->getStyle('A1:E1')->getFont()->setBold(true);
+        // JUDUL
+        $sheet3->mergeCells('A1:E1');
+        $sheet3->setCellValue('A1', 'LAPORAN DETAIL PENGELUARAN KOST');
 
-        $row = 2;
+        $sheet3->mergeCells('A2:E2');
+        $sheet3->setCellValue('A2', 'Periode : ' . $namaBulan . ' ' . $tahun);
+
+        $sheet3->mergeCells('A3:E3');
+        $sheet3->setCellValue('A3', 'Dicetak pada : ' . date('d F Y H:i'));
+
+        $sheet3->getStyle('A1')->getFont()
+            ->setBold(true)
+            ->setSize(16);
+
+        $sheet3->getStyle('A2:A3')->getFont()
+            ->setItalic(true);
+
+        $sheet3->getStyle('A1:E3')->getAlignment()
+            ->setHorizontal(
+                \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER
+            );
+
+        // RINGKASAN PENGELUARAN
+        $sheet3->setCellValue('A5', 'Total Pengeluaran');
+        $sheet3->setCellValue('B5', $ringkasan['total_pengeluaran']);
+        $sheet3->getStyle('A5:B5')->getFont()->setBold(true);
+        $sheet3->getStyle('B5')
+            ->getNumberFormat()
+            ->setFormatCode($rupiahFormat);
+
+        $sheet3->getStyle('A5:B5')
+            ->getBorders()
+            ->getAllBorders()
+            ->setBorderStyle(
+                \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN
+            );
+
+        // HEADER TABEL
+        $headersPengeluaran = [
+            'No',
+            'Keterangan',
+            'Kategori',
+            'Jumlah',
+            'Tanggal'
+        ];
+
+        $col = 'A';
+        foreach ($headersPengeluaran as $header) {
+            $sheet3->setCellValue($col . '7', $header);
+            $col++;
+        }
+
+        $sheet3->getStyle('A7:E7')->applyFromArray([
+            'font' => [
+                'bold' => true,
+                'color' => ['rgb' => 'FFFFFF']
+            ],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '7F77DD']
+            ]
+        ]);
+
+        // DATA TABEL
+        $row = 8;
         $no  = 1;
         foreach ($ringkasan['detail_pengeluaran'] as $item) {
             $sheet3->setCellValue('A' . $row, $no++);
             $sheet3->setCellValue('B' . $row, $item['keterangan']);
             $sheet3->setCellValue('C' . $row, ucfirst($item['kategori']));
-            $sheet3->setCellValue('D' . $row, $item['jumlah']);
-            $sheet3->setCellValue('E' . $row, $item['created_at']);
+            $sheet3->setCellValue('D' . $row, (int)$item['jumlah']);
+            $sheet3->setCellValue('E' . $row, date('d/m/Y H:i', strtotime($item['created_at'])));
+
+            // Format Rupiah
+            $sheet3->getStyle('D' . $row)
+                ->getNumberFormat()
+                ->setFormatCode($rupiahFormat);
+
+            // Zebra Table
+            if ($row % 2 == 1) {
+                $sheet3->getStyle('A' . $row . ':E' . $row)
+                    ->getFill()
+                    ->setFillType(
+                        \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID
+                    )
+                    ->getStartColor()
+                    ->setRGB('F8F9FA');
+            }
+
             $row++;
         }
 
-        foreach (['A', 'B', 'C', 'D', 'E'] as $col) {
-            $sheet3->getColumnDimension($col)->setAutoSize(true);
+        // TOTAL AKHIR
+        $sheet3->mergeCells('A' . $row . ':C' . $row);
+        $sheet3->setCellValue('A' . $row, 'TOTAL PENGELUARAN');
+        $sheet3->setCellValue('D' . $row, $ringkasan['total_pengeluaran']);
+
+        $sheet3->getStyle('A' . $row . ':D' . $row)->applyFromArray([
+            'font' => [
+                'bold' => true
+            ],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => 'E9ECEF']
+            ]
+        ]);
+
+        $sheet3->getStyle('D' . $row)
+            ->getNumberFormat()
+            ->setFormatCode($rupiahFormat);
+
+        // BORDER TABEL
+        $sheet3->getStyle('A7:E' . $row)
+            ->getBorders()
+            ->getAllBorders()
+            ->setBorderStyle(
+                \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN
+            );
+
+        // AUTO SIZE
+        foreach (range('A', 'E') as $column) {
+            $sheet3->getColumnDimension($column)
+                ->setAutoSize(true);
         }
+
+        // Freeze Pane
+        $sheet3->freezePane('A8');
+
 
         // Pastikan sheet pertama yang aktif saat file dibuka
         $spreadsheet->setActiveSheetIndex(0);
@@ -200,7 +524,7 @@ class LaporanController extends BaseController
         $filename = 'laporan-keuangan-' . $bulan . '-' . $tahun . '.xlsx';
 
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header('Content-Disposition: attachment;filename="' . $filename . '"');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
         header('Cache-Control: max-age=0');
 
         $writer->save('php://output');
