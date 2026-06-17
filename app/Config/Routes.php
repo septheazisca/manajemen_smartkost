@@ -104,6 +104,10 @@ $routes->group('admin', ['filter' => 'role:admin'], function ($routes) {
     // detail kost
     $routes->get('detail-kost', 'DetailKostController::index');
     $routes->post('detail-kost/update', 'DetailKostController::update');
+
+    // profil admin
+    $routes->get('profile', 'AdminProfileController::index');
+    $routes->post('profile/update', 'AdminProfileController::update');
 });
 
 // =====================

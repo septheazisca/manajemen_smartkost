@@ -54,6 +54,9 @@
             <a href="/admin/notifikasi" class="nav-link-custom <?= str_starts_with(uri_string(), 'admin/notifikasi') ? 'active' : '' ?>">
                 <i class="bi bi-whatsapp"></i> Notifikasi WA
             </a>
+            <a href="/admin/profile" class="nav-link-custom <?= uri_string() === 'admin/profile' ? 'active' : '' ?>">
+                <i class="bi bi-person-circle"></i> Profil Admin
+            </a>
             <a href="/change-password" class="nav-link-custom <?= uri_string() === 'change-password' ? 'active' : '' ?>">
                 <i class="bi bi-key"></i> Ganti Password
             </a>
