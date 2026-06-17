@@ -24,7 +24,7 @@
                 </span>
             </div>
 
-            <button class="btn btn-primary btn-add text-nowrap" data-bs-toggle="modal" data-bs-target="#addModal">
+            <button class="btn btn-primary btn-add text-nowrap" data-bs-toggle="modal" data-bs-target="#modalTambahPj">
                 <i class="bi bi-plus-lg me-1"></i> Tambah Fasilitas
             </button>
         </div>

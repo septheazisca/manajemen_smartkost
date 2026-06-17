@@ -69,23 +69,30 @@ class DashboardController extends BaseController
             $pengeluaranBulanan[] = (int) $total;
         }
 
-        // Penyewa yang paling sering menunggak
+        // PERBAIKAN: Penyewa yang paling sering menunggak
+        // Menggunakan array pada groupBy dan pemisahan SUM agar standar SQL aman
         $seringMenunggak = $tagihanModel
-            ->select('tagihan.penyewa_id, users.name as name, kamar.nomor_kamar, SUM(tagihan.jumlah + tagihan.nominal_unik) as jumlah_tunggakan, COUNT(tagihan.id) as bulan_menunggak')
+            ->select('
+                tagihan.penyewa_id, 
+                users.name as name, 
+                kamar.nomor_kamar, 
+                (SUM(tagihan.jumlah) + SUM(tagihan.nominal_unik)) as jumlah_tunggakan, 
+                COUNT(tagihan.id) as bulan_menunggak
+            ')
             ->join('penyewa', 'penyewa.id = tagihan.penyewa_id')
             ->join('users', 'users.id = penyewa.user_id')
             ->join('kamar', 'kamar.id = penyewa.kamar_id')
-            ->where('tagihan.status_tagihan_id', 4)
-            ->groupBy('tagihan.penyewa_id, users.name, kamar.nomor_kamar')
-            ->orderBy('jumlah_tunggakan', 'DESC')
+            ->where('tagihan.status_tagihan_id', 4) // 4 = menunggak
+            ->groupBy(['tagihan.penyewa_id', 'users.name', 'kamar.nomor_kamar'])
+            ->orderBy('bulan_menunggak', 'DESC') // Diurutkan berdasarkan frekuensi (seberapa sering bolong)
             ->findAll(5);
 
         // Status tagihan bulan ini untuk pie chart
         $statusTagihan = [
-            'lunas'              => $tagihanModel->where('bulan', $bulan)->where('tahun', $tahun)->where('status_tagihan_id', 3)->countAllResults(),
-            'pending'            => $tagihanModel->where('bulan', $bulan)->where('tahun', $tahun)->where('status_tagihan_id', 1)->countAllResults(),
+            'lunas'               => $tagihanModel->where('bulan', $bulan)->where('tahun', $tahun)->where('status_tagihan_id', 3)->countAllResults(),
+            'pending'             => $tagihanModel->where('bulan', $bulan)->where('tahun', $tahun)->where('status_tagihan_id', 1)->countAllResults(),
             'menunggu_konfirmasi' => $tagihanModel->where('bulan', $bulan)->where('tahun', $tahun)->where('status_tagihan_id', 2)->countAllResults(),
-            'menunggak'          => $tagihanModel->where('bulan', $bulan)->where('tahun', $tahun)->where('status_tagihan_id', 4)->countAllResults(),
+            'menunggak'           => $tagihanModel->where('bulan', $bulan)->where('tahun', $tahun)->where('status_tagihan_id', 4)->countAllResults(),
         ];
 
         $data = [

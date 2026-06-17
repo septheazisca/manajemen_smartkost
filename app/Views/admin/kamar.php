@@ -143,6 +143,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form action="/admin/kamar/store" method="post" enctype="multipart/form-data">
+                <?= csrf_field() ?>
                 <div class="modal-body">
                     <div class="row">
                         <div class="col-md-6 mb-2">
@@ -232,7 +233,7 @@
 
                 <!-- ✅ action diarahkan ke update dengan ID kamar -->
                 <form action="/admin/kamar/update/<?= $r['id'] ?>" method="post" enctype="multipart/form-data">
- 
+                     <?= csrf_field() ?>
                      <div class="modal-body">
                          <div class="row">
                              <div class="col-md-6 mb-2">

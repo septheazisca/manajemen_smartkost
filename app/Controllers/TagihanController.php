@@ -132,6 +132,10 @@ class TagihanController extends BaseController
         // Kirim WhatsApp trigger ke penyewa
         $tagihanLengkap = $this->tagihanModel->getTagihanLengkapById($pembayaran['tagihan_id']);
         if ($tagihanLengkap && !empty($tagihanLengkap['phone'])) {
+            // PERBAIKAN: Ambil user_id manual dari PenyewaModel jika tidak ada di tagihanLengkap
+            $penyewa = $this->penyewaModel->find($tagihanLengkap['penyewa_id']);
+            $userId = $tagihanLengkap['user_id'] ?? ($penyewa['user_id'] ?? null);
+
             $totalBayar = $tagihanLengkap['jumlah'] + $tagihanLengkap['nominal_unik'];
             $namaBulan = $this->getListBulan()[$tagihanLengkap['bulan']] ?? $tagihanLengkap['bulan'];
             $pesan = "Halo *{$tagihanLengkap['nama']}*,\n\n";
@@ -142,7 +146,7 @@ class TagihanController extends BaseController
             $pesan .= "Jumlah : Rp " . number_format($totalBayar, 0, ',', '.') . "\n\n";
             $pesan .= "Status tagihan kamu saat ini sudah *LUNAS*. Terima kasih atas pembayarannya! 🙏";
 
-            $this->fonnteService->sendAndLog($tagihanLengkap['user_id'], $tagihanLengkap['phone'], $pesan, 'approved');
+            $this->fonnteService->sendAndLog($userId, $tagihanLengkap['phone'], $pesan, 'approved');
         }
 
         return redirect()->to('/admin/tagihan')
@@ -188,6 +192,11 @@ class TagihanController extends BaseController
         // Kirim WhatsApp trigger ke penyewa
         $tagihanLengkap = $this->tagihanModel->getTagihanLengkapById($pembayaran['tagihan_id']);
         if ($tagihanLengkap && !empty($tagihanLengkap['phone'])) {
+            
+            // 🔍 AMBIL USER_ID SECARA MANUAL DARI PENYEWA MODEL
+            $penyewa = $this->penyewaModel->find($tagihanLengkap['penyewa_id']);
+            $userId = $tagihanLengkap['user_id'] ?? ($penyewa['user_id'] ?? null);
+
             $totalBayar = $tagihanLengkap['jumlah'] + $tagihanLengkap['nominal_unik'];
             $namaBulan = $this->getListBulan()[$tagihanLengkap['bulan']] ?? $tagihanLengkap['bulan'];
             $pesan = "Halo *{$tagihanLengkap['nama']}*,\n\n";
@@ -198,7 +207,8 @@ class TagihanController extends BaseController
             $pesan .= "Alasan Penolakan : *{$catatanAdmin}*\n\n";
             $pesan .= "Mohon lakukan upload ulang bukti transfer yang valid melalui aplikasi SmartKost. Terima kasih. 🙏";
 
-            $this->fonnteService->sendAndLog($tagihanLengkap['user_id'], $tagihanLengkap['phone'], $pesan, 'ditolak');
+            // Gunakan variabel $userId yang baru diambil
+            $this->fonnteService->sendAndLog($userId, $tagihanLengkap['phone'], $pesan, 'ditolak');
         }
 
         return redirect()->to('/admin/tagihan')
@@ -223,11 +233,10 @@ class TagihanController extends BaseController
 
         // Kirim WhatsApp trigger ke penyewa
         $tagihanLengkap = $this->tagihanModel->getTagihanLengkapById($tagihanId);
-        
         if ($tagihanLengkap && !empty($tagihanLengkap['phone'])) {
-            
-            $penyewa = $this->penyewaModel->find($tagihan['penyewa_id']);
-            $userId = $penyewa['user_id'] ?? null; 
+            // PERBAIKAN: Ambil user_id manual dari PenyewaModel jika tidak ada di tagihanLengkap
+            $penyewa = $this->penyewaModel->find($tagihanLengkap['penyewa_id']);
+            $userId = $tagihanLengkap['user_id'] ?? ($penyewa['user_id'] ?? null);
 
             $totalBayar = $tagihanLengkap['jumlah'] + $tagihanLengkap['nominal_unik'];
             $namaBulan = $this->getListBulan()[$tagihanLengkap['bulan']] ?? $tagihanLengkap['bulan'];

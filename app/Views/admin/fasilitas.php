@@ -214,6 +214,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form action="/admin/fasilitas/store" method="post">
+                <?= csrf_field() ?>
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Nama Fasilitas Kamar</label>
@@ -244,6 +245,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <form action="/admin/fasilitas/update/<?= $f['id'] ?>" method="post">
+                    <?= csrf_field() ?>
                     <div class="modal-body">
                         <div class="mb-3">
                             <label class="form-label">Nama Fasilitas Kamar</label>
@@ -274,6 +276,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form action="/admin/fasilitas-bersama/store" method="post" onsubmit="submitSharedForm('addSharedModal')">
+                <?= csrf_field() ?>
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label">Nama Fasilitas Bersama</label>
@@ -328,6 +331,7 @@
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <form action="/admin/fasilitas-bersama/update/<?= $sf['id'] ?>" method="post" onsubmit="submitSharedForm('editSharedModal<?= $sf['id'] ?>')">
+                        <?= csrf_field() ?>
                         <div class="modal-body">
                             <div class="mb-3">
                                 <label class="form-label">Nama Fasilitas Bersama</label>
