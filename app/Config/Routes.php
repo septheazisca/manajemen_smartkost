@@ -101,8 +101,8 @@ $routes->group('admin', ['filter' => 'role:admin'], function ($routes) {
     $routes->post('detail-kost/update', 'DetailKostController::update');
 
     // profil admin
-    $routes->get('profile', 'AdminProfileController::index');
-    $routes->post('profile/update', 'AdminProfileController::update');
+    $routes->get('profile', 'ProfileController::adminIndex');
+    $routes->post('profile/update', 'ProfileController::adminUpdate');
 });
 
 // =====================
@@ -118,6 +118,10 @@ $routes->group('pj', ['filter' => 'role:pj'], function ($routes) {
     $routes->get('maintenance/ambil/(:num)', 'MaintenanceController::ambil/$1');
     $routes->post('maintenance/selesai/(:num)', 'MaintenanceController::selesai/$1');
     $routes->get('maintenance/(:num)', 'MaintenanceController::detail/$1');
+
+    // profil pj
+    $routes->get('profile', 'ProfileController::pjIndex');
+    $routes->post('profile/update', 'ProfileController::pjUpdate');
 });
 
 // =====================
@@ -128,8 +132,8 @@ $routes->group('tenant', ['filter' => 'role:penyewa'], function ($routes) {
     $routes->get('dashboard', 'DashboardController::index');
 
     // profil
-    $routes->get('profile', 'PenyewaController::profile');
-    $routes->post('profile/update', 'PenyewaController::updateProfile');
+    $routes->get('profile', 'ProfileController::tenantIndex');
+    $routes->post('profile/update', 'ProfileController::tenantUpdate');
 
     // tagihan - spesifik dulu, dynamic di bawah
     $routes->get('tagihan', 'TagihanController::tagihanSaya');
