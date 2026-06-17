@@ -67,6 +67,10 @@
                                             $badgeClass = 'bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25';
                                             $badgeLabel = 'PESAN CUSTOM';
                                             break;
+                                        case 'maintenance':
+                                            $badgeClass = 'bg-dark bg-opacity-10 text-dark border border-dark border-opacity-25';
+                                            $badgeLabel = 'INFO MAINTENANCE';
+                                            break;
                                         default:
                                             $badgeClass = 'bg-light text-dark border border-secondary border-opacity-10';
                                             $badgeLabel = strtoupper($l['jenis'] ?: 'LAINNYA');
