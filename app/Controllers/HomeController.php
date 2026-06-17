@@ -23,7 +23,7 @@ class HomeController extends BaseController
     public function index()
     {
         // 1. Ambil semua kamar yang kosong (tersedia) beserta fasilitasnya
-        $rooms = $this->kamarModel->where('status', 'kosong')->findAll();
+        $rooms = $this->kamarModel->where('status_kamar_id', 1)->findAll();
         
         $roomFacilities = [];
         if (!empty($rooms)) {
@@ -53,8 +53,8 @@ class HomeController extends BaseController
 
         // 2. Ambil data statistik kost
         $totalKamar   = $this->kamarModel->countAllResults();
-        $kamarTersedia = $this->kamarModel->where('status', 'kosong')->countAllResults();
-        $penghuniAktif = $this->kamarModel->where('status', 'terisi')->countAllResults();
+        $kamarTersedia = $this->kamarModel->where('status_kamar_id', 1)->countAllResults();
+        $penghuniAktif = $this->kamarModel->where('status_kamar_id', 2)->countAllResults();
         
         // Rata-rata rating penyewa
         $avgRatingQuery = $this->penyewaModel->where('tampilkan_testimoni', 1)->selectAvg('rating')->first();
@@ -127,7 +127,7 @@ class HomeController extends BaseController
 
         // 3. Ambil rekomendasi kamar serupa (tipe sama dan status kosong, exclude id saat ini)
         $similarRooms = $this->kamarModel->where('id !=', $id)
-            ->where('status', 'kosong')
+            ->where('status_kamar_id', 1)
             ->where('tipe', $kamar['tipe'] ?? 'Standard')
             ->limit(3)
             ->findAll();
@@ -137,7 +137,7 @@ class HomeController extends BaseController
             $needed = 3 - count($similarRooms);
             $excludeIds = array_merge([$id], array_column($similarRooms, 'id'));
             
-            $extraRooms = $this->kamarModel->where('status', 'kosong')
+            $extraRooms = $this->kamarModel->where('status_kamar_id', 1)
                 ->whereNotIn('id', $excludeIds)
                 ->limit($needed)
                 ->findAll();

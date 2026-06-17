@@ -170,14 +170,7 @@
                                 <tr>
                                     <td class="small fw-bold"><?= esc($p['keterangan']) ?></td>
                                     <td>
-                                        <?php
-                                        $badge = match ($p['kategori']) {
-                                            'maintenance' => 'info',
-                                            'gaji'        => 'warning',
-                                            default       => 'secondary',
-                                        };
-                                        ?>
-                                        <span class="badge bg-<?= $badge ?> opacity-75" style="font-size: 0.7rem;"><?= ucfirst($p['kategori']) ?></span>
+                                        <span class="badge bg-<?= esc($p['badge_class'] ?? 'secondary') ?> opacity-75" style="font-size: 0.7rem;"><i class="<?= esc($p['icon'] ?? 'bi-box') ?> me-1"></i><?= esc(ucfirst($p['kategori'])) ?></span>
                                     </td>
                                     <td class="fw-bold text-danger">Rp <?= number_format($p['jumlah'], 0, ',', '.') ?></td>
                                 </tr>

@@ -216,9 +216,9 @@ class LaporanController extends BaseController
         $data['tagihan']         = $this->tagihanModel->getTagihanLengkap($bulan, $tahun);
 
         // Hitung jumlah tagihan per status untuk ditampilkan di stat card
-        $data['total_lunas']     = $this->tagihanModel->where('bulan', $bulan)->where('tahun', $tahun)->where('status', 'lunas')->countAllResults();
-        $data['total_pending']   = $this->tagihanModel->where('bulan', $bulan)->where('tahun', $tahun)->where('status', 'pending')->countAllResults();
-        $data['total_menunggak'] = $this->tagihanModel->where('bulan', $bulan)->where('tahun', $tahun)->where('status', 'menunggak')->countAllResults();
+        $data['total_lunas']     = $this->tagihanModel->where('bulan', $bulan)->where('tahun', $tahun)->where('status_tagihan_id', 3)->countAllResults();
+        $data['total_pending']   = $this->tagihanModel->where('bulan', $bulan)->where('tahun', $tahun)->where('status_tagihan_id', 1)->countAllResults();
+        $data['total_menunggak'] = $this->tagihanModel->where('bulan', $bulan)->where('tahun', $tahun)->where('status_tagihan_id', 4)->countAllResults();
 
         $data['bulan']      = $bulan;
         $data['tahun']      = $tahun;
@@ -240,23 +240,23 @@ class LaporanController extends BaseController
         $data['total_menunggu'] = $this->maintenanceModel
             ->where('MONTH(created_at)', $bulan)
             ->where('YEAR(created_at)', $tahun)
-            ->where('status', 'menunggu')
+            ->where('status_maintenance_id', 1)
             ->countAllResults();
         $data['total_proses']   = $this->maintenanceModel
             ->where('MONTH(created_at)', $bulan)
             ->where('YEAR(created_at)', $tahun)
-            ->where('status', 'proses')
+            ->where('status_maintenance_id', 2)
             ->countAllResults();
         $data['total_selesai']  = $this->maintenanceModel
             ->where('MONTH(created_at)', $bulan)
             ->where('YEAR(created_at)', $tahun)
-            ->where('status', 'selesai')
+            ->where('status_maintenance_id', 3)
             ->countAllResults();
         $data['total_biaya']    = $this->maintenanceModel
             ->selectSum('biaya', 'total')
             ->where('MONTH(created_at)', $bulan)
             ->where('YEAR(created_at)', $tahun)
-            ->where('status', 'selesai')
+            ->where('status_maintenance_id', 3)
             ->first()['total'] ?? 0;
 
         $data['bulan']      = $bulan;
@@ -285,7 +285,7 @@ class LaporanController extends BaseController
             ->join('penyewa', 'penyewa.id = tagihan.penyewa_id')
             ->join('users', 'users.id = penyewa.user_id')
             ->join('kamar', 'kamar.id = penyewa.kamar_id')
-            ->where('pembayaran.status', 'approved')
+            ->where('pembayaran.status_pembayaran_id', 2)
             ->where('tagihan.bulan', $bulan)
             ->where('tagihan.tahun', $tahun)
             ->findAll();

@@ -23,15 +23,15 @@ class PembayaranSeeder extends Seeder
             $penyewaId   = $tagihanId;
             $nominalUnik = ($penyewaId % 999) + 1;
             $data[] = [
-                'tagihan_id'     => $tagihanId,
-                'jumlah_bayar'   => $harga[$penyewaId] + $nominalUnik,
-                'bukti_transfer' => null,
-                'status'         => 'approved',
-                'catatan_admin'  => 'Pembayaran dikonfirmasi',
-                'approved_at'    => '2025-03-08 10:00:00',
-                'approved_by'    => 1,
-                'created_at'     => '2025-03-07 09:00:00',
-                'updated_at'     => '2025-03-08 10:00:00',
+                'tagihan_id'           => $tagihanId,
+                'jumlah_bayar'         => $harga[$penyewaId] + $nominalUnik,
+                'bukti_transfer'       => null,
+                'status_pembayaran_id' => 2,
+                'catatan_admin'        => 'Pembayaran dikonfirmasi',
+                'approved_at'          => '2025-03-08 10:00:00',
+                'approved_by'          => 1,
+                'created_at'           => '2025-03-07 09:00:00',
+                'updated_at'           => '2025-03-08 10:00:00',
             ];
         }
 
@@ -39,15 +39,15 @@ class PembayaranSeeder extends Seeder
             $penyewaId   = $tagihanId - 9;
             $nominalUnik = ($penyewaId % 999) + 1;
             $data[] = [
-                'tagihan_id'     => $tagihanId,
-                'jumlah_bayar'   => $harga[$penyewaId] + $nominalUnik,
-                'bukti_transfer' => null,
-                'status'         => 'approved',
-                'catatan_admin'  => 'Pembayaran dikonfirmasi',
-                'approved_at'    => '2025-04-08 10:00:00',
-                'approved_by'    => 1,
-                'created_at'     => '2025-04-07 09:00:00',
-                'updated_at'     => '2025-04-08 10:00:00',
+                'tagihan_id'           => $tagihanId,
+                'jumlah_bayar'         => $harga[$penyewaId] + $nominalUnik,
+                'bukti_transfer'       => null,
+                'status_pembayaran_id' => 2,
+                'catatan_admin'        => 'Pembayaran dikonfirmasi',
+                'approved_at'          => '2025-04-08 10:00:00',
+                'approved_by'          => 1,
+                'created_at'           => '2025-04-07 09:00:00',
+                'updated_at'           => '2025-04-08 10:00:00',
             ];
         }
 
@@ -55,15 +55,15 @@ class PembayaranSeeder extends Seeder
             $penyewaId   = $tagihanId - 18;
             $nominalUnik = ($penyewaId % 999) + 1;
             $data[] = [
-                'tagihan_id'     => $tagihanId,
-                'jumlah_bayar'   => $harga[$penyewaId] + $nominalUnik,
-                'bukti_transfer' => null,
-                'status'         => 'pending',
-                'catatan_admin'  => null,
-                'approved_at'    => null,
-                'approved_by'    => null,
-                'created_at'     => '2025-05-06 09:00:00',
-                'updated_at'     => '2025-05-06 09:00:00',
+                'tagihan_id'           => $tagihanId,
+                'jumlah_bayar'         => $harga[$penyewaId] + $nominalUnik,
+                'bukti_transfer'       => null,
+                'status_pembayaran_id' => 1,
+                'catatan_admin'        => null,
+                'approved_at'          => null,
+                'approved_by'          => null,
+                'created_at'           => '2025-05-06 09:00:00',
+                'updated_at'           => '2025-05-06 09:00:00',
             ];
         }
 

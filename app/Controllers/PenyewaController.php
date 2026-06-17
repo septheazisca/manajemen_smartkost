@@ -79,19 +79,19 @@ class PenyewaController extends BaseController
 
         // 2. Simpan data sewa penyewa, dihubungkan ke akun user lewat user_id
         $this->penyewaModel->save([
-            'user_id'          => $userId,
-            'kamar_id'         => $this->request->getPost('kamar_id'),
-            'tanggal_masuk'    => $this->request->getPost('tanggal_masuk'),
-            'alamat'           => $this->request->getPost('alamat'),
-            'asal_kota'        => $this->request->getPost('asal_kota'),
-            'status_pekerjaan' => $this->request->getPost('status_pekerjaan') ?: null,
-            'status_pernikahan' => $this->request->getPost('status_pernikahan') ?: null,
-            'nomor_darurat'    => $this->request->getPost('nomor_darurat'),
+            'user_id'              => $userId,
+            'kamar_id'             => $this->request->getPost('kamar_id'),
+            'tanggal_masuk'        => $this->request->getPost('tanggal_masuk'),
+            'alamat'               => $this->request->getPost('alamat'),
+            'asal_kota'            => $this->request->getPost('asal_kota'),
+            'status_pekerjaan_id'  => $this->request->getPost('status_pekerjaan_id') ?: null,
+            'status_pernikahan_id' => $this->request->getPost('status_pernikahan_id') ?: null,
+            'nomor_darurat'        => $this->request->getPost('nomor_darurat'),
         ]);
 
         // 3. Update status kamar jadi terisi agar tidak bisa dipilih penyewa lain
         $this->kamarModel->update($this->request->getPost('kamar_id'), [
-            'status' => 'terisi',
+            'status_kamar_id' => 2, // 2 is terisi
         ]);
 
         $db->transComplete();
@@ -146,12 +146,12 @@ class PenyewaController extends BaseController
 
         // Update data sewa di tabel penyewa
         $this->penyewaModel->update($id, [
-            'tanggal_masuk'    => $this->request->getPost('tanggal_masuk'),
-            'alamat'           => $this->request->getPost('alamat'),
-            'asal_kota'        => $this->request->getPost('asal_kota'),
-            'status_pekerjaan' => $this->request->getPost('status_pekerjaan') ?: null,
-            'status_pernikahan' => $this->request->getPost('status_pernikahan') ?: null,
-            'nomor_darurat'    => $this->request->getPost('nomor_darurat'),
+            'tanggal_masuk'        => $this->request->getPost('tanggal_masuk'),
+            'alamat'               => $this->request->getPost('alamat'),
+            'asal_kota'            => $this->request->getPost('asal_kota'),
+            'status_pekerjaan_id'  => $this->request->getPost('status_pekerjaan_id') ?: null,
+            'status_pernikahan_id' => $this->request->getPost('status_pernikahan_id') ?: null,
+            'nomor_darurat'        => $this->request->getPost('nomor_darurat'),
         ]);
 
         $db->transComplete();
@@ -216,7 +216,7 @@ class PenyewaController extends BaseController
 
         // Kembalikan status kamar ke kosong agar bisa ditempati penyewa baru
         $this->kamarModel->update($penyewa['kamar_id'], [
-            'status' => 'kosong',
+            'status_kamar_id' => 1, // 1 is kosong
         ]);
 
         $db->transComplete();
@@ -295,11 +295,11 @@ class PenyewaController extends BaseController
 
         // Update data tambahan di tabel penyewa
         $this->penyewaModel->update($penyewa['id'], [
-            'alamat'            => $this->request->getPost('alamat'),
-            'asal_kota'         => $this->request->getPost('asal_kota'),
-            'status_pekerjaan'  => $this->request->getPost('status_pekerjaan') ?: null,
-            'status_pernikahan' => $this->request->getPost('status_pernikahan') ?: null,
-            'nomor_darurat'     => $this->request->getPost('nomor_darurat'),
+            'alamat'               => $this->request->getPost('alamat'),
+            'asal_kota'            => $this->request->getPost('asal_kota'),
+            'status_pekerjaan_id'  => $this->request->getPost('status_pekerjaan_id') ?: null,
+            'status_pernikahan_id' => $this->request->getPost('status_pernikahan_id') ?: null,
+            'nomor_darurat'        => $this->request->getPost('nomor_darurat'),
         ]);
 
         $db->transComplete();

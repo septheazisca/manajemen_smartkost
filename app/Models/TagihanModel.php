@@ -18,7 +18,7 @@ class TagihanModel extends Model
         'tahun',
         'jumlah',
         'nominal_unik',
-        'status',
+        'status_tagihan_id',
         'jatuh_tempo',
         'created_at',
         'updated_at'
@@ -65,10 +65,14 @@ class TagihanModel extends Model
     {
         $builder = $this->select('
             tagihan.*,
+            status_tagihan.nama_status AS status,
+            status_tagihan.badge_class,
+            status_tagihan.icon,
             users.name AS nama,
             users.phone,
             kamar.nomor_kamar AS nama_kamar
         ')
+            ->join('status_tagihan', 'status_tagihan.id = tagihan.status_tagihan_id')
             ->join('penyewa', 'penyewa.id = tagihan.penyewa_id')
             ->join('users', 'users.id = penyewa.user_id')
             ->join('kamar', 'kamar.id = penyewa.kamar_id');
@@ -84,10 +88,14 @@ class TagihanModel extends Model
     {
         return $this->select('
             tagihan.*,
+            status_tagihan.nama_status AS status,
+            status_tagihan.badge_class,
+            status_tagihan.icon,
             users.name AS nama,
             users.phone,
             kamar.nomor_kamar AS nama_kamar
         ')
+            ->join('status_tagihan', 'status_tagihan.id = tagihan.status_tagihan_id')
             ->join('penyewa', 'penyewa.id = tagihan.penyewa_id')
             ->join('users', 'users.id = penyewa.user_id')
             ->join('kamar', 'kamar.id = penyewa.kamar_id')
@@ -123,7 +131,7 @@ class TagihanModel extends Model
                 'tahun'        => $tahun,
                 'jumlah'       => $penyewa['harga'],
                 'nominal_unik' => $nominalUnik,
-                'status'       => 'pending',
+                'status_tagihan_id' => 1, // 1 is pending
                 'jatuh_tempo'  => $jatuhTempo,
             ]);
 
@@ -143,7 +151,9 @@ class TagihanModel extends Model
     // ambil tagihan by penyewa_id (untuk dashboard penyewa)
     public function getTagihanByPenyewa($penyewaId)
     {
-        return $this->where('penyewa_id', $penyewaId)
+        return $this->select('tagihan.*, status_tagihan.nama_status AS status, status_tagihan.badge_class, status_tagihan.icon')
+            ->join('status_tagihan', 'status_tagihan.id = tagihan.status_tagihan_id')
+            ->where('penyewa_id', $penyewaId)
             ->orderBy('tahun', 'DESC')
             ->orderBy('bulan', 'DESC')
             ->findAll();
@@ -163,15 +173,19 @@ class TagihanModel extends Model
     {
         return $this->select('
                 tagihan.*,
+                status_tagihan.nama_status AS status,
+                status_tagihan.badge_class,
+                status_tagihan.icon,
                 users.name,
                 users.phone,
                 kamar.nomor_kamar,
                 penyewa.user_id
             ')
+            ->join('status_tagihan', 'status_tagihan.id = tagihan.status_tagihan_id')
             ->join('penyewa', 'penyewa.id = tagihan.penyewa_id')
             ->join('users', 'users.id = penyewa.user_id')
             ->join('kamar', 'kamar.id = penyewa.kamar_id')
-            ->where('tagihan.status', 'menunggak')
+            ->where('status_tagihan.nama_status', 'menunggak')
             ->findAll();
     }
 }

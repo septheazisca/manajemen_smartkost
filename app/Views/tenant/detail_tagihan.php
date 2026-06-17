@@ -25,16 +25,20 @@
             <!-- Status Visual Besar -->
             <div class="p-4 text-center border-bottom bg-light-subtle">
                 <?php
-                $statusConfig = [
-                    'pending'             => ['class' => 'bg-warning', 'text' => 'text-warning', 'label' => 'Menunggu Pembayaran', 'icon' => 'bi-clock'],
-                    'menunggu_konfirmasi' => ['class' => 'bg-info',    'text' => 'text-info',    'label' => 'Perlu Konfirmasi',   'icon' => 'bi-shield-exclamation'],
-                    'lunas'               => ['class' => 'bg-success', 'text' => 'text-success', 'label' => 'Sudah Lunas',        'icon' => 'bi-check-circle-fill'],
-                    'menunggak'           => ['class' => 'bg-danger',  'text' => 'text-danger',  'label' => 'Terlambat/Menunggak', 'icon' => 'bi-exclamation-octagon-fill'],
-                ];
-                $cfg = $statusConfig[$tagihan['status']] ?? ['class' => 'bg-secondary', 'text' => 'text-secondary', 'label' => $tagihan['status'], 'icon' => 'bi-info-circle'];
+                $textClass = 'text-secondary';
+                if (strpos($tagihan['badge_class'], 'text-warning') !== false) $textClass = 'text-warning';
+                elseif (strpos($tagihan['badge_class'], 'text-info') !== false) $textClass = 'text-info';
+                elseif (strpos($tagihan['badge_class'], 'text-success') !== false) $textClass = 'text-success';
+                elseif (strpos($tagihan['badge_class'], 'text-danger') !== false) $textClass = 'text-danger';
+                
+                $label = ucwords(str_replace('_', ' ', $tagihan['status']));
+                if ($tagihan['status'] === 'pending') $label = 'Menunggu Pembayaran';
+                elseif ($tagihan['status'] === 'menunggu_konfirmasi') $label = 'Perlu Konfirmasi';
+                elseif ($tagihan['status'] === 'lunas') $label = 'Sudah Lunas';
+                elseif ($tagihan['status'] === 'menunggak') $label = 'Terlambat/Menunggak';
                 ?>
-                <div class="display-6 <?= $cfg['text'] ?> mb-2"><i class="bi <?= $cfg['icon'] ?>"></i></div>
-                <h5 class="fw-bold mb-1"><?= $cfg['label'] ?></h5>
+                <div class="display-6 <?= $textClass ?> mb-2"><i class="bi <?= esc($tagihan['icon']) ?>"></i></div>
+                <h5 class="fw-bold mb-1"><?= esc($label) ?></h5>
                 <p class="text-muted small mb-0">Periode <?= esc($tagihan['bulan']) ?>/<?= esc($tagihan['tahun']) ?></p>
             </div>
 
@@ -159,25 +163,8 @@
                                     </td>
 
                                     <td class="text-center">
-                                        <?php
-                                        // Logika murni membaca status transaksi pembayaran individu
-                                        if ($p['status_pembayaran'] === 'approved') {
-                                            $sc = ['class' => 'bg-success-subtle text-success border-success', 'label' => 'Lunas'];
-                                        } elseif ($p['status_pembayaran'] === 'ditolak') {
-                                            $sc = ['class' => 'bg-danger-subtle text-danger border-danger', 'label' => 'Ditolak'];
-                                        } elseif ($p['status_pembayaran'] === 'pending') {
-                                            $sc = ['class' => 'bg-warning-subtle text-warning border-warning', 'label' => 'Pending'];
-                                        } else {
-                                            // Cadangan jika status pembayaran kosong, ikut status tagihan
-                                            if ($p['status_tagihan'] === 'menunggak') {
-                                                $sc = ['class' => 'bg-danger-subtle text-danger border-danger', 'label' => 'Menunggak'];
-                                            } else {
-                                                $sc = ['class' => 'bg-secondary-subtle text-secondary border-secondary', 'label' => 'Belum Bayar'];
-                                            }
-                                        }
-                                        ?>
-                                        <span class="badge <?= $sc['class'] ?> border px-2 fw-normal">
-                                            <?= $sc['label'] ?>
+                                        <span class="badge <?= esc($p['badge_class']) ?> border px-2 fw-normal">
+                                            <i class="bi <?= esc($p['icon']) ?> me-1"></i><?= esc(ucwords(str_replace('_', ' ', $p['status_pembayaran']))) ?>
                                         </span>
                                     </td>
 

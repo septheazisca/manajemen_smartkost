@@ -18,7 +18,7 @@ class KamarModel extends Model
         'lantai',
         'luas',
         'harga',
-        'status',
+        'status_kamar_id',
         'deskripsi',
         'foto',
         'created_at',
@@ -57,12 +57,24 @@ class KamarModel extends Model
 
     public function getKamarKosong()
     {
-        return $this->where('status', 'kosong')->findAll();
+        return $this->select('kamar.*, status_kamar.nama_status as status, status_kamar.badge_class, status_kamar.icon')
+                    ->join('status_kamar', 'status_kamar.id = kamar.status_kamar_id')
+                    ->where('status_kamar.nama_status', 'kosong')
+                    ->findAll();
+    }
+
+    public function getKamarLengkap()
+    {
+        return $this->select('kamar.*, status_kamar.nama_status as status, status_kamar.badge_class, status_kamar.icon')
+                    ->join('status_kamar', 'status_kamar.id = kamar.status_kamar_id')
+                    ->findAll();
     }
 
     public function getKamarWithFasilitas($id)
     {
-        $kamar = $this->find($id);
+        $kamar = $this->select('kamar.*, status_kamar.nama_status as status, status_kamar.badge_class, status_kamar.icon')
+                      ->join('status_kamar', 'status_kamar.id = kamar.status_kamar_id')
+                      ->find($id);
         if (!$kamar) return null;
 
         $fasilitasModel      = new FasilitasModel();
@@ -77,5 +89,6 @@ class KamarModel extends Model
 
         return $kamar;
     }
+
 
 }

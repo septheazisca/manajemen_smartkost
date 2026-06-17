@@ -85,15 +85,7 @@
                             <td><?= $i + 1 ?></td>
                             <td class="fw-bold"><?= esc($p['keterangan']) ?></td>
                             <td>
-                                <?php
-                                $badge = match ($p['kategori']) {
-                                    'maintenance' => 'info',
-                                    'gaji'        => 'warning',
-                                    'lainnya'     => 'secondary',
-                                    default       => 'secondary',
-                                };
-                                ?>
-                                <span class="badge bg-<?= $badge ?>"><?= ucfirst($p['kategori']) ?></span>
+                                <span class="badge bg-<?= esc($p['badge_class'] ?? 'secondary') ?>"><i class="<?= esc($p['icon'] ?? 'bi-box') ?> me-1"></i><?= esc(ucfirst($p['kategori'])) ?></span>
                             </td>
                             <td><?= esc($p['nama_pj'] ?? '-') ?></td>
                             <td class="fw-bold text-danger">Rp <?= number_format($p['jumlah'], 0, ',', '.') ?></td>
@@ -153,8 +145,10 @@
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Kategori</label>
-                            <select name="kategori" class="form-select" required>
-                                <option value="lainnya" selected>Lainnya</option>
+                            <select name="kategori_pengeluaran_id" class="form-select" required>
+                                <?php foreach ($kategori_list as $kat): ?>
+                                    <option value="<?= $kat['id'] ?>" <?= $kat['nama_kategori'] == 'lainnya' ? 'selected' : '' ?>><?= esc(ucfirst($kat['nama_kategori'])) ?></option>
+                                <?php endforeach; ?>
                             </select>
                         </div>
                         <div class="col-md-6 mb-3">
@@ -218,8 +212,10 @@
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Kategori</label>
-                                    <select name="kategori" class="form-select" required>
-                                        <option value="lainnya" <?= $p['kategori'] == 'lainnya' ? 'selected' : '' ?>>Lainnya</option>
+                                    <select name="kategori_pengeluaran_id" class="form-select" required>
+                                        <?php foreach ($kategori_list as $kat): ?>
+                                            <option value="<?= $kat['id'] ?>" <?= $p['kategori_pengeluaran_id'] == $kat['id'] ? 'selected' : '' ?>><?= esc(ucfirst($kat['nama_kategori'])) ?></option>
+                                        <?php endforeach; ?>
                                     </select>
                                 </div>
                                 <div class="col-md-6 mb-3">

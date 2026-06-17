@@ -82,7 +82,11 @@ class TagihanController extends BaseController
         }
 
         $data['tagihan']    = $tagihan;
-        $data['pembayaran'] = $this->pembayaranModel->where('tagihan_id', $id)->findAll();
+        $data['pembayaran'] = $this->pembayaranModel
+            ->select('pembayaran.*, status_pembayaran.nama_status AS status, status_pembayaran.badge_class, status_pembayaran.icon')
+            ->join('status_pembayaran', 'status_pembayaran.id = pembayaran.status_pembayaran_id')
+            ->where('tagihan_id', $id)
+            ->findAll();
 
         return view('admin/tagihan/detail', $data);
     }
@@ -102,15 +106,15 @@ class TagihanController extends BaseController
 
         // 1. Tandai pembayaran sebagai approved, catat siapa dan kapan yang approve
         $this->pembayaranModel->update($pembayaranId, [
-            'status'        => 'approved',
-            'catatan_admin' => $this->request->getPost('catatan_admin'),
-            'approved_at'   => date('Y-m-d H:i:s'),
-            'approved_by'   => session()->get('user_id'),
+            'status_pembayaran_id' => 2, // 2 is approved
+            'catatan_admin'        => $this->request->getPost('catatan_admin'),
+            'approved_at'          => date('Y-m-d H:i:s'),
+            'approved_by'          => session()->get('user_id'),
         ]);
 
         // 2. Update status tagihan jadi lunas
         $this->tagihanModel->update($pembayaran['tagihan_id'], [
-            'status' => 'lunas',
+            'status_tagihan_id' => 3, // 3 is lunas
         ]);
 
         $db->transComplete();
@@ -144,13 +148,13 @@ class TagihanController extends BaseController
 
         // 1. Tandai pembayaran sebagai ditolak beserta alasannya
         $this->pembayaranModel->update($pembayaranId, [
-            'status'        => 'ditolak',
-            'catatan_admin' => $catatanAdmin,
+            'status_pembayaran_id' => 3, // 3 is ditolak
+            'catatan_admin'        => $catatanAdmin,
         ]);
 
         // 2. Kembalikan tagihan ke pending agar penyewa bisa upload ulang bukti
         $this->tagihanModel->update($pembayaran['tagihan_id'], [
-            'status' => 'pending',
+            'status_tagihan_id' => 1, // 1 is pending
         ]);
 
         $db->transComplete();
@@ -173,11 +177,11 @@ class TagihanController extends BaseController
             return redirect()->back()->with('error', 'Tagihan tidak ditemukan.');
         }
 
-        if ($tagihan['status'] === 'lunas') {
+        if ((int)$tagihan['status_tagihan_id'] === 3) { // 3 is lunas
             return redirect()->back()->with('error', 'Tagihan sudah lunas, tidak bisa ditandai menunggak.');
         }
 
-        $this->tagihanModel->update($tagihanId, ['status' => 'menunggak']);
+        $this->tagihanModel->update($tagihanId, ['status_tagihan_id' => 4]); // 4 is menunggak
 
         return redirect()->to('/admin/tagihan')
             ->with('success', 'Tagihan berhasil ditandai sebagai menunggak.');
@@ -202,7 +206,7 @@ class TagihanController extends BaseController
             return redirect()->back()->with('error', 'Tagihan tidak ditemukan.');
         }
 
-        if ($tagihan['status'] === 'lunas') {
+        if ((int)$tagihan['status_tagihan_id'] === 3) { // 3 is lunas
             return redirect()->back()->with('error', 'Tagihan ini sudah lunas.');
         }
 
@@ -231,15 +235,15 @@ class TagihanController extends BaseController
 
         // Simpan record pembayaran dengan status pending, menunggu konfirmasi admin
         $this->pembayaranModel->save([
-            'tagihan_id'     => $tagihanId,
-            'jumlah_bayar'   => $tagihan['jumlah'] + $tagihan['nominal_unik'],
-            'bukti_transfer' => $newName,
-            'status'         => 'pending',
+            'tagihan_id'           => $tagihanId,
+            'jumlah_bayar'         => $tagihan['jumlah'] + $tagihan['nominal_unik'],
+            'bukti_transfer'       => $newName,
+            'status_pembayaran_id' => 1, // 1 is pending
         ]);
 
         // Update status tagihan agar admin tahu ada pembayaran yang perlu dikonfirmasi
         $this->tagihanModel->update($tagihanId, [
-            'status' => 'menunggu_konfirmasi',
+            'status_tagihan_id' => 2, // 2 is menunggu_konfirmasi
         ]);
 
         $db->transComplete();
@@ -289,19 +293,23 @@ class TagihanController extends BaseController
         // PERBAIKAN QUERY: Ambil murni dari pembayaran yang join ke tagihan
         $data['pembayaran'] = $this->pembayaranModel
             ->select('
-            pembayaran.id as pembayaran_id,
-            pembayaran.jumlah_bayar,
-            pembayaran.bukti_transfer,
-            pembayaran.status as status_pembayaran,
-            pembayaran.catatan_admin,
-            pembayaran.created_at,
-            pembayaran.updated_at,
-            tagihan.id as tagihan_id,
-            tagihan.status as status_tagihan
-        ')
-            ->join('tagihan', 'tagihan.id = pembayaran.tagihan_id', 'left') // Ubah jadi left join
-            ->where('pembayaran.tagihan_id', $id) // Kunci berdasarkan tagihan_id di pembayaran
-            ->orderBy('pembayaran.created_at', 'DESC') // Yang terbaru di atas (Bisa diubah ke ASC kalau mau urutan dari lama ke baru)
+                pembayaran.id as pembayaran_id,
+                pembayaran.jumlah_bayar,
+                pembayaran.bukti_transfer,
+                status_pembayaran.nama_status as status_pembayaran,
+                status_pembayaran.badge_class,
+                status_pembayaran.icon,
+                pembayaran.catatan_admin,
+                pembayaran.created_at,
+                pembayaran.updated_at,
+                tagihan.id as tagihan_id,
+                status_tagihan.nama_status as status_tagihan
+            ')
+            ->join('status_pembayaran', 'status_pembayaran.id = pembayaran.status_pembayaran_id', 'left')
+            ->join('tagihan', 'tagihan.id = pembayaran.tagihan_id', 'left')
+            ->join('status_tagihan', 'status_tagihan.id = tagihan.status_tagihan_id', 'left')
+            ->where('pembayaran.tagihan_id', $id)
+            ->orderBy('pembayaran.created_at', 'DESC')
             ->findAll();
 
         $data['tagihan'] = $tagihan;

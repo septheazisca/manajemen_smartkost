@@ -71,35 +71,35 @@ class DashboardController extends BaseController
 
         // Penyewa yang paling sering menunggak
         $seringMenunggak = $tagihanModel
-            ->select('users.name, kamar.nomor_kamar, COUNT(tagihan.id) as jumlah_tunggakan')
+            ->select('tagihan.penyewa_id, users.name as nama_penyewa, kamar.nomor_kamar, SUM(tagihan.total_tagihan) as jumlah_tunggakan, COUNT(tagihan.id) as bulan_menunggak')
             ->join('penyewa', 'penyewa.id = tagihan.penyewa_id')
             ->join('users', 'users.id = penyewa.user_id')
             ->join('kamar', 'kamar.id = penyewa.kamar_id')
-            ->where('tagihan.status', 'menunggak')
+            ->where('tagihan.status_tagihan_id', 4)
             ->groupBy('tagihan.penyewa_id')
             ->orderBy('jumlah_tunggakan', 'DESC')
             ->findAll(5);
 
         // Status tagihan bulan ini untuk pie chart
         $statusTagihan = [
-            'lunas'              => $tagihanModel->where('bulan', $bulan)->where('tahun', $tahun)->where('status', 'lunas')->countAllResults(),
-            'pending'            => $tagihanModel->where('bulan', $bulan)->where('tahun', $tahun)->where('status', 'pending')->countAllResults(),
-            'menunggu_konfirmasi' => $tagihanModel->where('bulan', $bulan)->where('tahun', $tahun)->where('status', 'menunggu_konfirmasi')->countAllResults(),
-            'menunggak'          => $tagihanModel->where('bulan', $bulan)->where('tahun', $tahun)->where('status', 'menunggak')->countAllResults(),
+            'lunas'              => $tagihanModel->where('bulan', $bulan)->where('tahun', $tahun)->where('status_tagihan_id', 3)->countAllResults(),
+            'pending'            => $tagihanModel->where('bulan', $bulan)->where('tahun', $tahun)->where('status_tagihan_id', 1)->countAllResults(),
+            'menunggu_konfirmasi' => $tagihanModel->where('bulan', $bulan)->where('tahun', $tahun)->where('status_tagihan_id', 2)->countAllResults(),
+            'menunggak'          => $tagihanModel->where('bulan', $bulan)->where('tahun', $tahun)->where('status_tagihan_id', 4)->countAllResults(),
         ];
 
         $data = [
             'total_kamar'         => $kamarModel->countAll(),
-            'kamar_terisi'        => $kamarModel->where('status', 'terisi')->countAllResults(),
-            'kamar_kosong'        => $kamarModel->where('status', 'kosong')->countAllResults(),
+            'kamar_terisi'        => $kamarModel->where('status_kamar_id', 2)->countAllResults(),
+            'kamar_kosong'        => $kamarModel->where('status_kamar_id', 1)->countAllResults(),
             'total_penyewa'       => $penyewaModel->where('tanggal_keluar', null)->countAllResults(),
-            'tagihan_pending'     => $tagihanModel->where('status', 'menunggu_konfirmasi')->countAllResults(),
-            'tagihan_menunggak'   => $tagihanModel->where('status', 'menunggak')->countAllResults(),
-            'maintenance_pending' => $maintenanceModel->where('status', 'menunggu')->countAllResults(),
+            'tagihan_pending'     => $tagihanModel->where('status_tagihan_id', 2)->countAllResults(),
+            'tagihan_menunggak'   => $tagihanModel->where('status_tagihan_id', 4)->countAllResults(),
+            'maintenance_pending' => $maintenanceModel->where('status_maintenance_id', 1)->countAllResults(),
             'pemasukan_bulan_ini' => $pembayaranModel
                 ->select('SUM(jumlah_bayar) as total')
                 ->join('tagihan', 'tagihan.id = pembayaran.tagihan_id')
-                ->where('pembayaran.status', 'approved')
+                ->where('pembayaran.status_pembayaran_id', 2)
                 ->where('tagihan.bulan', $bulan)
                 ->where('tagihan.tahun', $tahun)
                 ->first()['total'] ?? 0,
@@ -136,13 +136,13 @@ class DashboardController extends BaseController
 
         // Hitung statistik tugas khusus PJ yang login saja
         $data['total_tugas']   = $maintenanceModel->where('pj_id', $pj['id'])->countAllResults();
-        $data['tugas_proses']  = $maintenanceModel->where('pj_id', $pj['id'])->where('status', 'proses')->countAllResults();
-        $data['tugas_selesai'] = $maintenanceModel->where('pj_id', $pj['id'])->where('status', 'selesai')->countAllResults();
+        $data['tugas_proses']  = $maintenanceModel->where('pj_id', $pj['id'])->where('status_maintenance_id', 2)->countAllResults();
+        $data['tugas_selesai'] = $maintenanceModel->where('pj_id', $pj['id'])->where('status_maintenance_id', 3)->countAllResults();
 
         // Riwayat gaji diambil dari tabel pengeluaran kategori 'gaji', terbaru di atas
         $data['riwayat_gaji']  = $pengeluaranModel
             ->where('pj_id', $pj['id'])
-            ->where('kategori', 'gaji')
+            ->where('kategori_pengeluaran_id', 2)
             ->orderBy('tahun', 'DESC')
             ->orderBy('bulan', 'DESC')
             ->findAll();
@@ -170,14 +170,14 @@ class DashboardController extends BaseController
         // Tagihan yang masih perlu dibayar atau menunggu konfirmasi
         $data['tagihan_aktif']   = $tagihanModel
             ->where('penyewa_id', $penyewa['id'])
-            ->whereIn('status', ['pending', 'menunggu_konfirmasi', 'menunggak'])
+            ->whereIn('status_tagihan_id', [1, 2, 4])
             ->orderBy('created_at', 'DESC')
             ->findAll();
 
         // Hitung berapa tagihan yang sudah lunas (untuk info di dashboard)
         $data['tagihan_lunas']   = $tagihanModel
             ->where('penyewa_id', $penyewa['id'])
-            ->where('status', 'lunas')
+            ->where('status_tagihan_id', 3)
             ->countAllResults();
 
         // Total semua laporan kerusakan yang pernah dibuat penyewa ini
@@ -188,7 +188,7 @@ class DashboardController extends BaseController
         // Laporan yang masih dalam proses penanganan
         $data['maintenance_proses'] = $maintenanceModel
             ->where('penyewa_id', $penyewa['id'])
-            ->whereIn('status', ['menunggu', 'proses'])
+            ->whereIn('status_maintenance_id', [1, 2])
             ->countAllResults();
 
         return view('tenant/dashboard', $data);

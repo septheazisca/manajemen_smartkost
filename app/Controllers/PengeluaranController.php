@@ -26,12 +26,14 @@ class PengeluaranController extends BaseController
         $bulan = $this->request->getGet('bulan') ?? date('m');
         $tahun = $this->request->getGet('tahun') ?? date('Y');
 
-        $data['pengeluaran'] = $this->pengeluaranModel->getPengeluaranLengkap($bulan, $tahun);
-        $data['total']       = $this->pengeluaranModel->getTotalPengeluaran($bulan, $tahun);
-        $data['bulan']       = $bulan;
-        $data['tahun']       = $tahun;
-        $data['pj_list']     = $this->pjModel->where('is_active', 1)->findAll();
-        $data['list_bulan']  = $this->getListBulan();
+        $db = \Config\Database::connect();
+        $data['pengeluaran']   = $this->pengeluaranModel->getPengeluaranLengkap($bulan, $tahun);
+        $data['total']         = $this->pengeluaranModel->getTotalPengeluaran($bulan, $tahun);
+        $data['bulan']         = $bulan;
+        $data['tahun']         = $tahun;
+        $data['pj_list']       = $this->pjModel->where('is_active', 1)->findAll();
+        $data['list_bulan']    = $this->getListBulan();
+        $data['kategori_list'] = $db->table('kategori_pengeluaran')->get()->getResultArray();
 
         return view('admin/pengeluaran/index', $data);
     }
@@ -41,11 +43,11 @@ class PengeluaranController extends BaseController
     public function store()
     {
         $rules = [
-            'keterangan' => 'required|min_length[3]',
-            'kategori'   => 'required|in_list[maintenance,gaji,lainnya]',
-            'jumlah'     => 'required|numeric|greater_than[0]',
-            'bulan'      => 'required',
-            'tahun'      => 'required|numeric',
+            'keterangan'              => 'required|min_length[3]',
+            'kategori_pengeluaran_id' => 'required|numeric',
+            'jumlah'                  => 'required|numeric|greater_than[0]',
+            'bulan'                   => 'required',
+            'tahun'                   => 'required|numeric',
         ];
 
         if (!$this->validate($rules)) {
@@ -55,13 +57,13 @@ class PengeluaranController extends BaseController
         }
 
         $this->pengeluaranModel->save([
-            'keterangan'     => $this->request->getPost('keterangan'),
-            'kategori'       => $this->request->getPost('kategori'),
-            'jumlah'         => $this->request->getPost('jumlah'),
-            'bulan'          => $this->request->getPost('bulan'),
-            'tahun'          => $this->request->getPost('tahun'),
-            'pj_id'          => $this->request->getPost('pj_id') ?: null,
-            'maintenance_id' => null, // null = input manual, bukan dari maintenance
+            'keterangan'              => $this->request->getPost('keterangan'),
+            'kategori_pengeluaran_id' => $this->request->getPost('kategori_pengeluaran_id'),
+            'jumlah'                  => $this->request->getPost('jumlah'),
+            'bulan'                   => $this->request->getPost('bulan'),
+            'tahun'                   => $this->request->getPost('tahun'),
+            'pj_id'                   => $this->request->getPost('pj_id') ?: null,
+            'maintenance_id'          => null, // null = input manual, bukan dari maintenance
         ]);
 
         return redirect()->to('/admin/pengeluaran')
@@ -80,17 +82,17 @@ class PengeluaranController extends BaseController
         }
 
         // Blokir edit kalau pengeluaran ini otomatis dari maintenance atau kategori gaji
-        if ($pengeluaran['maintenance_id'] !== null || $pengeluaran['kategori'] === 'gaji') {
+        if ($pengeluaran['maintenance_id'] !== null || $pengeluaran['kategori_pengeluaran_id'] == 2) {
             return redirect()->back()
                 ->with('error', 'Pengeluaran ini tidak bisa diedit.');
         }
 
         $rules = [
-            'keterangan' => 'required|min_length[3]',
-            'kategori'   => 'required|in_list[maintenance,gaji,lainnya]',
-            'jumlah'     => 'required|numeric|greater_than[0]',
-            'bulan'      => 'required',
-            'tahun'      => 'required|numeric',
+            'keterangan'              => 'required|min_length[3]',
+            'kategori_pengeluaran_id' => 'required|numeric',
+            'jumlah'                  => 'required|numeric|greater_than[0]',
+            'bulan'                   => 'required',
+            'tahun'                   => 'required|numeric',
         ];
 
         if (!$this->validate($rules)) {
@@ -100,12 +102,12 @@ class PengeluaranController extends BaseController
         }
 
         $this->pengeluaranModel->update($id, [
-            'keterangan' => $this->request->getPost('keterangan'),
-            'kategori'   => $this->request->getPost('kategori'),
-            'jumlah'     => $this->request->getPost('jumlah'),
-            'bulan'      => $this->request->getPost('bulan'),
-            'tahun'      => $this->request->getPost('tahun'),
-            'pj_id'      => $this->request->getPost('pj_id') ?: null,
+            'keterangan'              => $this->request->getPost('keterangan'),
+            'kategori_pengeluaran_id' => $this->request->getPost('kategori_pengeluaran_id'),
+            'jumlah'                  => $this->request->getPost('jumlah'),
+            'bulan'                   => $this->request->getPost('bulan'),
+            'tahun'                   => $this->request->getPost('tahun'),
+            'pj_id'                   => $this->request->getPost('pj_id') ?: null,
         ]);
 
         return redirect()->to('/admin/pengeluaran')
@@ -124,7 +126,7 @@ class PengeluaranController extends BaseController
         }
 
         // Blokir hapus kalau pengeluaran ini otomatis dari maintenance atau kategori gaji
-        if ($pengeluaran['maintenance_id'] !== null || $pengeluaran['kategori'] === 'gaji') {
+        if ($pengeluaran['maintenance_id'] !== null || $pengeluaran['kategori_pengeluaran_id'] == 2) {
             return redirect()->back()
                 ->with('error', 'Pengeluaran ini tidak bisa dihapus.');
         }
@@ -144,21 +146,21 @@ class PengeluaranController extends BaseController
 
         // Hitung total per kategori menggunakan selectSum
         $data['total_maintenance'] = $this->pengeluaranModel
-            ->where('kategori', 'maintenance')
+            ->where('kategori_pengeluaran_id', 1)
             ->where('bulan', $bulan)
             ->where('tahun', $tahun)
             ->selectSum('jumlah', 'total')
             ->first()['total'] ?? 0;
 
         $data['total_gaji'] = $this->pengeluaranModel
-            ->where('kategori', 'gaji')
+            ->where('kategori_pengeluaran_id', 2)
             ->where('bulan', $bulan)
             ->where('tahun', $tahun)
             ->selectSum('jumlah', 'total')
             ->first()['total'] ?? 0;
 
         $data['total_lainnya'] = $this->pengeluaranModel
-            ->where('kategori', 'lainnya')
+            ->where('kategori_pengeluaran_id', 3)
             ->where('bulan', $bulan)
             ->where('tahun', $tahun)
             ->selectSum('jumlah', 'total')

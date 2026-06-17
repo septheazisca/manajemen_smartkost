@@ -20,7 +20,7 @@ class MaintenanceModel extends Model
         'foto',
         'biaya',
         'catatan_pj',
-        'status',
+        'status_maintenance_id',
         'assigned_at',
         'selesai_at',
         'created_at',
@@ -62,10 +62,14 @@ class MaintenanceModel extends Model
     {
         $builder = $this->select('
             maintenance.*,
+            status_maintenance.nama_status AS status,
+            status_maintenance.badge_class,
+            status_maintenance.icon,
             users.name as nama_penyewa,
             kamar.nomor_kamar,
             pj_users.name as nama_pj
         ')
+            ->join('status_maintenance', 'status_maintenance.id = maintenance.status_maintenance_id')
             ->join('penyewa', 'penyewa.id = maintenance.penyewa_id', 'left')
             ->join('users', 'users.id = penyewa.user_id', 'left')
             ->join('kamar', 'kamar.id = maintenance.kamar_id', 'left')
@@ -84,15 +88,23 @@ class MaintenanceModel extends Model
     // ambil maintenance by pj_id (untuk dashboard PJ)
     public function getMaintenanceByPj($pjId)
     {
-        return $this->select('maintenance.*, users.name as nama_penyewa, kamar.nomor_kamar')
+        return $this->select('
+                maintenance.*, 
+                status_maintenance.nama_status AS status,
+                status_maintenance.badge_class,
+                status_maintenance.icon,
+                users.name as nama_penyewa, 
+                kamar.nomor_kamar
+            ')
+            ->join('status_maintenance', 'status_maintenance.id = maintenance.status_maintenance_id')
             ->join('penyewa', 'penyewa.id = maintenance.penyewa_id', 'left')
             ->join('users', 'users.id = penyewa.user_id', 'left')
             ->join('kamar', 'kamar.id = maintenance.kamar_id', 'left')
             ->groupStart()
-            ->where('maintenance.pj_id', $pjId)
-            ->orWhere('maintenance.pj_id', null)
+                ->where('maintenance.pj_id', $pjId)
+                ->orWhere('maintenance.pj_id', null)
             ->groupEnd()
-            ->whereIn('maintenance.status', ['menunggu', 'proses'])
+            ->whereIn('status_maintenance.nama_status', ['menunggu', 'proses'])
             ->orderBy('maintenance.created_at', 'DESC')
             ->findAll();
     }

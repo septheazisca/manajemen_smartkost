@@ -227,17 +227,8 @@
                                 </div>
                             </td>
                             <td class="text-center">
-                                <?php
-                                $statusConfig = [
-                                    'pending'              => ['class' => 'bg-warning text-dark', 'label' => 'Pending'],
-                                    'menunggu_konfirmasi'  => ['class' => 'bg-info text-dark',    'label' => 'Konfirmasi'],
-                                    'lunas'                => ['class' => 'bg-success',           'label' => 'Lunas'],
-                                    'menunggak'            => ['class' => 'bg-danger',            'label' => 'Menunggak'],
-                                ];
-                                $cfg = $statusConfig[$t['status']] ?? ['class' => 'bg-secondary', 'label' => $t['status']];
-                                ?>
-                                <span class="badge <?= $cfg['class'] ?> shadow-sm">
-                                    <?= $cfg['label'] ?>
+                                <span class="badge <?= esc($t['badge_class']) ?> shadow-sm">
+                                    <i class="bi <?= esc($t['icon']) ?> me-1"></i><?= esc(ucwords(str_replace('_', ' ', $t['status']))) ?>
                                 </span>
                             </td>
                             <td>

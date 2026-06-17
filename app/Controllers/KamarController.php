@@ -26,7 +26,7 @@ class KamarController extends BaseController
     // Tampilkan semua kamar beserta fasilitas yang dimiliki masing-masing
     public function index()
     {
-        $rooms = $this->kamarModel->findAll();
+        $rooms = $this->kamarModel->getKamarLengkap();
 
         // Buat mapping fasilitas per kamar dalam bentuk array
         // Hasilnya: [kamar_id => [fasilitas_id, fasilitas_id, ...]]
@@ -93,7 +93,7 @@ class KamarController extends BaseController
             'harga'       => $this->request->getPost('harga'),
             'deskripsi'   => $this->request->getPost('deskripsi'),
             'foto'        => $fotoName,
-            'status'      => 'kosong',
+            'status_kamar_id' => 1, // 1 is kosong
         ]);
 
         // Ambil ID kamar yang baru saja disimpan
@@ -194,7 +194,7 @@ class KamarController extends BaseController
         }
 
         // Cegah hapus kamar yang masih terisi penyewa
-        if ($kamar['status'] === 'terisi') {
+        if ((int)$kamar['status_kamar_id'] === 2) { // 2 is terisi
             return redirect()->back()->with('error', 'Kamar tidak bisa dihapus karena masih ada penyewa.');
         }
 

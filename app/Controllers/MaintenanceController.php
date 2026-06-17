@@ -53,9 +53,9 @@ class MaintenanceController extends BaseController
         }
 
         $this->maintenanceModel->update($id, [
-            'pj_id'       => $pjId,
-            'status'      => 'proses',
-            'assigned_at' => date('Y-m-d H:i:s'),
+            'pj_id'                 => $pjId,
+            'status_maintenance_id' => 2, // 2 is proses
+            'assigned_at'           => date('Y-m-d H:i:s'),
         ]);
 
         return redirect()->to('/admin/maintenance')
@@ -98,23 +98,23 @@ class MaintenanceController extends BaseController
 
         // 1. Update status maintenance jadi selesai
         $this->maintenanceModel->update($id, [
-            'status'     => 'selesai',
-            'catatan_pj' => $this->request->getPost('catatan_pj'),
-            'biaya'      => $biaya,
-            'selesai_at' => date('Y-m-d H:i:s'),
+            'status_maintenance_id' => 3, // 3 is selesai
+            'catatan_pj'            => $this->request->getPost('catatan_pj'),
+            'biaya'                 => $biaya,
+            'selesai_at'            => date('Y-m-d H:i:s'),
         ]);
 
         // 2. Kalau ada biaya, otomatis catat ke tabel pengeluaran kategori 'maintenance'
         // Ini yang membuat pengeluaran maintenance tidak perlu diinput manual oleh admin
         if ($biaya > 0) {
             $this->pengeluaranModel->save([
-                'keterangan'     => 'Biaya maintenance: ' . $maintenance['deskripsi'],
-                'kategori'       => 'maintenance',
-                'jumlah'         => $biaya,
-                'bulan'          => date('m'),
-                'tahun'          => date('Y'),
-                'pj_id'          => $pj['id'],
-                'maintenance_id' => $id, // referensi ke laporan asal, dipakai untuk cegah edit/hapus manual
+                'keterangan'              => 'Biaya maintenance: ' . $maintenance['deskripsi'],
+                'kategori_pengeluaran_id' => 1, // 1 is maintenance
+                'jumlah'                  => $biaya,
+                'bulan'                   => date('m'),
+                'tahun'                   => date('Y'),
+                'pj_id'                   => $pj['id'],
+                'maintenance_id'          => $id, // referensi ke laporan asal, dipakai untuk cegah edit/hapus manual
             ]);
         }
 
@@ -174,11 +174,11 @@ class MaintenanceController extends BaseController
 
         // Status awal selalu 'menunggu', menunggu admin assign ke PJ
         $this->maintenanceModel->save([
-            'penyewa_id' => $penyewa['id'],
-            'kamar_id'   => $penyewa['kamar_id'],
-            'deskripsi'  => $this->request->getPost('deskripsi'),
-            'foto'       => $fotoName,
-            'status'     => 'menunggu',
+            'penyewa_id'            => $penyewa['id'],
+            'kamar_id'              => $penyewa['kamar_id'],
+            'deskripsi'             => $this->request->getPost('deskripsi'),
+            'foto'                  => $fotoName,
+            'status_maintenance_id' => 1, // 1 is menunggu
         ]);
 
         return redirect()->to('/tenant/maintenance')
@@ -196,7 +196,8 @@ class MaintenanceController extends BaseController
         }
 
         $data['maintenance'] = $this->maintenanceModel
-            ->select('maintenance.*, kamar.nomor_kamar')
+            ->select('maintenance.*, status_maintenance.nama_status as status, status_maintenance.badge_class, status_maintenance.icon, kamar.nomor_kamar')
+            ->join('status_maintenance', 'status_maintenance.id = maintenance.status_maintenance_id')
             ->join('kamar', 'kamar.id = maintenance.kamar_id', 'left')
             ->where('maintenance.penyewa_id', $penyewa['id'])
             ->orderBy('maintenance.created_at', 'DESC')
@@ -220,9 +221,9 @@ class MaintenanceController extends BaseController
         $data['pj']          = $pj;
 
         // AMBIL HITUNGAN LANGSUNG DARI DATABASE (Abaikan filter array view)
-        $data['totalMenunggu'] = $this->maintenanceModel->where('status', 'menunggu')->countAllResults();
-        $data['totalProses']   = $this->maintenanceModel->where('status', 'proses')->where('pj_id', $pj['id'])->countAllResults();
-        $data['totalSelesai']  = $this->maintenanceModel->where('status', 'selesai')->where('pj_id', $pj['id'])->countAllResults();
+        $data['totalMenunggu'] = $this->maintenanceModel->where('status_maintenance_id', 1)->countAllResults(); // 1 is menunggu
+        $data['totalProses']   = $this->maintenanceModel->where('status_maintenance_id', 2)->where('pj_id', $pj['id'])->countAllResults(); // 2 is proses
+        $data['totalSelesai']  = $this->maintenanceModel->where('status_maintenance_id', 3)->where('pj_id', $pj['id'])->countAllResults(); // 3 is selesai
 
         return view('pj/maintenance', $data);
     }
@@ -234,12 +235,16 @@ class MaintenanceController extends BaseController
         $maintenance = $this->maintenanceModel
             ->select('
                 maintenance.*,
+                status_maintenance.nama_status AS status,
+                status_maintenance.badge_class,
+                status_maintenance.icon,
                 users.name as nama_penyewa,
                 users.phone as phone_penyewa,
                 kamar.nomor_kamar,
                 penanggung_jawab.nama as nama_pj,
                 penanggung_jawab.phone as phone_pj
             ')
+            ->join('status_maintenance', 'status_maintenance.id = maintenance.status_maintenance_id')
             ->join('penyewa', 'penyewa.id = maintenance.penyewa_id', 'left')
             ->join('users', 'users.id = penyewa.user_id', 'left')
             ->join('kamar', 'kamar.id = maintenance.kamar_id', 'left')
@@ -283,9 +288,9 @@ class MaintenanceController extends BaseController
         }
 
         $this->maintenanceModel->update($id, [
-            'pj_id'       => $pj['id'],
-            'status'      => 'proses',
-            'assigned_at' => date('Y-m-d H:i:s'),
+            'pj_id'                 => $pj['id'],
+            'status_maintenance_id' => 2, // 2 is proses
+            'assigned_at'           => date('Y-m-d H:i:s'),
         ]);
 
         return redirect()->to('/pj/maintenance')
@@ -327,7 +332,15 @@ class MaintenanceController extends BaseController
         }
 
         $maintenance = $this->maintenanceModel
-            ->select('maintenance.*, kamar.nomor_kamar, penanggung_jawab.nama as nama_pj')
+            ->select('
+                maintenance.*,
+                status_maintenance.nama_status AS status,
+                status_maintenance.badge_class,
+                status_maintenance.icon,
+                kamar.nomor_kamar,
+                penanggung_jawab.nama as nama_pj
+            ')
+            ->join('status_maintenance', 'status_maintenance.id = maintenance.status_maintenance_id')
             ->join('kamar', 'kamar.id = maintenance.kamar_id', 'left')
             ->join('penanggung_jawab', 'penanggung_jawab.id = maintenance.pj_id', 'left')
             ->where('maintenance.id', $id)

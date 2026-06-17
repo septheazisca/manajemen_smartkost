@@ -91,11 +91,9 @@
                             <td><?= $r['luas'] ?></td>
                             <td>Rp <?= number_format($r['harga']) ?></td>
                             <td class="text-center">
-                                <?php if ($r['status'] == 'terisi') : ?>
-                                    <span class="badge bg-success">Terisi</span>
-                                <?php else : ?>
-                                    <span class="badge bg-danger">Kosong</span>
-                                <?php endif; ?>
+                                <span class="badge bg-<?= esc($r['badge_class']) ?>">
+                                    <i class="bi <?= esc($r['icon']) ?> me-1"></i><?= esc(ucfirst($r['status'])) ?>
+                                </span>
                             </td>
                             <td class="d-flex justify-content-center">
                                 <div style="display:flex;gap:.35rem; margin: 0 auto; ">

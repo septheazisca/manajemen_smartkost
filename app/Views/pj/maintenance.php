@@ -87,14 +87,7 @@
                         </td>
                     </tr>
                 <?php else: ?>
-                    <?php foreach ($maintenance as $i => $m):
-                        $badgeCfg = match ($m['status']) {
-                            'menunggu' => ['bg' => 'warning', 'label' => 'Menunggu'],
-                            'proses'   => ['bg' => 'info',    'label' => 'Diproses'],
-                            'selesai'  => ['bg' => 'success', 'label' => 'Selesai'],
-                            default    => ['bg' => 'secondary', 'label' => ucfirst($m['status'])],
-                        };
-                    ?>
+                    <?php foreach ($maintenance as $i => $m): ?>
                         <tr>
                             <td><?= $i + 1 ?></td>
                             <td>
@@ -107,7 +100,7 @@
                                 </span>
                             </td>
                             <td>
-                                <span class="badge bg-<?= $badgeCfg['bg'] ?>"><?= $badgeCfg['label'] ?></span>
+                                <span class="badge bg-<?= esc($m['badge_class'] ?? 'secondary') ?>"><?= esc(ucfirst($m['status'])) ?></span>
                             </td>
                             <td>
                                 <small><?= date('d/m/Y', strtotime($m['created_at'])) ?></small><br>

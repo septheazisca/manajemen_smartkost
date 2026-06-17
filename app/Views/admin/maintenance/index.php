@@ -108,14 +108,7 @@ foreach ($maintenance as $m) {
                         </td>
                     </tr>
                 <?php else: ?>
-                    <?php foreach ($maintenance as $i => $m):
-                        $badgeCfg = match ($m['status']) {
-                            'menunggu' => ['bg' => 'warning', 'label' => 'Menunggu'],
-                            'proses'   => ['bg' => 'info',    'label' => 'Diproses'],
-                            'selesai'  => ['bg' => 'success', 'label' => 'Selesai'],
-                            default    => ['bg' => 'secondary', 'label' => ucfirst($m['status'])],
-                        };
-                    ?>
+                    <?php foreach ($maintenance as $i => $m): ?>
                         <tr>
                             <td><?= $i + 1 ?></td>
                             <td><strong><?= esc($m['nama_penyewa'] ?? '-') ?></strong></td>
@@ -126,7 +119,9 @@ foreach ($maintenance as $m) {
                                 </span>
                             </td>
                             <td>
-                                <span class="badge bg-<?= $badgeCfg['bg'] ?>"><?= $badgeCfg['label'] ?></span>
+                                <span class="badge bg-<?= esc($m['badge_class']) ?>">
+                                    <i class="bi <?= esc($m['icon']) ?> me-1"></i><?= esc(ucwords($m['status'])) ?>
+                                </span>
                             </td>
                             <td>
                                 <?php if ($m['nama_pj']): ?>

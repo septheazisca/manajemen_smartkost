@@ -202,7 +202,7 @@ class PenanggungJawabController extends BaseController
         // Cegah dobel bayar: cek apakah sudah ada record gaji bulan ini
         $sudahBayar = $this->pengeluaranModel
             ->where('pj_id', $id)
-            ->where('kategori', 'gaji')
+            ->where('kategori_pengeluaran_id', 2)
             ->where('bulan', $bulan)
             ->where('tahun', $tahun)
             ->first();
@@ -216,13 +216,13 @@ class PenanggungJawabController extends BaseController
         $jumlah = $this->request->getPost('jumlah') ?: $pj['gaji_bulanan'];
 
         $this->pengeluaranModel->save([
-            'keterangan' => "Gaji penanggung jawab: {$pj['nama']} ({$bulan}/{$tahun})",
-            'kategori'   => 'gaji',
-            'jumlah'     => $jumlah,
-            'bulan'      => $bulan,
-            'tahun'      => $tahun,
-            'pj_id'      => $id,
-            'created_at' => date('Y-m-d H:i:s'),
+            'keterangan'              => "Gaji penanggung jawab: {$pj['nama']} ({$bulan}/{$tahun})",
+            'kategori_pengeluaran_id' => 2,
+            'jumlah'                  => $jumlah,
+            'bulan'                   => $bulan,
+            'tahun'                   => $tahun,
+            'pj_id'                   => $id,
+            'created_at'              => date('Y-m-d H:i:s'),
         ]);
 
         return redirect()->to('/admin/pj')
@@ -241,7 +241,7 @@ class PenanggungJawabController extends BaseController
         $data['pj']      = $pj;
         $data['riwayat'] = $this->pengeluaranModel
             ->where('pj_id', $id)
-            ->where('kategori', 'gaji')
+            ->where('kategori_pengeluaran_id', 2)
             ->orderBy('tahun', 'DESC')
             ->orderBy('bulan', 'DESC')
             ->findAll();
@@ -260,7 +260,7 @@ class PenanggungJawabController extends BaseController
 
         $riwayat = $this->pengeluaranModel
             ->where('pj_id', $id)
-            ->where('kategori', 'gaji')
+            ->where('kategori_pengeluaran_id', 2)
             ->orderBy('tahun', 'DESC')
             ->orderBy('bulan', 'DESC')
             ->findAll();

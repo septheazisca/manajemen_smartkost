@@ -42,15 +42,6 @@
                 <div class="table-card-sub">Detail kerusakan yang dilaporkan penyewa</div>
             </div>
 
-            <?php
-            $badgeCfg = match ($maintenance['status']) {
-                'menunggu' => ['bg' => 'warning', 'label' => 'Menunggu'],
-                'proses'   => ['bg' => 'info',    'label' => 'Diproses'],
-                'selesai'  => ['bg' => 'success', 'label' => 'Selesai'],
-                default    => ['bg' => 'secondary', 'label' => ucfirst($maintenance['status'])],
-            };
-            ?>
-
             <div style="border-top: 1px solid var(--border); padding-top: 1rem;">
                 <div class="d-flex justify-content-between align-items-center py-2" style="border-bottom: 1px solid var(--border);">
                     <span class="text-muted small">Penyewa</span>
@@ -62,7 +53,7 @@
                 </div>
                 <div class="d-flex justify-content-between align-items-center py-2" style="border-bottom: 1px solid var(--border);">
                     <span class="text-muted small">Status</span>
-                    <span class="badge bg-<?= $badgeCfg['bg'] ?>"><?= $badgeCfg['label'] ?></span>
+                    <span class="badge bg-<?= esc($maintenance['badge_class'] ?? 'secondary') ?>"><?= esc(ucfirst($maintenance['status'])) ?></span>
                 </div>
                 <div class="d-flex justify-content-between align-items-center py-2" style="border-bottom: 1px solid var(--border);">
                     <span class="text-muted small">Tanggal Lapor</span>
