@@ -58,6 +58,9 @@ $routes->group('admin', ['filter' => 'role:admin'], function ($routes) {
     $routes->post('tagihan/approve/(:num)', 'TagihanController::approve/$1');
     $routes->post('tagihan/tolak/(:num)', 'TagihanController::tolak/$1');
     $routes->post('tagihan/tandai-menunggak/(:num)', 'TagihanController::tandaiMenunggak/$1');
+    $routes->get('tagihan/kirim-notif-tagihan/(:num)', 'TagihanController::kirimNotifTagihan/$1');
+    $routes->get('tagihan/kirim-notif-menunggak/(:num)', 'TagihanController::kirimNotifMenunggak/$1');
+    $routes->get('tagihan/kirim-notif-lunas/(:num)', 'TagihanController::kirimNotifLunas/$1');
     $routes->get('tagihan/(:num)', 'TagihanController::show/$1');
     $routes->get('tagihan/export-excel', 'TagihanController::exportExcel');
 
@@ -95,6 +98,8 @@ $routes->group('admin', ['filter' => 'role:admin'], function ($routes) {
 
     // notifikasi
     $routes->get('notifikasi', 'NotifikasiController::index');
+    $routes->post('notifikasi/kirim-custom', 'NotifikasiController::kirimCustom');
+    $routes->post('notifikasi/kirim-massal', 'NotifikasiController::kirimMassal');
 
     // detail kost
     $routes->get('detail-kost', 'DetailKostController::index');
