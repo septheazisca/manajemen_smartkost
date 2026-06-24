@@ -146,6 +146,14 @@ class UserSeeder extends Seeder
             ],
         ];
 
-        $this->db->table('users')->insertBatch($data);
+        // Avoid seeding failure when user already exists (email is UNIQUE)
+        $builder = $this->db->table('users');
+        foreach ($data as $row) {
+            $exists = $builder->where('email', $row['email'])->countAllResults() > 0;
+            if (!$exists) {
+                $builder->insert($row);
+            }
+        }
     }
 }
+
