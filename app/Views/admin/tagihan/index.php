@@ -35,6 +35,31 @@
         font-weight: 500;
         cursor: pointer;
     }
+    
+    .action-btn.wa-pending {
+        color: #00c14a;
+    }
+    .action-btn.wa-pending:hover {
+        border-color: #00c14a;
+        color: white;
+        background-color: #00c14a;
+    }
+    .action-btn.wa-menunggak {
+        color: #ff9829;
+    }
+    .action-btn.wa-menunggak:hover {
+        border-color: #ff9829;
+        color: white;
+        background-color: #ff9829;
+    }
+    .action-btn.wa-lunas {
+        color: #116cff;
+    }
+    .action-btn.wa-lunas:hover {
+        border-color: #116cff;
+        color: white;
+        background-color: #116cff;
+    }
 </style>
 
 <!-- Breadcrumb -->
@@ -237,19 +262,21 @@
                                         <i class="bi bi-eye"></i>
                                     </a>
 
-                                    <?php if ($t['status'] === 'menunggu_konfirmasi') : ?>
-                                        <!-- <button class="action-btn edit bg-success text-white border-0" title="Approve" data-bs-toggle="modal" data-bs-target="#approveModal<?= $t['id'] ?>">
-                                            <i class="bi bi-check-lg"></i>
-                                        </button> -->
-                                        <!-- <button class="action-btn del" title="Tolak" data-bs-toggle="modal" data-bs-target="#tolakModal<?= $t['id'] ?>">
-                                            <i class="bi bi-x-lg"></i>
-                                        </button> -->
-                                    <?php endif; ?>
-
                                     <?php if ($t['status'] === 'pending') : ?>
+                                        <a href="/admin/tagihan/kirim-notif-tagihan/<?= $t['id'] ?>" class="action-btn wa-pending" title="Kirim Pengingat WhatsApp">
+                                            <i class="bi bi-whatsapp"></i>
+                                        </a>
                                         <button class="action-btn warning" title="Tandai Menunggak" data-bs-toggle="modal" data-bs-target="#menunggakModal<?= $t['id'] ?>">
                                             <i class="bi bi-exclamation-circle"></i>
                                         </button>
+                                    <?php elseif ($t['status'] === 'menunggak') : ?>
+                                        <a href="/admin/tagihan/kirim-notif-menunggak/<?= $t['id'] ?>" class="action-btn wa-menunggak" title="Kirim Peringatan Menunggak (WhatsApp)">
+                                            <i class="bi bi-whatsapp"></i>
+                                        </a>
+                                    <?php elseif ($t['status'] === 'lunas') : ?>
+                                        <a href="/admin/tagihan/kirim-notif-lunas/<?= $t['id'] ?>" class="action-btn wa-lunas" title="Kirim Bukti Lunas (WhatsApp)">
+                                            <i class="bi bi-whatsapp"></i>
+                                        </a>
                                     <?php endif; ?>
                                 </div>
                             </td>

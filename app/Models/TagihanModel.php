@@ -188,4 +188,13 @@ class TagihanModel extends Model
             ->where('status_tagihan.nama_status', 'menunggak')
             ->findAll();
     }
+
+    // Auto-update tagihan berstatus pending yang sudah melewati tanggal jatuh tempo menjadi menunggak
+    public function checkAndUpdateOverdue()
+    {
+        return $this->where('status_tagihan_id', 1) // 1 = pending
+            ->where('jatuh_tempo <', date('Y-m-d'))
+            ->set(['status_tagihan_id' => 4]) // 4 = menunggak
+            ->update();
+    }
 }

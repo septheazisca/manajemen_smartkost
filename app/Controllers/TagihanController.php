@@ -32,6 +32,9 @@ class TagihanController extends BaseController
     // Juga tampilkan pembayaran yang menunggu konfirmasi admin
     public function index()
     {
+        // Auto-update tagihan berstatus pending yang sudah melewati tanggal jatuh tempo menjadi menunggak
+        $this->tagihanModel->checkAndUpdateOverdue();
+
         $bulan = $this->request->getGet('bulan') ?? date('m');
         $tahun = $this->request->getGet('tahun') ?? date('Y');
 
@@ -809,5 +812,94 @@ class TagihanController extends BaseController
         $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
         $writer->save('php://output');
         exit;
+    }
+
+    // Kirim notifikasi tagihan (pending) manual via WhatsApp
+    public function kirimNotifTagihan($tagihanId)
+    {
+        $tagihanLengkap = $this->tagihanModel->getTagihanLengkapById($tagihanId);
+        if (!$tagihanLengkap) {
+            return redirect()->back()->with('error', 'Tagihan tidak ditemukan.');
+        }
+
+        if (empty($tagihanLengkap['phone'])) {
+            return redirect()->back()->with('error', 'Nomor HP penyewa tidak terdaftar.');
+        }
+
+        $penyewa = $this->penyewaModel->find($tagihanLengkap['penyewa_id']);
+        $userId = $tagihanLengkap['user_id'] ?? ($penyewa['user_id'] ?? null);
+
+        $totalBayar = $tagihanLengkap['jumlah'] + $tagihanLengkap['nominal_unik'];
+        $namaBulan = $this->getListBulan()[$tagihanLengkap['bulan']] ?? $tagihanLengkap['bulan'];
+        $jatuhTempoFormated = date('d F Y', strtotime($tagihanLengkap['jatuh_tempo']));
+
+        $pesan = "Halo *{$tagihanLengkap['nama']}*,\n\n📢 Ini adalah pengingat tagihan sewa kamar *Kamar {$tagihanLengkap['nama_kamar']}* untuk periode *{$namaBulan} {$tagihanLengkap['tahun']}*.\n\nTotal tagihan: *Rp " . number_format($totalBayar, 0, ',', '.') . "*\nJatuh Tempo: *{$jatuhTempoFormated}*\n\nMohon lakukan pembayaran dan unggah bukti transfer melalui aplikasi SmartKost. Terima kasih! 🙏";
+
+        $status = $this->fonnteService->sendAndLog($userId, $tagihanLengkap['phone'], $pesan, 'tagihan');
+
+        if ($status) {
+            return redirect()->back()->with('success', 'Notifikasi pengingat tagihan berhasil dikirim ke WhatsApp.');
+        } else {
+            return redirect()->back()->with('error', 'Gagal mengirim notifikasi WhatsApp.');
+        }
+    }
+
+    // Kirim notifikasi menunggak manual via WhatsApp
+    public function kirimNotifMenunggak($tagihanId)
+    {
+        $tagihanLengkap = $this->tagihanModel->getTagihanLengkapById($tagihanId);
+        if (!$tagihanLengkap) {
+            return redirect()->back()->with('error', 'Tagihan tidak ditemukan.');
+        }
+
+        if (empty($tagihanLengkap['phone'])) {
+            return redirect()->back()->with('error', 'Nomor HP penyewa tidak terdaftar.');
+        }
+
+        $penyewa = $this->penyewaModel->find($tagihanLengkap['penyewa_id']);
+        $userId = $tagihanLengkap['user_id'] ?? ($penyewa['user_id'] ?? null);
+
+        $totalBayar = $tagihanLengkap['jumlah'] + $tagihanLengkap['nominal_unik'];
+        $namaBulan = $this->getListBulan()[$tagihanLengkap['bulan']] ?? $tagihanLengkap['bulan'];
+        $jatuhTempoFormated = date('d F Y', strtotime($tagihanLengkap['jatuh_tempo']));
+
+        $pesan = "Halo *{$tagihanLengkap['nama']}*,\n\n⚠️ Tagihan sewa kamar *Kamar {$tagihanLengkap['nama_kamar']}* periode *{$namaBulan} {$tagihanLengkap['tahun']}* sebesar *Rp " . number_format($totalBayar, 0, ',', '.') . "* telah *MELEWATI JATUH TEMPO* ({$jatuhTempoFormated}).\n\nStatus tagihan saat ini: *MENUNGGAK*.\n\nMohon segera lakukan pelunasan pembayaran dan unggah bukti transfer melalui aplikasi SmartKost. Terima kasih atas pengertiannya. 🙏";
+
+        $status = $this->fonnteService->sendAndLog($userId, $tagihanLengkap['phone'], $pesan, 'tunggakan');
+
+        if ($status) {
+            return redirect()->back()->with('success', 'Notifikasi tunggakan berhasil dikirim ke WhatsApp.');
+        } else {
+            return redirect()->back()->with('error', 'Gagal mengirim notifikasi WhatsApp.');
+        }
+    }
+
+    // Kirim notifikasi lunas manual via WhatsApp
+    public function kirimNotifLunas($tagihanId)
+    {
+        $tagihanLengkap = $this->tagihanModel->getTagihanLengkapById($tagihanId);
+        if (!$tagihanLengkap) {
+            return redirect()->back()->with('error', 'Tagihan tidak ditemukan.');
+        }
+
+        if (empty($tagihanLengkap['phone'])) {
+            return redirect()->back()->with('error', 'Nomor HP penyewa tidak terdaftar.');
+        }
+
+        $penyewa = $this->penyewaModel->find($tagihanLengkap['penyewa_id']);
+        $userId = $tagihanLengkap['user_id'] ?? ($penyewa['user_id'] ?? null);
+
+        $totalBayar = $tagihanLengkap['jumlah'] + $tagihanLengkap['nominal_unik'];
+        $namaBulan = $this->getListBulan()[$tagihanLengkap['bulan']] ?? $tagihanLengkap['bulan'];
+
+        $pesan = "Halo *{$tagihanLengkap['nama']}*,\n\n🎉 Terima kasih! Pembayaran sewa kamar *Kamar {$tagihanLengkap['nama_kamar']}* untuk periode *{$namaBulan} {$tagihanLengkap['tahun']}* sebesar *Rp " . number_format($totalBayar, 0, ',', '.') . "* telah kami terima dan berstatus *LUNAS*.\n\nTerima kasih atas kerja samanya! Semoga betah tinggal di SmartKost. 😊";
+
+        $status = $this->fonnteService->sendAndLog($userId, $tagihanLengkap['phone'], $pesan, 'approved');
+
+        if ($status) {
+            return redirect()->back()->with('success', 'Notifikasi bukti pelunasan berhasil dikirim ke WhatsApp.');
+        } else {
+            return redirect()->back()->with('error', 'Gagal mengirim notifikasi WhatsApp.');
+        }
     }
 }

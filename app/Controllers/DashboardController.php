@@ -18,6 +18,10 @@ class DashboardController extends BaseController
     {
         $role = session()->get('role');
 
+        // Auto-update tagihan berstatus pending yang sudah melewati tanggal jatuh tempo menjadi menunggak
+        $tagihanModel = new TagihanModel();
+        $tagihanModel->checkAndUpdateOverdue();
+
         return match ($role) {
             'admin'   => $this->adminDashboard(),
             'pj'      => $this->pjDashboard(),
