@@ -256,7 +256,7 @@ class MaintenanceController extends BaseController
         $nomorKamar = $kamar ? $kamar['nomor_kamar'] : '-';
 
         $pesanAdminPj = "🚨 *Laporan Kerusakan Baru*\n\n";
-        $pesanAdminPj .= "Penyewa: {$penyewa['nama']}\n";
+        $pesanAdminPj .= "Penyewa: {$penyewa['name']}\n";
         $pesanAdminPj .= "Kamar: {$nomorKamar}\n";
         $pesanAdminPj .= "Keluhan: {$deskripsi}\n\n";
         $pesanAdminPj .= "Mohon segera ditindaklanjuti. Cek aplikasi SmartKost untuk detailnya.";

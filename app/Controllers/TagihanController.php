@@ -32,8 +32,9 @@ class TagihanController extends BaseController
     // Juga tampilkan pembayaran yang menunggu konfirmasi admin
     public function index()
     {
-        // Auto-update tagihan berstatus pending yang sudah melewati tanggal jatuh tempo menjadi menunggak
-        $this->tagihanModel->checkAndUpdateOverdue();
+        // Logika auto-update tunggakan DARI SINI TELAH DIHAPUS.
+        // SEKARANG SEPENUHNYA DITANGANI OLEH CRON JOB (AutomasiTagihan.php)
+        // agar notifikasi WA selalu terkirim bersamaan dengan perubahan status.
 
         $bulan = $this->request->getGet('bulan') ?? date('m');
         $tahun = $this->request->getGet('tahun') ?? date('Y');

@@ -123,7 +123,27 @@ class TagihanModel extends Model
 
             // Nominal unik berbeda tiap penyewa
             $nominalUnik = $this->generateNominalUnik($penyewa['id']);
-            $jatuhTempo = $tahun . '-' . str_pad($bulan, 2, '0', STR_PAD_LEFT) . '-10';
+            
+            // Ambil tanggal dari tanggal_masuk penyewa
+            $tanggalMasukDay = date('d', strtotime($penyewa['tanggal_masuk']));
+            
+            // Pastikan tanggal tidak melebihi jumlah hari dalam bulan tersebut (misal Februari atau bulan 30 hari)
+            $maxDayInMonth = date('t', strtotime($tahun . '-' . $bulan . '-01'));
+            if ($tanggalMasukDay > $maxDayInMonth) {
+                $tanggalMasukDay = $maxDayInMonth;
+            }
+            
+            $tanggalJatuhTempoNormal = $tahun . '-' . str_pad($bulan, 2, '0', STR_PAD_LEFT) . '-' . str_pad($tanggalMasukDay, 2, '0', STR_PAD_LEFT);
+            $hariIni = date('Y-m-d');
+            
+            // Jika hari ini sudah LEWAT dari tanggal jatuh tempo normal, 
+            // berikan kelonggaran jatuh tempo H+3 dari hari ini. 
+            // Jika belum lewat, tetap gunakan tanggal normal.
+            if (strtotime($hariIni) > strtotime($tanggalJatuhTempoNormal)) {
+                $jatuhTempo = date('Y-m-d', strtotime('+3 days'));
+            } else {
+                $jatuhTempo = $tanggalJatuhTempoNormal;
+            }
 
             $this->save([
                 'penyewa_id'   => $penyewa['id'],
